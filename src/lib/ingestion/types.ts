@@ -3,7 +3,8 @@ export type FeedType = "rss" | "atom" | "scrape" | "unknown";
 export interface ScrapeConfig {
   listItemSelector: string;
   titleSelector: string;
-  linkSelector: string;
+  // 생략 시 listItemSelector로 잡힌 엘리먼트 자체를 링크로 사용 (카드 전체가 <a>인 경우)
+  linkSelector?: string;
   linkAttr?: string; // 생략 시 href 속성 사용
   excerptSelector?: string;
   dateSelector?: string;
