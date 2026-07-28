@@ -38,7 +38,7 @@ export async function scrapeSource(siteUrl: string, config: ScrapeConfig): Promi
     const $el = $(el);
     const title = $el.find(config.titleSelector).first().text().trim();
 
-    const linkEl = $el.find(config.linkSelector).first();
+    const linkEl = config.linkSelector ? $el.find(config.linkSelector).first() : $el;
     const linkAttr = config.linkAttr ?? "href";
     const rawLink = linkAttr === "text" ? linkEl.text().trim() : linkEl.attr(linkAttr);
     if (!title || !rawLink) return;

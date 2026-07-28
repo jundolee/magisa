@@ -54,3 +54,9 @@
 **이유**: guid는 소스마다 다르게 부여되는 경우가 많아(같은 글이어도 소스 A의 guid ≠ 소스 B의 guid) dedup_key만으로는 크로스소스 중복을 못 잡음. URL은 실제로 같은 글이면 대체로 동일하므로 전역 URL 유니크가 더 안전한 기준. 실제로 두 개의 임시 소스에 동일 URL·다른 guid로 삽입을 시도해 두 번째가 23505로 정상 거부되는 것을 확인함 (`supabase/migrations/0002_cross_source_dedup.sql`).
 **영향**: `src/lib/ingestion/ingest-source.ts`. 한 건씩 순차 삽입이라 소스당 글이 아주 많으면(수백 건 이상) 배치 방식보다 느릴 수 있음 — 지금 규모(개인용, 소스별 수십 건)에서는 문제 없고, 필요해지면 나중에 병렬화 검토.
 **surfit.io 테스트 결과**: `www.surfit.io`는 홈페이지뿐 아니라 `/feed`, `/rss.xml`, `/sitemap.xml` 등 모든 경로가 동일한 7.7KB SPA 셸을 반환하는 완전 CSR 사이트로 확인됨 (naver d2와 같은 유형). RSS도 없고 스크래핑도 원천적으로 불가능해 현재 아키텍처로는 자동 소스 등록 대상이 아님.
+
+### 2026-07-28 — `scrapeConfig.linkSelector`를 선택값으로 변경 (카드 전체가 `<a>`인 사이트 지원)
+**결정**: `bucketplace.com/culture/`(오늘의집 Gatsby 정적 블로그)를 실제로 등록해보니, 글 목록 카드가 `<a class="...post-list__item">`처럼 **앵커 자체가 리스트 아이템**인 구조였음. 기존 코드는 `linkSelector`가 필수였고 `$el.find(linkSelector)`로 자식만 찾아서 이 구조를 지원 못 했음. `linkSelector`를 optional로 바꾸고, 생략 시 리스트 아이템 엘리먼트 자체를 링크로 사용하도록 수정.
+**이유**: "카드 전체가 링크"인 구조는 실제로 꽤 흔한 패턴이라 처음부터 지원하는 게 맞다고 판단.
+**영향**: `src/lib/ingestion/types.ts`, `src/lib/ingestion/scrape-source.ts`. `https://www.bucketplace.com/culture/`를 실제로 등록해 12건의 글을 정상 수집 확인함 (`listItemSelector: "a.blog-page__post-list__item"`, `linkSelector` 생략).
+**추가로 발견한 것 (등록 시 주의)**: 이 사이트의 목록 카드 썸네일 이미지는 **S3 presigned URL**(`X-Amz-Expires=3600`)이라 1시간 뒤 만료됨 — 그대로 저장하면 얼마 안 가 깨진 이미지가 됨. 이 소스는 `thumbnailSelector`를 아예 설정하지 않았음 (썸네일 없이 등록). 또한 목록 카드에 발행일이 없어 `published_at`은 null로 저장됨 (URL slug에 날짜가 박혀있긴 하지만—예: `/post/2026-07-08-...`— 현재 scrape_config는 슬러그에서 날짜를 뽑는 기능은 지원하지 않음, 필요해지면 추후 추가).
