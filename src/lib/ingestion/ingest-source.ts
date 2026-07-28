@@ -1,7 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseFeed } from "./parse-feed";
 import { scrapeSource } from "./scrape-source";
+import { canonicalizeUrl } from "./dedup";
 import type { FeedType, NormalizedArticle, ScrapeConfig } from "./types";
+
+const POSTGRES_UNIQUE_VIOLATION = "23505";
 
 export interface SourceRow {
   id: string;
@@ -22,36 +25,52 @@ export async function fetchArticlesForSource(source: SourceRow): Promise<Normali
 }
 
 /**
- * 소스 하나를 수집해 articles 테이블에 upsert한다.
- * unique(source_id, dedup_key) 제약 + ignoreDuplicates로 중복 재삽입을 막는다 (architecture.md 3절 "중복 방지").
+ * 소스 하나를 수집해 articles 테이블에 한 건씩 삽입한다.
+ * 두 종류의 중복을 모두 막는다 (docs/decisions.md 참고):
+ *  - unique(source_id, dedup_key): 같은 소스를 재수집할 때 같은 글이 다시 쌓이는 것 방지
+ *  - unique(canonical_url): 서로 다른 소스(예: 원본 블로그 + 큐레이션 사이트)가 같은 글을 가리킬 때 중복 방지
+ * 두 제약 중 하나라도 걸리면(23505) 실패로 보지 않고 "중복으로 건너뜀"으로 처리한다.
  */
 export async function ingestSource(
   supabase: SupabaseClient,
   source: SourceRow
-): Promise<{ found: number; inserted: number }> {
+): Promise<{ found: number; inserted: number; duplicates: number }> {
   const articles = await fetchArticlesForSource(source);
   if (articles.length === 0) {
-    return { found: 0, inserted: 0 };
+    return { found: 0, inserted: 0, duplicates: 0 };
   }
 
-  const rows = articles.map((a) => ({
-    source_id: source.id,
-    title: a.title,
-    url: a.url,
-    excerpt: a.excerpt,
-    thumbnail_url: a.thumbnailUrl,
-    published_at: a.publishedAt,
-    dedup_key: a.dedupKey,
-  }));
+  let inserted = 0;
+  let duplicates = 0;
 
-  const { data, error } = await supabase
-    .from("articles")
-    .upsert(rows, { onConflict: "source_id,dedup_key", ignoreDuplicates: true })
-    .select("id");
+  for (const a of articles) {
+    let canonicalUrl: string;
+    try {
+      canonicalUrl = canonicalizeUrl(a.url);
+    } catch {
+      canonicalUrl = a.url;
+    }
 
-  if (error) {
-    throw error;
+    const { error } = await supabase.from("articles").insert({
+      source_id: source.id,
+      title: a.title,
+      url: a.url,
+      canonical_url: canonicalUrl,
+      excerpt: a.excerpt,
+      thumbnail_url: a.thumbnailUrl,
+      published_at: a.publishedAt,
+      dedup_key: a.dedupKey,
+    });
+
+    if (error) {
+      if (error.code === POSTGRES_UNIQUE_VIOLATION) {
+        duplicates += 1;
+        continue;
+      }
+      throw error;
+    }
+    inserted += 1;
   }
 
-  return { found: articles.length, inserted: data?.length ?? 0 };
+  return { found: articles.length, inserted, duplicates };
 }

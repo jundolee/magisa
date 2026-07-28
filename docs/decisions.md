@@ -48,3 +48,9 @@
 **결정**: `@seed-design/react-text-field`의 `TextFieldTextareaProps`가 `TextareaHTMLAttributes` 대신 `InputHTMLAttributes`를 상속하도록 잘못 타이핑되어 있어 `rows` prop이 TS 에러를 낸다 (런타임에는 실제 `<textarea>` DOM 엘리먼트라 `rows`가 정상 동작하지만 타입 정의만 누락됨). `rows` 대신 `style={{ minHeight }}`로 초기 높이를 지정하는 방식으로 우회.
 **이유**: 라이브러리 자체의 타입 정의 버그이므로 우리 쪽에서 `any` 캐스팅 등으로 억지로 우회하기보다, 어차피 `autoresize`가 기본 동작이라 굳이 `rows`가 필요하지 않고 `minHeight`로 대체 가능.
 **영향**: `src/components/add-source-form.tsx`, `src/components/bulk-add-source-form.tsx`. 이후 SEED Design 버전이 올라가 타입이 고쳐지면 `rows`로 되돌려도 무방.
+
+### 2026-07-28 — 크로스소스 중복 제거: `canonical_url` 전역 유니크 제약 추가
+**결정**: 여러 소스를 등록하면 같은 글이 서로 다른 소스(원본 블로그 + 큐레이션/집계 사이트 등)에서 각각 수집되어 중복 저장될 수 있음. 기존 `unique(source_id, dedup_key)`는 소스별로만 유니크해서 이 케이스를 못 막았음. `articles`에 `canonical_url`(정규화된 URL) 컬럼을 추가하고 전역 `unique(canonical_url)` 제약을 걸어, 어느 소스에서 왔든 같은 URL이면 먼저 들어온 것만 남고 이후 것은 버려지도록 함. `ingestSource()`는 배치 upsert 대신 한 건씩 삽입하며 unique violation(23505)을 "중복으로 스킵"으로 처리 (실패로 취급하지 않음).
+**이유**: guid는 소스마다 다르게 부여되는 경우가 많아(같은 글이어도 소스 A의 guid ≠ 소스 B의 guid) dedup_key만으로는 크로스소스 중복을 못 잡음. URL은 실제로 같은 글이면 대체로 동일하므로 전역 URL 유니크가 더 안전한 기준. 실제로 두 개의 임시 소스에 동일 URL·다른 guid로 삽입을 시도해 두 번째가 23505로 정상 거부되는 것을 확인함 (`supabase/migrations/0002_cross_source_dedup.sql`).
+**영향**: `src/lib/ingestion/ingest-source.ts`. 한 건씩 순차 삽입이라 소스당 글이 아주 많으면(수백 건 이상) 배치 방식보다 느릴 수 있음 — 지금 규모(개인용, 소스별 수십 건)에서는 문제 없고, 필요해지면 나중에 병렬화 검토.
+**surfit.io 테스트 결과**: `www.surfit.io`는 홈페이지뿐 아니라 `/feed`, `/rss.xml`, `/sitemap.xml` 등 모든 경로가 동일한 7.7KB SPA 셸을 반환하는 완전 CSR 사이트로 확인됨 (naver d2와 같은 유형). RSS도 없고 스크래핑도 원천적으로 불가능해 현재 아키텍처로는 자동 소스 등록 대상이 아님.
