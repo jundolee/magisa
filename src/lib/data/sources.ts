@@ -34,11 +34,38 @@ export interface AddSourceResult {
 }
 
 /**
- * URL 하나를 등록한다. RSS/Atom을 자동탐지하면 그 결과로, 못 찾으면 scrapeConfig가 있을 때만 scrape 모드로 등록.
- * scrapeConfig 없이 피드도 못 찾으면 등록하지 않고 이유를 반환한다 (호출자가 재시도/직접 설정하도록).
+ * 이미 확정된(discover/미리보기를 거친) 피드 정보로 소스를 바로 저장한다.
+ * 재탐지 없이 그대로 insert만 수행 — addSourceFlowAction의 "confirm" 단계에서 사용.
+ */
+export async function insertSource(input: {
+  siteUrl: string;
+  feedType: FeedType;
+  feedUrl: string | null;
+  scrapeConfig: ScrapeConfig | null;
+}): Promise<AddSourceResult> {
+  const supabase = createServiceClient();
+  const { error } = await supabase.from("sources").insert({
+    site_url: input.siteUrl,
+    feed_url: input.feedUrl,
+    feed_type: input.feedType,
+    scrape_config: input.feedType === "scrape" ? input.scrapeConfig : null,
+  });
+
+  if (error) {
+    return { siteUrl: input.siteUrl, ok: false, message: `등록 실패: ${error.message}` };
+  }
+  return {
+    siteUrl: input.siteUrl,
+    ok: true,
+    message: input.feedType === "scrape" ? "스크래핑 방식으로 등록됨" : `${input.feedType.toUpperCase()} 피드로 등록됨`,
+  };
+}
+
+/**
+ * URL 하나를 등록한다 (일괄 등록 경로용). RSS/Atom을 자동탐지하면 그 결과로, 못 찾으면 scrapeConfig가 있을 때만 scrape 모드로 등록.
+ * scrapeConfig 없이 피드도 못 찾으면 등록하지 않고 이유를 반환한다 — 이 경우 단건 등록의 미리보기 플로우를 이용해야 한다.
  */
 export async function addSource(siteUrl: string, scrapeConfig?: ScrapeConfig): Promise<AddSourceResult> {
-  const supabase = createServiceClient();
   const normalizedUrl = siteUrl.trim();
 
   let feedUrl: string | null = null;
@@ -57,28 +84,13 @@ export async function addSource(siteUrl: string, scrapeConfig?: ScrapeConfig): P
       return {
         siteUrl: normalizedUrl,
         ok: false,
-        message: "RSS/Atom 피드를 찾지 못했습니다. 스크래핑 설정(JSON)을 입력해 다시 등록해주세요.",
+        message: "RSS/Atom 피드를 찾지 못했습니다. 단건 등록의 '미리보기'를 이용해 다시 등록해주세요.",
       };
     }
     feedType = "scrape";
   }
 
-  const { error } = await supabase.from("sources").insert({
-    site_url: normalizedUrl,
-    feed_url: feedUrl,
-    feed_type: feedType,
-    scrape_config: feedType === "scrape" ? scrapeConfig : null,
-  });
-
-  if (error) {
-    return { siteUrl: normalizedUrl, ok: false, message: `등록 실패: ${error.message}` };
-  }
-
-  return {
-    siteUrl: normalizedUrl,
-    ok: true,
-    message: feedType === "scrape" ? "스크래핑 방식으로 등록됨" : `${feedType.toUpperCase()} 피드로 등록됨`,
-  };
+  return insertSource({ siteUrl: normalizedUrl, feedType, feedUrl, scrapeConfig: scrapeConfig ?? null });
 }
 
 export async function addSourcesBulk(siteUrls: string[]): Promise<AddSourceResult[]> {
