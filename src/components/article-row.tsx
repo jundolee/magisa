@@ -1,6 +1,9 @@
+import { AspectRatio, Badge, Text } from "@seed-design/react";
 import { ArticleLink } from "./article-link";
 import { UnreadToggleForm } from "./unread-toggle-form";
 import type { ArticleListItem } from "@/lib/data/articles";
+
+const MUTED = "var(--seed-color-fg-neutral-muted)";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "";
@@ -12,33 +15,42 @@ export function ArticleRow({ article }: { article: ArticleListItem }) {
     <li
       style={{
         display: "flex",
-        gap: 16,
-        padding: 16,
-        border: "1px solid var(--seed-color-stroke-neutral)",
-        borderRadius: 8,
-        opacity: article.is_read ? 0.6 : 1,
+        gap: 20,
+        padding: "20px 0",
+        borderBottom: "1px solid var(--seed-color-stroke-neutral)",
+        opacity: article.is_read ? 0.55 : 1,
       }}
     >
-      {article.thumbnail_url && (
-        // eslint-disable-next-line @next/next/no-img-element -- 임의의 외부 도메인 썸네일이라 next/image 최적화 대상 밖
-        <img
-          src={article.thumbnail_url}
-          alt=""
-          width={96}
-          height={96}
-          style={{ objectFit: "cover", borderRadius: 8, flexShrink: 0 }}
-        />
-      )}
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13, color: "var(--seed-color-fg-neutral-muted)" }}>
-          {article.source?.title ?? article.source?.site_url} · {formatDate(article.published_at)}
-        </div>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+        <Badge size="medium" variant="weak" tone="neutral">
+          {article.source?.title ?? article.source?.site_url}
+        </Badge>
+
         <ArticleLink articleId={article.id} href={article.url}>
-          <strong>{article.title}</strong>
+          <Text as="h3" textStyle="t7Bold" color="fg.neutral" maxLines={2}>
+            {article.title}
+          </Text>
         </ArticleLink>
-        {article.excerpt && <p style={{ fontSize: 14 }}>{article.excerpt}</p>}
+
+        {article.excerpt && (
+          <Text as="p" textStyle="t4Regular" color={MUTED} maxLines={2}>
+            {article.excerpt}
+          </Text>
+        )}
+
+        <Text as="span" textStyle="t2Regular" color={MUTED}>
+          {formatDate(article.published_at)}
+        </Text>
+
         {article.is_read && <UnreadToggleForm articleId={article.id} />}
       </div>
+
+      {article.thumbnail_url && (
+        <AspectRatio ratio={1} width="112px" style={{ flexShrink: 0, borderRadius: 8, overflow: "hidden" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- 임의의 외부 도메인 썸네일이라 next/image 최적화 대상 밖 */}
+          <img src={article.thumbnail_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        </AspectRatio>
+      )}
     </li>
   );
 }

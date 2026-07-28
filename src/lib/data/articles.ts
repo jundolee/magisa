@@ -16,7 +16,9 @@ export interface ArticleListItem {
   } | null;
 }
 
-export async function listArticles(options?: { onlyUnread?: boolean }): Promise<ArticleListItem[]> {
+export type ArticleFilter = "all" | "unread" | "read";
+
+export async function listArticles(options?: { filter?: ArticleFilter }): Promise<ArticleListItem[]> {
   const supabase = createServiceClient();
   let query = supabase
     .from("articles")
@@ -24,13 +26,25 @@ export async function listArticles(options?: { onlyUnread?: boolean }): Promise<
     .order("published_at", { ascending: false, nullsFirst: false })
     .limit(200);
 
-  if (options?.onlyUnread) {
+  if (options?.filter === "unread") {
     query = query.eq("is_read", false);
+  } else if (options?.filter === "read") {
+    query = query.eq("is_read", true);
   }
 
   const { data, error } = await query;
   if (error) throw error;
   return (data as unknown as ArticleListItem[]) ?? [];
+}
+
+export async function countUnreadArticles(): Promise<number> {
+  const supabase = createServiceClient();
+  const { count, error } = await supabase
+    .from("articles")
+    .select("id", { count: "exact", head: true })
+    .eq("is_read", false);
+  if (error) throw error;
+  return count ?? 0;
 }
 
 export async function markArticleRead(id: string): Promise<void> {
