@@ -33,3 +33,18 @@
 **결정**: SEED Design 공식 문서에 Next.js 전용 가이드가 없다는 것을 확인했지만, "Manual install" 경로로 충분히 동작할 가능성이 높다고 보고 진행하되, 구현 착수 시 다른 작업보다 먼저 검증한다.
 **이유**: 번들러 플러그인 없이 순수 npm 설치 + CSS import + CLI로 컴포넌트 소스를 복사하는 방식이라 Next.js의 Webpack/Turbopack 설정과 충돌할 여지가 적음. 다만 실제로 검증된 사례를 찾지 못했음.
 **영향**: 구현 1단계는 "빈 Next.js 프로젝트 + SEED Design 컴포넌트 1개 정상 렌더링 확인"이 되어야 함. 실패해도 디자인 토큰만 가져다 쓰는 대안이 있어 완전히 막히지는 않음.
+
+### 2026-07-28 — 스파이크 검증 완료: SEED Design + Next.js 16 (App Router, Turbopack) 정상 동작
+**결정**: Manual install 경로(`npm install @seed-design/react @seed-design/css` + CLI `init`/`add`)로 Next.js 16 App Router 프로젝트에 `ui:action-button`을 설치, `npm run build`로 정적 프리렌더링까지 성공 확인. `seed-design.json`의 `rsc` 값은 CLI 기본값(`false`)이 아니라 **`true`로 수동 변경**해야 생성되는 컴포넌트 파일에 `"use client"`가 올바르게 붙는다 (App Router/RSC 환경이므로).
+**이유**: 실제 `next build` 결과물(`​.next/server/app/index.html`)에서 `data-seed-color-mode="light"`가 `<html>`에 반영되고, `<button class="seed-action-button ...">`가 정상 렌더링되는 것을 확인함.
+**영향**: `architecture.md` 4절의 리스크가 해소됨 — 번들러 플러그인 없이도 정상 동작. 이후 컴포넌트 추가 시 `seed-design.json`의 `rsc: true` 설정을 유지할 것.
+
+### 2026-07-28 — 로컬 개발 환경: 회사 Cato Networks TLS 프록시로 인해 Node의 외부 호스트 fetch가 실패하는 문제 발견 및 해결
+**결정**: `npx @seed-design/cli add`가 `fetch failed`(`SELF_SIGNED_CERT_IN_CHAIN`)로 실패 — 원인은 회사 네트워크의 Cato Networks SASE 프록시가 TLS를 가로채 자체 인증서로 재서명하기 때문. Windows는 이 루트 인증서를 신뢰하지만 Node.js는 자체 CA 번들을 사용해 신뢰하지 않음. Windows 인증서 저장소에서 `Cato Networks Root CA`를 PEM으로 내보내 `NODE_EXTRA_CA_CERTS` 환경변수로 Node에 알려주는 방식으로 해결.
+**이유**: 인증서 검증 자체를 끄는 것(`NODE_TLS_REJECT_UNAUTHORIZED=0`)은 보안상 하지 않음 — 이미 OS가 신뢰하는 회사 루트 CA를 Node에도 동일하게 알려주는, 검증을 유지하는 정상적인 해결책.
+**영향**: 상세 내용과 재현 방법은 `docs/dev-environment.md` 참고. **이 문제는 로컬 개발 PC에서 `npx`로 외부 레지스트리(seed-design.io 등)에 접근할 때만 발생하며, Vercel 배포/프로덕션 크론 작업에는 영향 없음.**
+
+### 2026-07-28 — SEED Design `TextFieldTextarea`의 `rows` prop 타입 버그 우회
+**결정**: `@seed-design/react-text-field`의 `TextFieldTextareaProps`가 `TextareaHTMLAttributes` 대신 `InputHTMLAttributes`를 상속하도록 잘못 타이핑되어 있어 `rows` prop이 TS 에러를 낸다 (런타임에는 실제 `<textarea>` DOM 엘리먼트라 `rows`가 정상 동작하지만 타입 정의만 누락됨). `rows` 대신 `style={{ minHeight }}`로 초기 높이를 지정하는 방식으로 우회.
+**이유**: 라이브러리 자체의 타입 정의 버그이므로 우리 쪽에서 `any` 캐스팅 등으로 억지로 우회하기보다, 어차피 `autoresize`가 기본 동작이라 굳이 `rows`가 필요하지 않고 `minHeight`로 대체 가능.
+**영향**: `src/components/add-source-form.tsx`, `src/components/bulk-add-source-form.tsx`. 이후 SEED Design 버전이 올라가 타입이 고쳐지면 `rows`로 되돌려도 무방.

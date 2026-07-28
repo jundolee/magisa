@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "seed-design/*": ["./seed-design/*"]
     }
   },
   "include": [
