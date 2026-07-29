@@ -18,12 +18,14 @@ export interface ArticleListItem {
 
 export type ArticleFilter = "all" | "unread" | "read";
 
-export async function listArticles(options?: {
-  filter?: ArticleFilter;
-  sourceId?: string;
-}): Promise<ArticleListItem[]> {
+/**
+ * 항상 전체를 한 번에 불러온다 — 읽음/소스 필터는 클라이언트(ArticleList)에서 즉시 적용한다.
+ * 탭을 바꿀 때마다 서버를 다시 왕복하면 Supabase 지연이 매번 그대로 드러나서 느리게 느껴졌기 때문
+ * (docs/decisions.md 참고).
+ */
+export async function listArticles(): Promise<ArticleListItem[]> {
   const supabase = createServiceClient();
-  let query = supabase
+  const { data, error } = await supabase
     .from("articles")
     .select("id, title, url, excerpt, thumbnail_url, published_at, is_read, source:sources(id, title, site_url)")
     // 카드에 보이는 날짜(published_at) 기준 내림차순 — 화면에 표시되는 값과 정렬 순서가 어긋나지 않도록 한다.
@@ -31,29 +33,8 @@ export async function listArticles(options?: {
     .order("published_at", { ascending: false, nullsFirst: false })
     .limit(200);
 
-  if (options?.filter === "unread") {
-    query = query.eq("is_read", false);
-  } else if (options?.filter === "read") {
-    query = query.eq("is_read", true);
-  }
-
-  if (options?.sourceId) {
-    query = query.eq("source_id", options.sourceId);
-  }
-
-  const { data, error } = await query;
   if (error) throw error;
   return (data as unknown as ArticleListItem[]) ?? [];
-}
-
-export async function countUnreadArticles(): Promise<number> {
-  const supabase = createServiceClient();
-  const { count, error } = await supabase
-    .from("articles")
-    .select("id", { count: "exact", head: true })
-    .eq("is_read", false);
-  if (error) throw error;
-  return count ?? 0;
 }
 
 export async function markArticleRead(id: string): Promise<void> {

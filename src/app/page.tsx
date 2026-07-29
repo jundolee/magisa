@@ -1,9 +1,7 @@
 import Link from "next/link";
-import { countUnreadArticles, listArticles, type ArticleFilter } from "@/lib/data/articles";
+import { listArticles, type ArticleFilter } from "@/lib/data/articles";
 import { listSources } from "@/lib/data/sources";
-import { ArticleRow } from "@/components/article-row";
-import { ArticleFilterTabs } from "@/components/article-filter-tabs";
-import { SourceFilterSelect } from "@/components/source-filter-select";
+import { ArticleList } from "@/components/article-list";
 
 export const dynamic = "force-dynamic";
 
@@ -17,13 +15,11 @@ export default async function Home({
   searchParams: Promise<{ filter?: string; source?: string }>;
 }) {
   const { filter: rawFilter, source: sourceId } = await searchParams;
-  const filter = parseFilter(rawFilter);
+  const initialFilter = parseFilter(rawFilter);
 
-  const [articles, unreadCount, sources] = await Promise.all([
-    listArticles({ filter, sourceId }),
-    countUnreadArticles(),
-    listSources(),
-  ]);
+  // 탭/소스 필터 전환마다 서버를 다시 왕복하지 않도록, 전체 글/소스를 한 번만 불러와
+  // 클라이언트(ArticleList)에서 즉시 필터링한다 (docs/decisions.md 참고).
+  const [articles, sources] = await Promise.all([listArticles(), listSources()]);
 
   const sourceOptions = sources
     .map((s) => ({ id: s.id, label: s.title ?? s.site_url }))
@@ -31,22 +27,16 @@ export default async function Home({
 
   return (
     <main style={{ padding: 40, maxWidth: 720, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h1>글 목록{unreadCount > 0 && ` (안읽음 ${unreadCount})`}</h1>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <Link href="/sources">소스 관리</Link>
       </div>
 
-      <div style={{ margin: "16px 0", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-        <ArticleFilterTabs current={filter} />
-        <SourceFilterSelect sources={sourceOptions} current={sourceId ?? "all"} filter={filter} />
-      </div>
-
-      <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0 }}>
-        {articles.map((article) => (
-          <ArticleRow key={article.id} article={article} />
-        ))}
-      </ul>
-      {articles.length === 0 && <p>표시할 글이 없습니다.</p>}
+      <ArticleList
+        articles={articles}
+        sources={sourceOptions}
+        initialFilter={initialFilter}
+        initialSourceId={sourceId ?? "all"}
+      />
     </main>
   );
 }

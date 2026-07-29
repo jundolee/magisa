@@ -1,8 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import type { ArticleFilter } from "@/lib/data/articles";
-
 export interface SourceOption {
   id: string;
   label: string;
@@ -11,26 +8,17 @@ export interface SourceOption {
 export function SourceFilterSelect({
   sources,
   current,
-  filter,
+  onChange,
 }: {
   sources: SourceOption[];
   current: string; // "all" 또는 source id
-  filter: ArticleFilter;
+  onChange: (value: string) => void;
 }) {
-  const router = useRouter();
-
   return (
     <select
       aria-label="소스 필터"
       value={current}
-      onChange={(e) => {
-        const value = e.target.value;
-        const params = new URLSearchParams();
-        if (filter !== "unread") params.set("filter", filter);
-        if (value !== "all") params.set("source", value);
-        const qs = params.toString();
-        router.replace(qs ? `/?${qs}` : "/");
-      }}
+      onChange={(e) => onChange(e.target.value)}
       style={{
         padding: "8px 12px",
         borderRadius: 8,
