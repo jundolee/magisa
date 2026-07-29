@@ -25,4 +25,5 @@ export interface FeedDiscoveryResult {
   feedUrl: string | null;
   feedType: FeedType;
   siteTitle: string | null;
+  faviconUrl: string;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Badge, Text } from "@seed-design/react";
 import { ArticleRow } from "./article-row";
 import { ArticleFilterTabs } from "./article-filter-tabs";
 import { SourceFilterSelect, type SourceOption } from "./source-filter-select";
@@ -47,11 +48,18 @@ export function ArticleList({
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h1>글 목록{unreadCount > 0 && ` (안읽음 ${unreadCount})`}</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <Text as="h1" textStyle="t8Bold" color="fg.neutral">
+          글 목록
+        </Text>
+        {unreadCount > 0 && (
+          <Badge size="medium" variant="solid" tone="brand">
+            안읽음 {unreadCount}
+          </Badge>
+        )}
       </div>
 
-      <div style={{ margin: "16px 0", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ marginBottom: 24, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
         <ArticleFilterTabs
           current={filter}
           onChange={(value) => {
@@ -74,7 +82,11 @@ export function ArticleList({
           <ArticleRow key={article.id} article={article} />
         ))}
       </ul>
-      {visibleArticles.length === 0 && <p>표시할 글이 없습니다.</p>}
+      {visibleArticles.length === 0 && (
+        <Text as="p" textStyle="t4Regular" color="var(--seed-color-fg-neutral-muted)">
+          표시할 글이 없습니다.
+        </Text>
+      )}
     </>
   );
 }

@@ -43,6 +43,8 @@ export interface TextFieldProps
   fieldRef?: React.Ref<HTMLDivElement>;
 
   onValueChange?: UseTextFieldWithGraphemesParams["onValueChange"];
+  /** 초기값만 필요할 때(제어하지 않을 때) 사용 — TextFieldInput/Textarea에는 직접 주지 말 것. */
+  defaultValue?: string;
 }
 
 /**
@@ -74,6 +76,7 @@ export const TextField = React.forwardRef<HTMLDivElement, TextFieldProps>(
 
       // useTextFieldWithGraphemes params
       value,
+      defaultValue,
       onValueChange,
       maxGraphemeCount,
 
@@ -83,8 +86,11 @@ export const TextField = React.forwardRef<HTMLDivElement, TextFieldProps>(
     },
     ref,
   ) => {
+    // defaultValue를 여기서 처리해야 한다 — TextFieldInput/Textarea에 직접 defaultValue를 주면
+    // 이 훅이 항상 내려주는 (빈 문자열이라도) value와 충돌해 controlled/uncontrolled 경고가 난다.
     const { textFieldRootProps, counterProps } = useTextFieldWithGraphemes({
       value,
+      defaultValue,
       onValueChange,
       maxGraphemeCount,
     });

@@ -1,13 +1,8 @@
+/* 다크모드는 아직 지원하지 않음(Phase 2 예정) — data-seed-color-mode="light"와 어긋나지 않도록 항상 라이트로 고정. docs/decisions.md 참고. */
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: light;
 }
 
 html {
@@ -26,9 +21,11 @@ body {
   flex-direction: column;
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-freesentation), "Malgun Gothic", "Apple SD Gothic Neo", -apple-system,
+    BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
 }
 
 * {
@@ -42,8 +39,16 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+h1,
+h2,
+h3 {
+  font-weight: 700;
+}
+
+/* 페이지 컨텐츠 폭/중앙정렬을 한 곳에서만 관리 — 페이지마다 따로 넣다 화면 폭에 따라 좌측으로 쏠리는 것을 방지. */
+.app-shell {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 20px 80px;
 }
