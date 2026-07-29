@@ -80,6 +80,23 @@
 **이유**: JSON 문법(중괄호, 따옴표, 쉼표) 오류는 비개발자에게 가장 흔하고 좌절스러운 실패 지점인데, 이를 프론트엔드 폼 필드로 대체하면 애초에 그런 오류가 발생할 수 없게 된다. 자동 탐지 결과는 각 필드에 미리 채워지므로 대부분의 경우 사용자는 필드를 전혀 안 보고 그냥 등록만 누르면 됨.
 **영향**: `src/app/sources/actions.ts`(`scrapeConfigFromFormData`, `hasManualScrapeFields`), `src/components/add-source-form.tsx`. bucketplace.com/culture/로 auto-detect → 수동 필드 재입력 → 저장까지 전체 플로우를 실제 서버 액션으로 재검증함.
 
+### 2026-07-29 — 정렬 기준을 published_at에서 discovered_at으로 변경
+**결정**: 글 목록 정렬을 원문 발행일(`published_at`) 대신 우리 시스템이 수집한 시각(`discovered_at`)으로 변경.
+**이유**: `published_at`은 소스마다 신뢰도가 다름 — RSS는 대체로 정확하지만, 스크래핑은 날짜 정보가 아예 없어 URL 슬러그로 추정한 값일 수도 있고(bucketplace 사례), 그마저도 없으면 null. 반면 `discovered_at`은 글이 삽입될 때 항상 `now()`로 채워지는 컬럼이라 예외 없이 신뢰할 수 있고, "내가 마지막으로 확인한 이후 새로 들어온 글이 위로 온다"는 이 앱의 실제 사용 목적(매일 새 글 확인)에도 더 잘 맞음.
+**영향**: `src/lib/data/articles.ts`.
+
+### 2026-07-29 — 썸네일을 Supabase Storage로 미러링 (presigned URL 만료 문제 해결)
+**결정**: 이전에 "근본 해결은 이미지를 다운로드해서 우리 스토리지에 재호스팅하는 것뿐"이라고 남겨뒀던 것을 실제로 구현. `src/lib/storage/thumbnails.ts`의 `mirrorThumbnail()`이 원본 썸네일 URL에서 이미지를 다운로드해 Supabase Storage `thumbnails` 버킷(public)에 올리고 영구 공개 URL을 돌려준다. 버킷은 최초 호출 시 코드에서 자동 생성(`storage.createBucket`), 별도로 대시보드에서 만들 필요 없음. `ingestSource()`는 글을 새로 삽입한 직후(중복이 아닐 때만) 썸네일이 있으면 미러링해서 URL을 갱신한다.
+**이유**: bucketplace처럼 Notion 기반 CMS는 이미지가 항상 1시간짜리 서명 URL로만 제공되는데, 미러링하면 소스가 무엇이든 항상 우리 쪽 영구 URL로 저장되어 이 문제가 원천적으로 해결됨.
+**검증 중 발견한 것**: 처음엔 파일 크기 제한을 5MB로 뒀는데, bucketplace 12개 글 중 4개가 실패함 — 원인은 Notion이 원본 해상도 PNG(5.2~5.8MB)를 그대로 서빙하기 때문. 제한을 10MB로 올려서 해결.
+**백필**: 기존에 등록된 bucketplace 소스는 (당시엔 만료 문제 때문에) `thumbnailSelector` 없이 등록했었음 — 이제 미러링이 있으니 `thumbnailSelector: "img"`를 켜고, 이미 저장된 12개 글도 다시 스크래핑해 URL을 매칭시켜 일회성으로 썸네일을 채워넣음. 결과: 12/12 성공.
+**영향**: `src/lib/storage/thumbnails.ts`(신규), `src/lib/ingestion/ingest-source.ts`.
+
+### 2026-07-29 — 스크래핑 선택자 입력을 "성공하면 아예 안 보이는" 것으로 재설계
+**결정**: 선택자를 폼 필드로 바꿔도(2026-07-29 앞선 결정) 자동 인식이 성공한 경우에도 필드가 항상 노출되어 있었음 — "사용자는 URL만 주면 되고 선택자 얘기 자체를 몰라야 한다"는 피드백을 받고, 자동 인식이 실패했을 때만(글을 0개 찾았을 때) 선택자 입력 UI를 노출하도록 조건을 바꿈. 성공한 경우엔 선택자 값을 숨겨진 필드로만 다음 요청에 실어 보내 사용자 눈에는 전혀 보이지 않는다. 실패 시에도 바로 필드를 펼치지 않고 "직접 지정하기" 버튼 뒤에 한 번 더 숨겨서, 원치 않는 사용자는 그냥 포기하고 다른 방법을 쓸 수 있게 함. 메시지 문구에서도 "설정", "선택자", "RSS" 같은 용어를 성공 경로에서는 전부 제거.
+**이유**: 미리보기 자체는 안전장치로 유지해야 하지만(자동 인식이 항상 맞는다는 보장이 없으므로), 그 안전장치가 "기술적으로 보이는 것"과는 별개 문제 — 성공한 케이스에서까지 선택자를 보여줄 이유가 없었음.
+**영향**: `src/components/add-source-form.tsx`, `src/app/sources/actions.ts`(메시지 문구).
+
 ### 2026-07-28 — `scrapeConfig.linkSelector`를 선택값으로 변경 (카드 전체가 `<a>`인 사이트 지원)
 **결정**: `bucketplace.com/culture/`(오늘의집 Gatsby 정적 블로그)를 실제로 등록해보니, 글 목록 카드가 `<a class="...post-list__item">`처럼 **앵커 자체가 리스트 아이템**인 구조였음. 기존 코드는 `linkSelector`가 필수였고 `$el.find(linkSelector)`로 자식만 찾아서 이 구조를 지원 못 했음. `linkSelector`를 optional로 바꾸고, 생략 시 리스트 아이템 엘리먼트 자체를 링크로 사용하도록 수정.
 **이유**: "카드 전체가 링크"인 구조는 실제로 꽤 흔한 패턴이라 처음부터 지원하는 게 맞다고 판단.

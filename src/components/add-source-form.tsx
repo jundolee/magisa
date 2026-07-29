@@ -18,17 +18,13 @@ const initialState: AddSourceFlowState = {
 
 export function AddSourceForm() {
   const [state, formAction, isPending] = useActionState(addSourceFlowAction, initialState);
-  const [advancedOpen, setAdvancedOpen] = useState(
-    () =>
-      !!(
-        state.scrapeConfig?.linkSelector ||
-        state.scrapeConfig?.excerptSelector ||
-        state.scrapeConfig?.dateSelector ||
-        state.scrapeConfig?.thumbnailSelector
-      )
-  );
+  // 실패한 시도가 이미 선택자를 갖고 있다면(예: 자동 인식은 됐지만 결과가 0건) 바로 펼쳐서 보여준다.
+  const [advancedOpen, setAdvancedOpen] = useState(() => !!state.scrapeConfig);
 
-  const showScrapeConfigEditor = state.step === "previewed" && state.feedType === "scrape";
+  // 자동으로 글을 찾은 경우: 선택자 입력창은 아예 보여주지 않고, 값은 숨겨진 필드로만 다음 요청에 실어 보낸다.
+  const autoWorked = state.step === "previewed" && state.feedType === "scrape" && state.preview.length > 0;
+  // 자동 인식이 실패했을 때만 "직접 지정하기"를 제안한다.
+  const needsManualSetup = state.step === "previewed" && state.feedType === "scrape" && state.preview.length === 0;
   const showConfirmButton = state.step === "previewed" && state.preview.length > 0;
 
   return (
@@ -37,7 +33,18 @@ export function AddSourceForm() {
         <TextFieldInput type="url" placeholder="https://example.com" required defaultValue={state.siteUrl} />
       </TextField>
 
-      {showScrapeConfigEditor && (
+      {autoWorked && (
+        <>
+          <input type="hidden" name="listItemSelector" value={state.scrapeConfig?.listItemSelector ?? ""} />
+          <input type="hidden" name="titleSelector" value={state.scrapeConfig?.titleSelector ?? ""} />
+          <input type="hidden" name="linkSelector" value={state.scrapeConfig?.linkSelector ?? ""} />
+          <input type="hidden" name="excerptSelector" value={state.scrapeConfig?.excerptSelector ?? ""} />
+          <input type="hidden" name="dateSelector" value={state.scrapeConfig?.dateSelector ?? ""} />
+          <input type="hidden" name="thumbnailSelector" value={state.scrapeConfig?.thumbnailSelector ?? ""} />
+        </>
+      )}
+
+      {needsManualSetup && (
         <div
           style={{
             display: "flex",
@@ -48,39 +55,35 @@ export function AddSourceForm() {
             borderRadius: 8,
           }}
         >
-          <p style={{ fontSize: 13, color: "var(--seed-color-fg-neutral-muted)", margin: 0 }}>
-            RSS가 없어서 아래 항목으로 목록을 추출해요. 자동으로 채워진 값이 이상하면 직접 수정하고 다시
-            미리보기 해주세요.
-          </p>
-
-          <TextField name="listItemSelector" label="목록 항목 선택자">
-            <TextFieldInput
-              placeholder="예: article.post-card"
-              required
-              defaultValue={state.scrapeConfig?.listItemSelector ?? ""}
-            />
-          </TextField>
-
-          <TextField name="titleSelector" label="제목 선택자">
-            <TextFieldInput
-              placeholder="예: h2 또는 .title"
-              required
-              defaultValue={state.scrapeConfig?.titleSelector ?? ""}
-            />
-          </TextField>
-
-          <ActionButton
-            type="button"
-            variant="ghost"
-            size="xsmall"
-            onClick={() => setAdvancedOpen((v) => !v)}
-            style={{ alignSelf: "flex-start" }}
-          >
-            {advancedOpen ? "추가 설정 접기" : "추가 설정 (링크·요약·날짜·썸네일)"}
-          </ActionButton>
-
-          {advancedOpen && (
+          {!advancedOpen ? (
+            <ActionButton
+              type="button"
+              variant="neutralOutline"
+              size="small"
+              onClick={() => setAdvancedOpen(true)}
+              style={{ alignSelf: "flex-start" }}
+            >
+              직접 지정하기
+            </ActionButton>
+          ) : (
             <>
+              <p style={{ fontSize: 13, color: "var(--seed-color-fg-neutral-muted)", margin: 0 }}>
+                이 사이트의 글 목록이 어떻게 생겼는지 알려주면 그대로 가져올게요.
+              </p>
+              <TextField name="listItemSelector" label="목록 항목 선택자">
+                <TextFieldInput
+                  placeholder="예: article.post-card"
+                  required
+                  defaultValue={state.scrapeConfig?.listItemSelector ?? ""}
+                />
+              </TextField>
+              <TextField name="titleSelector" label="제목 선택자">
+                <TextFieldInput
+                  placeholder="예: h2 또는 .title"
+                  required
+                  defaultValue={state.scrapeConfig?.titleSelector ?? ""}
+                />
+              </TextField>
               <TextField name="linkSelector" label="링크 선택자 (비워두면 목록 항목 자체가 링크)">
                 <TextFieldInput placeholder="예: a" defaultValue={state.scrapeConfig?.linkSelector ?? ""} />
               </TextField>
@@ -94,7 +97,10 @@ export function AddSourceForm() {
                 <TextFieldInput placeholder="예: time" defaultValue={state.scrapeConfig?.dateSelector ?? ""} />
               </TextField>
               <TextField name="thumbnailSelector" label="썸네일 선택자 (선택)">
-                <TextFieldInput placeholder="예: img" defaultValue={state.scrapeConfig?.thumbnailSelector ?? ""} />
+                <TextFieldInput
+                  placeholder="예: img"
+                  defaultValue={state.scrapeConfig?.thumbnailSelector ?? ""}
+                />
               </TextField>
             </>
           )}
@@ -113,11 +119,11 @@ export function AddSourceForm() {
           size="small"
           variant="neutralOutline"
         >
-          미리보기
+          확인
         </ActionButton>
         {showConfirmButton && (
           <ActionButton type="submit" name="intent" value="confirm" loading={isPending} size="small">
-            이 설정으로 등록
+            등록
           </ActionButton>
         )}
       </div>
