@@ -97,6 +97,19 @@
 **이유**: 미리보기 자체는 안전장치로 유지해야 하지만(자동 인식이 항상 맞는다는 보장이 없으므로), 그 안전장치가 "기술적으로 보이는 것"과는 별개 문제 — 성공한 케이스에서까지 선택자를 보여줄 이유가 없었음.
 **영향**: `src/components/add-source-form.tsx`, `src/app/sources/actions.ts`(메시지 문구).
 
+### 2026-07-29 — 정렬 기준을 다시 published_at으로 되돌림 (카드에 보이는 날짜와 정렬이 어긋나던 문제)
+**결정**: 하루 전에 "정렬은 discovered_at으로"라고 바꿨었는데, 사용자가 카드에 보이는 날짜(published_at)와 실제 정렬 순서가 안 맞는다고 지적함(어떤 소스는 더 늦게 등록됐지만 원문은 더 오래된 글이라, 화면상 날짜가 뒤죽박죽으로 보임). `.order("discovered_at", ...)`를 다시 `.order("published_at", { ascending: false, nullsFirst: false })`로 되돌림.
+**이유**: 사용자 눈에 보이는 값(카드의 날짜)과 정렬 기준이 다르면 "정렬이 이상하다"고 느낄 수밖에 없음 — 정렬은 항상 화면에 실제로 표시되는 필드를 기준으로 해야 함. 이제 스크래핑 발행일 URL 슬러그 폴백(7/29 앞선 결정) 덕분에 published_at 결측치가 크게 줄어서, 이 필드로 정렬해도 문제가 적음.
+**영향**: `src/lib/data/articles.ts`.
+
+### 2026-07-29 — RSS 피드의 본문(content:encoded)에서 썸네일 추출 (toss.tech, Medium 기반 피드)
+**결정**: toss.tech·gccompany(Medium 호스팅) 등 여러 피드가 `enclosure`나 `media:content` 없이, 본문 HTML(`content:encoded`) 안에 `<img>` 태그로만 이미지를 담고 있었음. `parseFeed()`의 `extractThumbnail()`에 "본문 HTML의 첫 `<img src>` (없으면 `<link rel="preload" as="image">`)를 찾는" 폴백을 추가.
+**실제로 겪은 버그 2개**:
+1. **rss-parser의 `item.content`는 `<description>`(짧은 요약)에 매핑되고, 진짜 본문은 원래 XML 태그명 그대로 `item["content:encoded"]`에 남아있음.** 처음엔 `item.content`를 봐서 아무 것도 못 찾았음 — `item["content:encoded"]`를 우선 사용하도록 수정.
+2. **static.toss.im 같은 일부 CDN이 실제로는 이미지 파일인데 `Content-Type: binary/octet-stream`으로 응답함.** `mirrorThumbnail()`의 Content-Type 기반 확장자 판별이 전부 실패해서 미러링이 조용히 스킵됐음 — Content-Type을 못 알아보면 URL 자체의 파일 확장자(`.png` 등)로 폴백하고, 업로드 시 Content-Type도 그 확장자 기준으로 우리가 직접 지정하도록 수정 (`src/lib/storage/thumbnails.ts`의 `guessExtension`).
+**검증**: 기존 toss.tech 글 20개 중 18개에서 썸네일을 새로 찾아 미러링 성공 (`docs/decisions.md`에 없던 나머지 2개는 본문에 이미지가 아예 없는 글).
+**영향**: `src/lib/ingestion/parse-feed.ts`, `src/lib/storage/thumbnails.ts`.
+
 ### 2026-07-28 — `scrapeConfig.linkSelector`를 선택값으로 변경 (카드 전체가 `<a>`인 사이트 지원)
 **결정**: `bucketplace.com/culture/`(오늘의집 Gatsby 정적 블로그)를 실제로 등록해보니, 글 목록 카드가 `<a class="...post-list__item">`처럼 **앵커 자체가 리스트 아이템**인 구조였음. 기존 코드는 `linkSelector`가 필수였고 `$el.find(linkSelector)`로 자식만 찾아서 이 구조를 지원 못 했음. `linkSelector`를 optional로 바꾸고, 생략 시 리스트 아이템 엘리먼트 자체를 링크로 사용하도록 수정.
 **이유**: "카드 전체가 링크"인 구조는 실제로 꽤 흔한 패턴이라 처음부터 지원하는 게 맞다고 판단.

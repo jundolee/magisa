@@ -23,9 +23,9 @@ export async function listArticles(options?: { filter?: ArticleFilter }): Promis
   let query = supabase
     .from("articles")
     .select("id, title, url, excerpt, thumbnail_url, published_at, is_read, source:sources(id, title, site_url)")
-    // 소스마다 원문 발행일 신뢰도가 달라(스크래핑은 URL 슬러그 추정치인 경우도 있음) 정렬은
-    // 항상 채워지는 discovered_at(우리 시스템이 수집한 시각) 기준으로 한다. docs/decisions.md 참고.
-    .order("discovered_at", { ascending: false })
+    // 카드에 보이는 날짜(published_at) 기준 내림차순 — 화면에 표시되는 값과 정렬 순서가 어긋나지 않도록 한다.
+    // published_at이 없는 경우만 맨 뒤로 보낸다.
+    .order("published_at", { ascending: false, nullsFirst: false })
     .limit(200);
 
   if (options?.filter === "unread") {

@@ -1,4 +1,5 @@
 import Parser from "rss-parser";
+import * as cheerio from "cheerio";
 import type { NormalizedArticle } from "./types";
 import { computeDedupKey } from "./dedup";
 
@@ -7,7 +8,11 @@ const parser = new Parser({
   headers: { "User-Agent": "MagisaBot/0.1 (+personal tech blog aggregator)" },
 });
 
-// rss-parser의 기본 타입은 media:content/media:thumbnail 같은 확장 필드를 포함하지 않아 any로 접근한다.
+/**
+ * 많은 피드가 enclosure/media:content 없이 본문(content:encoded)에만 이미지를 담아둔다
+ * (toss.tech, Medium 기반 피드 등에서 확인됨 — docs/decisions.md 참고).
+ * 그래서 표준 필드 다음으로, 본문 HTML의 첫 <img> 태그를 폴백으로 사용한다.
+ */
 function extractThumbnail(item: Record<string, unknown>): string | null {
   const enclosure = item.enclosure as { url?: string; type?: string } | undefined;
   if (enclosure?.url && enclosure.type?.startsWith("image")) {
@@ -17,6 +22,18 @@ function extractThumbnail(item: Record<string, unknown>): string | null {
   if (mediaContent?.$?.url) return mediaContent.$.url;
   const mediaThumbnail = item["media:thumbnail"] as { $?: { url?: string } } | undefined;
   if (mediaThumbnail?.$?.url) return mediaThumbnail.$.url;
+
+  // rss-parser는 item.content를 <description>에 매핑하고, 실제 본문 HTML은 원래 태그명인
+  // "content:encoded"로 남겨둔다 (둘 다 없으면 content로 폴백).
+  const content = (item["content:encoded"] as string | undefined) ?? (item.content as string | undefined);
+  if (content) {
+    const $ = cheerio.load(content);
+    const imgSrc = $("img").first().attr("src");
+    if (imgSrc) return imgSrc;
+    const preloadHref = $('link[rel="preload"][as="image"]').first().attr("href");
+    if (preloadHref) return preloadHref;
+  }
+
   return null;
 }
 
