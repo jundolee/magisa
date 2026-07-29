@@ -6,6 +6,8 @@ import { discoverFeed } from "@/lib/ingestion/discover-feed";
 import { parseFeed } from "@/lib/ingestion/parse-feed";
 import { scrapeSource } from "@/lib/ingestion/scrape-source";
 import { autoDetectScrapeConfig } from "@/lib/ingestion/auto-detect-scrape-config";
+import { ingestSource, type SourceRow } from "@/lib/ingestion/ingest-source";
+import { createServiceClient } from "@/lib/supabase/service";
 import type { FeedType, NormalizedArticle, ScrapeConfig } from "@/lib/ingestion/types";
 
 export interface AddSourceFlowState {
@@ -231,4 +233,55 @@ export async function deleteSourceAction(formData: FormData) {
   if (!id) return;
   await deleteSource(id);
   revalidatePath("/sources");
+}
+
+export interface IngestNowState {
+  ok: boolean;
+  message: string;
+}
+
+/**
+ * 크론(매일 1회)을 기다리지 않고 특정 소스 하나를 지금 바로 수집한다.
+ * 등록 직후 "다음날까지 기다려야 하나"는 피드백을 받아 추가함 (docs/decisions.md 참고).
+ */
+export async function ingestSourceNowAction(
+  _prevState: IngestNowState,
+  formData: FormData
+): Promise<IngestNowState> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { ok: false, message: "잘못된 요청입니다." };
+
+  const supabase = createServiceClient();
+  const { data: source, error } = await supabase
+    .from("sources")
+    .select("id, site_url, feed_url, feed_type, scrape_config")
+    .eq("id", id)
+    .single();
+
+  if (error || !source) {
+    return { ok: false, message: "소스를 찾을 수 없습니다." };
+  }
+
+  const checkedAt = new Date().toISOString();
+  try {
+    const result = await ingestSource(supabase, source as SourceRow);
+    await supabase
+      .from("sources")
+      .update({ last_checked_at: checkedAt, last_success_at: checkedAt, last_error: null })
+      .eq("id", id);
+    revalidatePath("/sources");
+    revalidatePath("/");
+    return {
+      ok: true,
+      message:
+        result.inserted > 0
+          ? `새 글 ${result.inserted}개를 가져왔어요.`
+          : "확인했지만 새 글은 없었어요.",
+    };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    await supabase.from("sources").update({ last_checked_at: checkedAt, last_error: message }).eq("id", id);
+    revalidatePath("/sources");
+    return { ok: false, message: "수집에 실패했어요." };
+  }
 }

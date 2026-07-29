@@ -110,6 +110,11 @@
 **검증**: 기존 toss.tech 글 20개 중 18개에서 썸네일을 새로 찾아 미러링 성공 (`docs/decisions.md`에 없던 나머지 2개는 본문에 이미지가 아예 없는 글).
 **영향**: `src/lib/ingestion/parse-feed.ts`, `src/lib/storage/thumbnails.ts`.
 
+### 2026-07-29 — 소스별 "지금 수집" 버튼 추가
+**결정**: 사용자가 `/sources`에서 새 소스를 등록한 뒤 "이거 다음날 돼야 보이는 거냐"고 물어봄 — 맞음, 지금까지는 등록은 소스만 추가하고 실제 수집은 Vercel Cron(매일 1회, 한국시간 오전 6시)이 돌 때만 일어났음. 크론을 기다리지 않고 소스 하나를 즉시 수집할 수 있는 "지금 수집" 버튼을 소스 목록 각 행에 추가.
+**이유**: 등록 직후 바로 결과를 확인하고 싶은 건 자연스러운 기대라, 매번 다음날까지 기다리게 하는 건 불필요한 마찰. 크론 라우트와 같은 `ingestSource()` 로직을 재사용해서 별도 파이프라인을 만들 필요는 없었음.
+**영향**: `src/app/sources/actions.ts`(`ingestSourceNowAction`), `src/components/ingest-now-button.tsx`(신규), `src/components/source-row.tsx`(마지막 확인 시각 표시 추가). 실제로 이미 등록돼 있었지만 글이 하나도 없던 gccompany 테크블로그 소스에 사용해 10개 글을 즉시 수집하는 것으로 검증함.
+
 ### 2026-07-28 — `scrapeConfig.linkSelector`를 선택값으로 변경 (카드 전체가 `<a>`인 사이트 지원)
 **결정**: `bucketplace.com/culture/`(오늘의집 Gatsby 정적 블로그)를 실제로 등록해보니, 글 목록 카드가 `<a class="...post-list__item">`처럼 **앵커 자체가 리스트 아이템**인 구조였음. 기존 코드는 `linkSelector`가 필수였고 `$el.find(linkSelector)`로 자식만 찾아서 이 구조를 지원 못 했음. `linkSelector`를 optional로 바꾸고, 생략 시 리스트 아이템 엘리먼트 자체를 링크로 사용하도록 수정.
 **이유**: "카드 전체가 링크"인 구조는 실제로 꽤 흔한 패턴이라 처음부터 지원하는 게 맞다고 판단.

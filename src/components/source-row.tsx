@@ -2,9 +2,22 @@
 
 import { ActionButton } from "seed-design/ui/action-button";
 import { toggleSourceActiveAction, deleteSourceAction } from "@/app/sources/actions";
+import { IngestNowButton } from "./ingest-now-button";
 import type { Source } from "@/lib/data/sources";
 
+function formatCheckedAt(iso: string | null): string | null {
+  if (!iso) return null;
+  return new Date(iso).toLocaleString("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function SourceRow({ source }: { source: Source }) {
+  const checkedAt = formatCheckedAt(source.last_checked_at);
+
   return (
     <li
       style={{
@@ -23,13 +36,19 @@ export function SourceRow({ source }: { source: Source }) {
           {source.site_url} · {source.feed_type}
           {!source.is_active && " · 일시중지됨"}
         </div>
+        {checkedAt && (
+          <div style={{ fontSize: 12, color: "var(--seed-color-fg-neutral-muted)" }}>
+            마지막 확인: {checkedAt}
+          </div>
+        )}
         {source.last_error && (
           <div style={{ fontSize: 13, color: "var(--seed-color-fg-critical)" }}>
             마지막 오류: {source.last_error}
           </div>
         )}
       </div>
-      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+      <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "flex-start" }}>
+        <IngestNowButton sourceId={source.id} />
         <form action={toggleSourceActiveAction}>
           <input type="hidden" name="id" value={source.id} />
           <input type="hidden" name="nextActive" value={(!source.is_active).toString()} />
