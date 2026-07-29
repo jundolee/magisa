@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { ActionButton } from "seed-design/ui/action-button";
-import { TextField, TextFieldInput, TextFieldTextarea } from "seed-design/ui/text-field";
+import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import { addSourceFlowAction, type AddSourceFlowState } from "@/app/sources/actions";
 
 const initialState: AddSourceFlowState = {
@@ -12,12 +12,21 @@ const initialState: AddSourceFlowState = {
   siteUrl: "",
   feedType: "unknown",
   feedUrl: null,
-  scrapeConfigJson: "",
+  scrapeConfig: null,
   preview: [],
 };
 
 export function AddSourceForm() {
   const [state, formAction, isPending] = useActionState(addSourceFlowAction, initialState);
+  const [advancedOpen, setAdvancedOpen] = useState(
+    () =>
+      !!(
+        state.scrapeConfig?.linkSelector ||
+        state.scrapeConfig?.excerptSelector ||
+        state.scrapeConfig?.dateSelector ||
+        state.scrapeConfig?.thumbnailSelector
+      )
+  );
 
   const showScrapeConfigEditor = state.step === "previewed" && state.feedType === "scrape";
   const showConfirmButton = state.step === "previewed" && state.preview.length > 0;
@@ -29,12 +38,67 @@ export function AddSourceForm() {
       </TextField>
 
       {showScrapeConfigEditor && (
-        <TextField name="scrapeConfigJson" label="스크래핑 설정 (자동 추론됨 — 결과가 이상하면 수정 후 다시 미리보기)">
-          <TextFieldTextarea
-            style={{ minHeight: 140, fontFamily: "monospace", fontSize: 13 }}
-            defaultValue={state.scrapeConfigJson}
-          />
-        </TextField>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            padding: 12,
+            border: "1px solid var(--seed-color-stroke-neutral)",
+            borderRadius: 8,
+          }}
+        >
+          <p style={{ fontSize: 13, color: "var(--seed-color-fg-neutral-muted)", margin: 0 }}>
+            RSS가 없어서 아래 항목으로 목록을 추출해요. 자동으로 채워진 값이 이상하면 직접 수정하고 다시
+            미리보기 해주세요.
+          </p>
+
+          <TextField name="listItemSelector" label="목록 항목 선택자">
+            <TextFieldInput
+              placeholder="예: article.post-card"
+              required
+              defaultValue={state.scrapeConfig?.listItemSelector ?? ""}
+            />
+          </TextField>
+
+          <TextField name="titleSelector" label="제목 선택자">
+            <TextFieldInput
+              placeholder="예: h2 또는 .title"
+              required
+              defaultValue={state.scrapeConfig?.titleSelector ?? ""}
+            />
+          </TextField>
+
+          <ActionButton
+            type="button"
+            variant="ghost"
+            size="xsmall"
+            onClick={() => setAdvancedOpen((v) => !v)}
+            style={{ alignSelf: "flex-start" }}
+          >
+            {advancedOpen ? "추가 설정 접기" : "추가 설정 (링크·요약·날짜·썸네일)"}
+          </ActionButton>
+
+          {advancedOpen && (
+            <>
+              <TextField name="linkSelector" label="링크 선택자 (비워두면 목록 항목 자체가 링크)">
+                <TextFieldInput placeholder="예: a" defaultValue={state.scrapeConfig?.linkSelector ?? ""} />
+              </TextField>
+              <TextField name="excerptSelector" label="요약 선택자 (선택)">
+                <TextFieldInput
+                  placeholder="예: .description"
+                  defaultValue={state.scrapeConfig?.excerptSelector ?? ""}
+                />
+              </TextField>
+              <TextField name="dateSelector" label="날짜 선택자 (선택)">
+                <TextFieldInput placeholder="예: time" defaultValue={state.scrapeConfig?.dateSelector ?? ""} />
+              </TextField>
+              <TextField name="thumbnailSelector" label="썸네일 선택자 (선택)">
+                <TextFieldInput placeholder="예: img" defaultValue={state.scrapeConfig?.thumbnailSelector ?? ""} />
+              </TextField>
+            </>
+          )}
+        </div>
       )}
 
       <input type="hidden" name="feedType" value={state.feedType} />

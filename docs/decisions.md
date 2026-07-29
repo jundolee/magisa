@@ -66,6 +66,20 @@
 **검증**: bucketplace.com/culture/(재현), tech.socarcorp.kr(신규, `<article class="post-card">` + `<h2>` 태그 폴백으로 정확히 감지) 두 개의 서로 다른 실제 사이트에서 정상 동작 확인.
 **한계**: 여전히 휴리스틱이라 모든 사이트에서 성공을 보장하지 않음 — 그래서 미리보기 없이는 절대 저장하지 않는 구조를 유지한다. 자동 추론이 실패하거나 결과가 이상하면 사용자가 JSON을 직접 입력해 재시도하는 경로는 그대로 남아있음.
 
+### 2026-07-29 — 스크래핑 발행일 폴백: URL 슬러그에서 날짜 추출
+**결정**: bucketplace.com/culture/는 목록/상세 페이지 어디에도 발행일 메타데이터가 없어(JSON-LD도 일반 WebSite 정보뿐) `published_at`이 계속 null이었음. 다만 URL 슬러그에 날짜가 박혀있음(`/post/2026-07-08-제목/`). `scrapeSource()`에 `dateSelector`로 못 찾았을 때 URL에서 `YYYY-MM-DD` 패턴을 정규식으로 추출하는 폴백을 추가. 기존에 null로 저장된 12개 글도 같은 로직으로 일회성 백필함.
+**이유**: Jekyll/Hugo/Notion 기반 등 날짜를 슬러그에 인코딩하는 블로그 플랫폼이 흔해서, 이 폴백이 bucketplace 외에도 여러 사이트에 도움이 될 가능성이 높음. dateSelector가 이미 있고 정상 동작하면 그쪽이 우선이라 회귀 위험 없음.
+**영향**: `src/lib/ingestion/scrape-source.ts`(`extractDateFromUrl`, export됨 — 백필 스크립트 등에서 재사용 가능).
+
+### 2026-07-29 — 썸네일 영구 미해결: og:image도 presigned URL (Notion 기반 CMS 한계)
+**확인**: bucketplace.com의 개별 글 페이지 `og:image`도 목록 페이지와 동일하게 S3 presigned URL(`X-Amz-Expires=3600`)임을 확인. 이 사이트는 Notion을 CMS로 쓰는 것으로 보이는데, Notion은 업로드 파일에 대해 영구 공개 URL을 제공하지 않고 항상 서명된 임시 URL만 내려줌 — 사이트 어디를 봐도 안정적인 이미지 URL이 존재하지 않는다.
+**결론**: 이 문제를 근본적으로 풀려면 스크래핑 시점에 이미지를 직접 다운로드해서 우리 쪽 스토리지(Supabase Storage 등)에 재호스팅하는 방법뿐. 아직 결정만 하고 구현은 안 함 — 사용자에게 트레이드오프(스토리지 의존성 추가, 수집 시 이미지 다운로드/업로드 비용) 확인 후 진행 여부 결정 예정. `docs/roadmap.md` Phase 2 참고.
+
+### 2026-07-29 — 스크래핑 설정을 JSON 텍스트 대신 셀렉터별 폼 필드로 변경
+**결정**: 자동 탐지 + 미리보기를 붙인 뒤에도 "결과가 이상해서 직접 고쳐야 할 때 JSON 텍스트를 편집해야 한다"는 점 자체가 여전히 어렵다는 피드백을 받음. `AddSourceFlowState.scrapeConfigJson`(문자열) 대신 `scrapeConfig`(구조화된 객체)로 바꾸고, UI에서도 JSON textarea 하나 대신 셀렉터별 개별 입력 필드(목록/제목은 항상 노출, 링크·요약·날짜·썸네일은 "추가 설정" 토글 뒤에 숨김)로 교체. 서버 액션은 `JSON.parse` 없이 `formData.get("titleSelector")` 등 필드별로 직접 읽어 객체를 구성한다.
+**이유**: JSON 문법(중괄호, 따옴표, 쉼표) 오류는 비개발자에게 가장 흔하고 좌절스러운 실패 지점인데, 이를 프론트엔드 폼 필드로 대체하면 애초에 그런 오류가 발생할 수 없게 된다. 자동 탐지 결과는 각 필드에 미리 채워지므로 대부분의 경우 사용자는 필드를 전혀 안 보고 그냥 등록만 누르면 됨.
+**영향**: `src/app/sources/actions.ts`(`scrapeConfigFromFormData`, `hasManualScrapeFields`), `src/components/add-source-form.tsx`. bucketplace.com/culture/로 auto-detect → 수동 필드 재입력 → 저장까지 전체 플로우를 실제 서버 액션으로 재검증함.
+
 ### 2026-07-28 — `scrapeConfig.linkSelector`를 선택값으로 변경 (카드 전체가 `<a>`인 사이트 지원)
 **결정**: `bucketplace.com/culture/`(오늘의집 Gatsby 정적 블로그)를 실제로 등록해보니, 글 목록 카드가 `<a class="...post-list__item">`처럼 **앵커 자체가 리스트 아이템**인 구조였음. 기존 코드는 `linkSelector`가 필수였고 `$el.find(linkSelector)`로 자식만 찾아서 이 구조를 지원 못 했음. `linkSelector`를 optional로 바꾸고, 생략 시 리스트 아이템 엘리먼트 자체를 링크로 사용하도록 수정.
 **이유**: "카드 전체가 링크"인 구조는 실제로 꽤 흔한 패턴이라 처음부터 지원하는 게 맞다고 판단.

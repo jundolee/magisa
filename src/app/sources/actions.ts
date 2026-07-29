@@ -15,7 +15,8 @@ export interface AddSourceFlowState {
   siteUrl: string;
   feedType: FeedType;
   feedUrl: string | null;
-  scrapeConfigJson: string;
+  // JSON을 직접 쓰게 하는 대신, 셀렉터별로 나뉜 폼 입력을 그대로 구조화해서 들고 있는다 (JSON 문법 오류 자체를 없앰).
+  scrapeConfig: ScrapeConfig | null;
   preview: NormalizedArticle[];
 }
 
@@ -27,9 +28,44 @@ const emptyState: AddSourceFlowState = {
   siteUrl: "",
   feedType: "unknown",
   feedUrl: null,
-  scrapeConfigJson: "",
+  scrapeConfig: null,
   preview: [],
 };
+
+const SCRAPE_FIELD_NAMES = [
+  "listItemSelector",
+  "titleSelector",
+  "linkSelector",
+  "excerptSelector",
+  "dateSelector",
+  "thumbnailSelector",
+] as const;
+
+/** 스크래핑 설정 폼 필드(셀렉터별 입력)에서 ScrapeConfig를 구성한다. JSON 파싱이 필요 없다. */
+function scrapeConfigFromFormData(formData: FormData): ScrapeConfig | null {
+  const listItemSelector = String(formData.get("listItemSelector") ?? "").trim();
+  const titleSelector = String(formData.get("titleSelector") ?? "").trim();
+  if (!listItemSelector || !titleSelector) return null;
+
+  const optional = (name: string) => {
+    const value = String(formData.get(name) ?? "").trim();
+    return value || undefined;
+  };
+
+  return {
+    listItemSelector,
+    titleSelector,
+    linkSelector: optional("linkSelector"),
+    excerptSelector: optional("excerptSelector"),
+    dateSelector: optional("dateSelector"),
+    thumbnailSelector: optional("thumbnailSelector"),
+  };
+}
+
+/** 폼에 셀렉터 필드가 하나라도 실제로 채워져 있었는지 (= 사용자가 직접 입력/수정했는지) 확인 */
+function hasManualScrapeFields(formData: FormData): boolean {
+  return SCRAPE_FIELD_NAMES.some((name) => String(formData.get(name) ?? "").trim().length > 0);
+}
 
 /**
  * 소스 등록을 "미리보기 -> 확인 후 저장" 2단계로 나눈 서버 액션.
@@ -52,10 +88,9 @@ export async function addSourceFlowAction(
 
     let scrapeConfig: ScrapeConfig | null = null;
     if (feedType === "scrape") {
-      try {
-        scrapeConfig = JSON.parse(String(formData.get("scrapeConfigJson") ?? "")) as ScrapeConfig;
-      } catch {
-        return { ...prevState, ok: false, message: "저장 실패: 스크래핑 설정 JSON 형식이 올바르지 않습니다." };
+      scrapeConfig = scrapeConfigFromFormData(formData);
+      if (!scrapeConfig) {
+        return { ...prevState, ok: false, message: "저장 실패: 목록/제목 선택자는 필수입니다." };
       }
     }
 
@@ -80,28 +115,26 @@ export async function addSourceFlowAction(
       siteUrl,
       feedType: discovery.feedType,
       feedUrl: discovery.feedUrl,
-      scrapeConfigJson: "",
+      scrapeConfig: null,
       preview: articles.slice(0, 5),
     };
   }
 
-  // RSS/Atom을 못 찾음 -> 스크래핑. 이미 (재)입력된 설정이 있으면 그걸 우선 사용, 없으면 자동 인식 시도.
-  const manualConfigRaw = String(formData.get("scrapeConfigJson") ?? "").trim();
+  // RSS/Atom을 못 찾음 -> 스크래핑. 사용자가 필드를 직접 채웠으면 그걸 우선 사용, 비어있으면 자동 인식 시도.
   let scrapeConfig: ScrapeConfig | null = null;
   let autoDetected = false;
 
-  if (manualConfigRaw) {
-    try {
-      scrapeConfig = JSON.parse(manualConfigRaw) as ScrapeConfig;
-    } catch {
+  if (hasManualScrapeFields(formData)) {
+    scrapeConfig = scrapeConfigFromFormData(formData);
+    if (!scrapeConfig) {
       return {
         ok: false,
-        message: "스크래핑 설정 JSON 형식이 올바르지 않습니다.",
+        message: "목록 선택자와 제목 선택자는 필수입니다.",
         step: "previewed",
         siteUrl,
         feedType: "scrape",
         feedUrl: null,
-        scrapeConfigJson: manualConfigRaw,
+        scrapeConfig: null,
         preview: [],
       };
     }
@@ -113,12 +146,12 @@ export async function addSourceFlowAction(
   if (!scrapeConfig) {
     return {
       ok: false,
-      message: "RSS도 없고 목록 구조 자동 인식도 실패했어요. 아래에 스크래핑 설정을 직접 입력한 뒤 다시 미리보기 해주세요.",
+      message: "RSS도 없고 목록 구조 자동 인식도 실패했어요. 아래에 선택자를 직접 입력한 뒤 다시 미리보기 해주세요.",
       step: "previewed",
       siteUrl,
       feedType: "scrape",
       feedUrl: null,
-      scrapeConfigJson: "",
+      scrapeConfig: null,
       preview: [],
     };
   }
@@ -129,7 +162,7 @@ export async function addSourceFlowAction(
       ok: articles.length > 0,
       message:
         articles.length === 0
-          ? "설정대로 시도했지만 글을 하나도 찾지 못했어요. 설정을 수정해서 다시 미리보기 해주세요."
+          ? "설정대로 시도했지만 글을 하나도 찾지 못했어요. 선택자를 수정해서 다시 미리보기 해주세요."
           : autoDetected
             ? `자동으로 추론한 설정으로 ${articles.length}개 글을 찾았어요. 맞는지 확인 후 등록해주세요.`
             : `입력한 설정으로 ${articles.length}개 글을 찾았어요. 맞는지 확인 후 등록해주세요.`,
@@ -137,7 +170,7 @@ export async function addSourceFlowAction(
       siteUrl,
       feedType: "scrape",
       feedUrl: null,
-      scrapeConfigJson: JSON.stringify(scrapeConfig, null, 2),
+      scrapeConfig,
       preview: articles.slice(0, 5),
     };
   } catch (e) {
@@ -148,7 +181,7 @@ export async function addSourceFlowAction(
       siteUrl,
       feedType: "scrape",
       feedUrl: null,
-      scrapeConfigJson: JSON.stringify(scrapeConfig, null, 2),
+      scrapeConfig,
       preview: [],
     };
   }

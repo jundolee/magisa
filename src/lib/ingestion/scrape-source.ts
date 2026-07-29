@@ -19,6 +19,18 @@ function resolveUrl(raw: string, base: string): string | null {
 }
 
 /**
+ * dateSelector로 날짜를 못 찾았을 때의 폴백. Jekyll/Hugo/Notion 기반 블로그 등
+ * URL 슬러그에 발행일이 박혀있는 경우(예: /post/2026-07-08-title/)가 흔해서 이를 이용한다.
+ */
+export function extractDateFromUrl(url: string): string | null {
+  const match = url.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return null;
+  const [, year, month, day] = match;
+  const date = new Date(`${year}-${month}-${day}T00:00:00Z`);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+/**
  * RSS가 없는 사이트를 위한 CSS 셀렉터 기반 정적 HTML 스크래핑.
  * architecture.md 3절 "스크래핑 폴백" 참고 — JS 렌더링(CSR) 사이트는 지원하지 않는다 (docs/decisions.md 참고).
  */
@@ -55,6 +67,9 @@ export async function scrapeSource(siteUrl: string, config: ScrapeConfig): Promi
       const dateEl = $el.find(config.dateSelector).first();
       const dateText = dateEl.attr("datetime") ?? dateEl.text().trim();
       publishedAt = dateText ? normalizeDate(dateText) : null;
+    }
+    if (!publishedAt) {
+      publishedAt = extractDateFromUrl(url);
     }
 
     let thumbnailUrl: string | null = null;
