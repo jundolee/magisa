@@ -126,6 +126,11 @@
 **이유**: 소스가 여러 개로 늘어나면서 "이 블로그 글만 보고 싶다"는 수요가 자연스럽게 생김. SEED Design의 Select Box는 카드형이라 소스 개수가 늘어날수록 공간을 많이 차지해서, 이 용도엔 SEED 토큰으로 스타일링한 네이티브 `<select>`를 사용.
 **영향**: `src/lib/data/articles.ts`(`listArticles`에 `sourceId` 옵션 추가), `src/components/source-filter-select.tsx`(신규), `src/app/page.tsx`.
 
+### 2026-07-29 — 탭/소스 필터 전환을 서버 왕복 없이 클라이언트에서 즉시 처리
+**결정**: 탭(전체/안읽음/읽음)이나 소스 드롭다운을 바꿀 때마다 `router.replace`로 URL을 바꿔서, 매번 Next.js 서버가 `listArticles`/`countUnreadArticles`/`listSources` 3개 쿼리를 다시 실행하고 있었음 — 전환할 때마다 느리다는 피드백을 받음. 홈 페이지가 글/소스를 **한 번만** 불러오고(`listArticles()`가 필터 없이 전체를, `listSources()`), 새로 만든 클라이언트 컴포넌트 `ArticleList`가 탭/소스 선택 상태를 로컬 state로 들고 있다가 `useMemo`로 즉시 필터링해서 보여준다. URL은 `router.replace` 대신 `window.history.replaceState`로만 맞춰서(북마크 가능하도록) Next.js가 서버를 다시 왕복하지 않게 함.
+**이유**: 개인용 규모(전체 글 수가 몇백 건 수준)에서는 전체를 한 번에 브라우저로 보내고 메모리에서 거르는 게 매 클릭마다 Supabase를 왕복하는 것보다 압도적으로 빠름. 읽음 처리(서버 액션)는 그대로 `revalidatePath("/")`로 동작하고, `ArticleList`는 `articles`를 로컬 state로 복사하지 않고 prop 그대로 받아 `useMemo`만 거치므로 revalidate로 갱신된 새 prop이 자연스럽게 반영됨.
+**영향**: `src/app/page.tsx`(단순화), `src/components/article-list.tsx`(신규, 필터링 로직 이전), `src/components/article-filter-tabs.tsx`/`src/components/source-filter-select.tsx`(라우팅을 직접 하던 것을 `value`/`onChange` 컨트롤드 컴포넌트로 변경), `src/lib/data/articles.ts`(`listArticles`의 `filter`/`sourceId` 서버 옵션과 `countUnreadArticles` 제거 — 더 이상 필요 없음).
+
 ### 2026-07-28 — `scrapeConfig.linkSelector`를 선택값으로 변경 (카드 전체가 `<a>`인 사이트 지원)
 **결정**: `bucketplace.com/culture/`(오늘의집 Gatsby 정적 블로그)를 실제로 등록해보니, 글 목록 카드가 `<a class="...post-list__item">`처럼 **앵커 자체가 리스트 아이템**인 구조였음. 기존 코드는 `linkSelector`가 필수였고 `$el.find(linkSelector)`로 자식만 찾아서 이 구조를 지원 못 했음. `linkSelector`를 optional로 바꾸고, 생략 시 리스트 아이템 엘리먼트 자체를 링크로 사용하도록 수정.
 **이유**: "카드 전체가 링크"인 구조는 실제로 꽤 흔한 패턴이라 처음부터 지원하는 게 맞다고 판단.

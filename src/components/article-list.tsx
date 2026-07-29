@@ -1,0 +1,80 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { ArticleRow } from "./article-row";
+import { ArticleFilterTabs } from "./article-filter-tabs";
+import { SourceFilterSelect, type SourceOption } from "./source-filter-select";
+import type { ArticleFilter, ArticleListItem } from "@/lib/data/articles";
+
+/**
+ * 탭/소스 필터를 바꿀 때마다 서버에 새로 요청하면 Supabase 왕복 시간이 매번 그대로 드는 게 느려서,
+ * 글 목록은 한 번만 받아오고 필터링은 브라우저 안에서 즉시 처리한다 (docs/decisions.md 참고).
+ * 읽음 처리 등 실제 데이터 변경은 여전히 서버 액션 + revalidatePath로 이 컴포넌트의 articles prop을 갱신한다.
+ */
+export function ArticleList({
+  articles,
+  sources,
+  initialFilter,
+  initialSourceId,
+}: {
+  articles: ArticleListItem[];
+  sources: SourceOption[];
+  initialFilter: ArticleFilter;
+  initialSourceId: string;
+}) {
+  const [filter, setFilter] = useState<ArticleFilter>(initialFilter);
+  const [sourceId, setSourceId] = useState(initialSourceId);
+
+  const unreadCount = useMemo(() => articles.filter((a) => !a.is_read).length, [articles]);
+
+  const visibleArticles = useMemo(() => {
+    return articles.filter((a) => {
+      if (filter === "unread" && a.is_read) return false;
+      if (filter === "read" && !a.is_read) return false;
+      if (sourceId !== "all" && a.source?.id !== sourceId) return false;
+      return true;
+    });
+  }, [articles, filter, sourceId]);
+
+  function updateUrl(nextFilter: ArticleFilter, nextSourceId: string) {
+    const params = new URLSearchParams();
+    if (nextFilter !== "unread") params.set("filter", nextFilter);
+    if (nextSourceId !== "all") params.set("source", nextSourceId);
+    const qs = params.toString();
+    // router.replace 대신 history API를 직접 써서 Next.js 서버 재요청 없이 주소창만 맞춘다.
+    window.history.replaceState(null, "", qs ? `/?${qs}` : "/");
+  }
+
+  return (
+    <>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <h1>글 목록{unreadCount > 0 && ` (안읽음 ${unreadCount})`}</h1>
+      </div>
+
+      <div style={{ margin: "16px 0", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+        <ArticleFilterTabs
+          current={filter}
+          onChange={(value) => {
+            setFilter(value);
+            updateUrl(value, sourceId);
+          }}
+        />
+        <SourceFilterSelect
+          sources={sources}
+          current={sourceId}
+          onChange={(value) => {
+            setSourceId(value);
+            updateUrl(filter, value);
+          }}
+        />
+      </div>
+
+      <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0 }}>
+        {visibleArticles.map((article) => (
+          <ArticleRow key={article.id} article={article} />
+        ))}
+      </ul>
+      {visibleArticles.length === 0 && <p>표시할 글이 없습니다.</p>}
+    </>
+  );
+}
