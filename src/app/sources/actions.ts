@@ -110,7 +110,7 @@ export async function addSourceFlowAction(
     const articles = await parseFeed(discovery.feedUrl!);
     return {
       ok: true,
-      message: `${discovery.feedType.toUpperCase()} 피드를 찾았어요 (${articles.length}개 글 확인됨). 내용을 확인하고 등록해주세요.`,
+      message: `${articles.length}개의 글을 찾았어요. 확인하고 등록해주세요.`,
       step: "previewed",
       siteUrl,
       feedType: discovery.feedType,
@@ -146,7 +146,7 @@ export async function addSourceFlowAction(
   if (!scrapeConfig) {
     return {
       ok: false,
-      message: "RSS도 없고 목록 구조 자동 인식도 실패했어요. 아래에 선택자를 직접 입력한 뒤 다시 미리보기 해주세요.",
+      message: "이 사이트에서는 새 글 목록을 자동으로 찾지 못했어요. 아래에서 직접 지정해볼 수 있어요.",
       step: "previewed",
       siteUrl,
       feedType: "scrape",
@@ -162,10 +162,10 @@ export async function addSourceFlowAction(
       ok: articles.length > 0,
       message:
         articles.length === 0
-          ? "설정대로 시도했지만 글을 하나도 찾지 못했어요. 선택자를 수정해서 다시 미리보기 해주세요."
+          ? "글을 하나도 찾지 못했어요. 아래에서 직접 지정해볼 수 있어요."
           : autoDetected
-            ? `자동으로 추론한 설정으로 ${articles.length}개 글을 찾았어요. 맞는지 확인 후 등록해주세요.`
-            : `입력한 설정으로 ${articles.length}개 글을 찾았어요. 맞는지 확인 후 등록해주세요.`,
+            ? `${articles.length}개의 글을 찾았어요. 확인하고 등록해주세요.`
+            : `${articles.length}개의 글을 찾았어요. 확인하고 등록해주세요.`,
       step: "previewed",
       siteUrl,
       feedType: "scrape",
@@ -174,9 +174,10 @@ export async function addSourceFlowAction(
       preview: articles.slice(0, 5),
     };
   } catch (e) {
+    console.error("스크래핑 미리보기 실패:", e);
     return {
       ok: false,
-      message: `미리보기 실패: ${e instanceof Error ? e.message : String(e)}`,
+      message: "이 사이트에서는 글을 가져오지 못했어요. 아래에서 직접 지정해볼 수 있어요.",
       step: "previewed",
       siteUrl,
       feedType: "scrape",

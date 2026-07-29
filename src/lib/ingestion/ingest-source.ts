@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseFeed } from "./parse-feed";
 import { scrapeSource } from "./scrape-source";
 import { canonicalizeUrl } from "./dedup";
+import { mirrorThumbnail } from "@/lib/storage/thumbnails";
 import type { FeedType, NormalizedArticle, ScrapeConfig } from "./types";
 
 const POSTGRES_UNIQUE_VIOLATION = "23505";
@@ -51,16 +52,20 @@ export async function ingestSource(
       canonicalUrl = a.url;
     }
 
-    const { error } = await supabase.from("articles").insert({
-      source_id: source.id,
-      title: a.title,
-      url: a.url,
-      canonical_url: canonicalUrl,
-      excerpt: a.excerpt,
-      thumbnail_url: a.thumbnailUrl,
-      published_at: a.publishedAt,
-      dedup_key: a.dedupKey,
-    });
+    const { data: insertedRow, error } = await supabase
+      .from("articles")
+      .insert({
+        source_id: source.id,
+        title: a.title,
+        url: a.url,
+        canonical_url: canonicalUrl,
+        excerpt: a.excerpt,
+        thumbnail_url: a.thumbnailUrl,
+        published_at: a.publishedAt,
+        dedup_key: a.dedupKey,
+      })
+      .select("id")
+      .single();
 
     if (error) {
       if (error.code === POSTGRES_UNIQUE_VIOLATION) {
@@ -70,6 +75,15 @@ export async function ingestSource(
       throw error;
     }
     inserted += 1;
+
+    // 새로 들어온 글일 때만(중복이면 여기 안 옴) 썸네일을 우리 스토리지로 미러링한다 —
+    // presigned URL처럼 만료되는 원본 이미지를 영구 URL로 바꿔둔다 (docs/decisions.md 참고).
+    if (a.thumbnailUrl && insertedRow) {
+      const mirroredUrl = await mirrorThumbnail(supabase, a.thumbnailUrl, insertedRow.id);
+      if (mirroredUrl) {
+        await supabase.from("articles").update({ thumbnail_url: mirroredUrl }).eq("id", insertedRow.id);
+      }
+    }
   }
 
   return { found: articles.length, inserted, duplicates };
