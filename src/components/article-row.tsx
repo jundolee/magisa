@@ -23,7 +23,19 @@ export function ArticleRow({ article }: { article: ArticleListItem }) {
     >
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
         <Badge size="medium" variant="weak" tone="neutral">
-          {article.source?.title ?? article.source?.site_url}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+            {article.source?.favicon_url && (
+              // eslint-disable-next-line @next/next/no-img-element -- 임의의 외부 도메인 파비콘
+              <img
+                src={article.source.favicon_url}
+                alt=""
+                width={14}
+                height={14}
+                style={{ borderRadius: 3, flexShrink: 0 }}
+              />
+            )}
+            {article.source?.title ?? article.source?.site_url}
+          </span>
         </Badge>
 
         <ArticleLink articleId={article.id} href={article.url}>

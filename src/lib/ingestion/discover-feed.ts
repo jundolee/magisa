@@ -50,6 +50,16 @@ function extractSiteTitle(html: string): string | null {
   return titleTag || null;
 }
 
+/** 라벨 앞에 보여줄 파비콘. <link rel=icon>이 없으면 관례적 위치인 /favicon.ico로 폴백. */
+function extractFaviconUrl(html: string, siteUrl: string): string {
+  const $ = cheerio.load(html);
+  const iconHref = $('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]')
+    .first()
+    .attr("href");
+  const resolved = iconHref ? new URL(iconHref, siteUrl).toString() : new URL("/favicon.ico", siteUrl).toString();
+  return resolved;
+}
+
 /**
  * 블로그 홈 URL을 받아 RSS/Atom 피드를 자동 탐지한다.
  * architecture.md 3절 "피드 자동 탐지" 참고: <link rel=alternate> 우선, 없으면 관례적 경로 순차 프로브.
@@ -57,6 +67,7 @@ function extractSiteTitle(html: string): string | null {
 export async function discoverFeed(siteUrl: string): Promise<FeedDiscoveryResult> {
   const homepage = await fetchText(siteUrl);
   const siteTitle = homepage ? extractSiteTitle(homepage.text) : null;
+  const faviconUrl = homepage ? extractFaviconUrl(homepage.text, siteUrl) : new URL("/favicon.ico", siteUrl).toString();
 
   if (homepage) {
     const $ = cheerio.load(homepage.text);
@@ -71,7 +82,7 @@ export async function discoverFeed(siteUrl: string): Promise<FeedDiscoveryResult
       const candidate = await fetchText(absoluteUrl);
       const feedType = candidate && detectFeedType(candidate.contentType, candidate.text);
       if (feedType) {
-        return { feedUrl: absoluteUrl, feedType, siteTitle };
+        return { feedUrl: absoluteUrl, feedType, siteTitle, faviconUrl };
       }
     }
   }
@@ -82,9 +93,9 @@ export async function discoverFeed(siteUrl: string): Promise<FeedDiscoveryResult
     if (!candidate) continue;
     const feedType = detectFeedType(candidate.contentType, candidate.text);
     if (feedType) {
-      return { feedUrl: candidateUrl, feedType, siteTitle };
+      return { feedUrl: candidateUrl, feedType, siteTitle, faviconUrl };
     }
   }
 
-  return { feedUrl: null, feedType: "unknown", siteTitle };
+  return { feedUrl: null, feedType: "unknown", siteTitle, faviconUrl };
 }

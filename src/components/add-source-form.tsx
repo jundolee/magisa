@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Text } from "@seed-design/react";
 import { ActionButton } from "seed-design/ui/action-button";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import { addSourceFlowAction, type AddSourceFlowState } from "@/app/sources/actions";
@@ -14,6 +15,7 @@ const initialState: AddSourceFlowState = {
   feedUrl: null,
   scrapeConfig: null,
   siteTitle: null,
+  faviconUrl: null,
   preview: [],
 };
 
@@ -30,8 +32,8 @@ export function AddSourceForm() {
 
   return (
     <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 520 }}>
-      <TextField name="siteUrl" label="블로그 홈 URL">
-        <TextFieldInput type="url" placeholder="https://example.com" required defaultValue={state.siteUrl} />
+      <TextField name="siteUrl" label="블로그 홈 URL" defaultValue={state.siteUrl}>
+        <TextFieldInput type="url" placeholder="https://example.com" required />
       </TextField>
 
       {autoWorked && (
@@ -51,9 +53,9 @@ export function AddSourceForm() {
             display: "flex",
             flexDirection: "column",
             gap: 12,
-            padding: 12,
+            padding: 16,
             border: "1px solid var(--seed-color-stroke-neutral)",
-            borderRadius: 8,
+            borderRadius: 10,
           }}
         >
           {!advancedOpen ? (
@@ -68,40 +70,50 @@ export function AddSourceForm() {
             </ActionButton>
           ) : (
             <>
-              <p style={{ fontSize: 13, color: "var(--seed-color-fg-neutral-muted)", margin: 0 }}>
+              <Text as="p" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">
                 이 사이트의 글 목록이 어떻게 생겼는지 알려주면 그대로 가져올게요.
-              </p>
-              <TextField name="listItemSelector" label="목록 항목 선택자">
-                <TextFieldInput
-                  placeholder="예: article.post-card"
-                  required
-                  defaultValue={state.scrapeConfig?.listItemSelector ?? ""}
-                />
+              </Text>
+              <TextField
+                name="listItemSelector"
+                label="목록 항목 선택자"
+                defaultValue={state.scrapeConfig?.listItemSelector ?? ""}
+              >
+                <TextFieldInput placeholder="예: article.post-card" required />
               </TextField>
-              <TextField name="titleSelector" label="제목 선택자">
-                <TextFieldInput
-                  placeholder="예: h2 또는 .title"
-                  required
-                  defaultValue={state.scrapeConfig?.titleSelector ?? ""}
-                />
+              <TextField
+                name="titleSelector"
+                label="제목 선택자"
+                defaultValue={state.scrapeConfig?.titleSelector ?? ""}
+              >
+                <TextFieldInput placeholder="예: h2 또는 .title" required />
               </TextField>
-              <TextField name="linkSelector" label="링크 선택자 (비워두면 목록 항목 자체가 링크)">
-                <TextFieldInput placeholder="예: a" defaultValue={state.scrapeConfig?.linkSelector ?? ""} />
+              <TextField
+                name="linkSelector"
+                label="링크 선택자 (비워두면 목록 항목 자체가 링크)"
+                defaultValue={state.scrapeConfig?.linkSelector ?? ""}
+              >
+                <TextFieldInput placeholder="예: a" />
               </TextField>
-              <TextField name="excerptSelector" label="요약 선택자 (선택)">
-                <TextFieldInput
-                  placeholder="예: .description"
-                  defaultValue={state.scrapeConfig?.excerptSelector ?? ""}
-                />
+              <TextField
+                name="excerptSelector"
+                label="요약 선택자 (선택)"
+                defaultValue={state.scrapeConfig?.excerptSelector ?? ""}
+              >
+                <TextFieldInput placeholder="예: .description" />
               </TextField>
-              <TextField name="dateSelector" label="날짜 선택자 (선택)">
-                <TextFieldInput placeholder="예: time" defaultValue={state.scrapeConfig?.dateSelector ?? ""} />
+              <TextField
+                name="dateSelector"
+                label="날짜 선택자 (선택)"
+                defaultValue={state.scrapeConfig?.dateSelector ?? ""}
+              >
+                <TextFieldInput placeholder="예: time" />
               </TextField>
-              <TextField name="thumbnailSelector" label="썸네일 선택자 (선택)">
-                <TextFieldInput
-                  placeholder="예: img"
-                  defaultValue={state.scrapeConfig?.thumbnailSelector ?? ""}
-                />
+              <TextField
+                name="thumbnailSelector"
+                label="썸네일 선택자 (선택)"
+                defaultValue={state.scrapeConfig?.thumbnailSelector ?? ""}
+              >
+                <TextFieldInput placeholder="예: img" />
               </TextField>
             </>
           )}
@@ -111,6 +123,7 @@ export function AddSourceForm() {
       <input type="hidden" name="feedType" value={state.feedType} />
       <input type="hidden" name="feedUrl" value={state.feedUrl ?? ""} />
       <input type="hidden" name="siteTitle" value={state.siteTitle ?? ""} />
+      <input type="hidden" name="faviconUrl" value={state.faviconUrl ?? ""} />
 
       <div style={{ display: "flex", gap: 8 }}>
         <ActionButton
@@ -131,21 +144,25 @@ export function AddSourceForm() {
       </div>
 
       {state.message && (
-        <p style={{ color: state.ok ? "var(--seed-color-fg-positive)" : "var(--seed-color-fg-critical)" }}>
+        <Text as="p" textStyle="t3Regular" color={state.ok ? "fg.positive" : "fg.critical"}>
           {state.message}
-        </p>
+        </Text>
       )}
 
       {state.preview.length > 0 && (
-        <ul style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 14, listStyle: "none", padding: 0 }}>
+        <ul style={{ display: "flex", flexDirection: "column", gap: 8, listStyle: "none", padding: 0 }}>
           {state.preview.map((a) => (
             <li
               key={a.url}
-              style={{ border: "1px solid var(--seed-color-stroke-neutral)", borderRadius: 6, padding: 8 }}
+              style={{ border: "1px solid var(--seed-color-stroke-neutral)", borderRadius: 8, padding: 12 }}
             >
-              <strong>{a.title}</strong>
+              <Text as="strong" textStyle="t3Bold" color="fg.neutral">
+                {a.title}
+              </Text>
               {a.excerpt && (
-                <div style={{ color: "var(--seed-color-fg-neutral-muted)", marginTop: 4 }}>{a.excerpt}</div>
+                <Text as="p" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)">
+                  {a.excerpt}
+                </Text>
               )}
             </li>
           ))}

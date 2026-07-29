@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Text } from "@seed-design/react";
 import { ActionButton } from "seed-design/ui/action-button";
 import { TextField, TextFieldTextarea } from "seed-design/ui/text-field";
 import { addSourcesBulkAction, type BulkAddActionState } from "@/app/sources/actions";
@@ -18,19 +19,21 @@ export function BulkAddSourceForm() {
           placeholder={"https://a.com\nhttps://b.com\nhttps://c.com"}
         />
       </TextField>
-      <ActionButton type="submit" loading={isPending} size="small">
+      <ActionButton type="submit" loading={isPending} size="small" style={{ alignSelf: "flex-start" }}>
         일괄 등록
       </ActionButton>
       {state.total > 0 && (
-        <div style={{ fontSize: 14 }}>
-          <p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <Text as="p" textStyle="t3Regular" color="fg.neutral">
             {state.succeeded}/{state.total}개 등록 성공
-          </p>
+          </Text>
           {state.failed.length > 0 && (
-            <ul style={{ color: "var(--seed-color-fg-critical)" }}>
+            <ul style={{ display: "flex", flexDirection: "column", gap: 2, paddingLeft: 18 }}>
               {state.failed.map((f) => (
                 <li key={f.siteUrl}>
-                  {f.siteUrl}: {f.message}
+                  <Text as="span" textStyle="t2Regular" color="var(--seed-color-fg-critical)">
+                    {f.siteUrl}: {f.message}
+                  </Text>
                 </li>
               ))}
             </ul>

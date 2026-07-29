@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { listArticles, type ArticleFilter } from "@/lib/data/articles";
 import { listSources } from "@/lib/data/sources";
 import { ArticleList } from "@/components/article-list";
+import { PageHeader } from "@/components/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +26,8 @@ export default async function Home({
     .sort((a, b) => a.label.localeCompare(b.label, "ko"));
 
   return (
-    <main style={{ padding: 40, maxWidth: 720, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <Link href="/sources">소스 관리</Link>
-      </div>
+    <main>
+      <PageHeader navHref="/sources" navLabel="소스 관리" />
 
       <ArticleList
         articles={articles}

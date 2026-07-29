@@ -131,6 +131,27 @@
 **이유**: 개인용 규모(전체 글 수가 몇백 건 수준)에서는 전체를 한 번에 브라우저로 보내고 메모리에서 거르는 게 매 클릭마다 Supabase를 왕복하는 것보다 압도적으로 빠름. 읽음 처리(서버 액션)는 그대로 `revalidatePath("/")`로 동작하고, `ArticleList`는 `articles`를 로컬 state로 복사하지 않고 prop 그대로 받아 `useMemo`만 거치므로 revalidate로 갱신된 새 prop이 자연스럽게 반영됨.
 **영향**: `src/app/page.tsx`(단순화), `src/components/article-list.tsx`(신규, 필터링 로직 이전), `src/components/article-filter-tabs.tsx`/`src/components/source-filter-select.tsx`(라우팅을 직접 하던 것을 `value`/`onChange` 컨트롤드 컴포넌트로 변경), `src/lib/data/articles.ts`(`listArticles`의 `filter`/`sourceId` 서버 옵션과 `countUnreadArticles` 제거 — 더 이상 필요 없음).
 
+### 2026-07-29 — Freesentation 웹폰트 적용 (self-host)
+**결정**: `next/font/local`로 Freesentation 4개 굵기(400/500/600/700)를 자체 호스팅. jsDelivr(`projectnoonnu/2404` — 눈누에서 배포하는 경로)에서 woff2 파일을 다운로드해 `src/app/fonts/freesentation/`에 커밋해두고, next/font가 최적화(서브셋 프리로드, `font-display: swap`, 폴백 메트릭 자동 생성)를 담당하게 함.
+**이유**: 매 방문자의 브라우저가 매번 외부 CDN에 요청하는 것보다, Next.js가 자체 도메인에서 최적화해서 서빙하는 게 더 빠르고 안정적(CDN 장애/차단에 영향 안 받음). 기존 Geist는 실제로는 body의 `font-family: Arial...` 하드코딩에 가려져 어디에도 적용되고 있지 않았음 — 이번에 같이 정리.
+**영향**: `src/app/layout.tsx`, `src/app/globals.css`(body font-family), `src/app/fonts/freesentation/*.woff2`(4개 파일 커밋).
+
+### 2026-07-29 — 다크모드 미디어쿼리 잔재 제거 (라이트 전용과 불일치하던 부분)
+**결정**: `globals.css`에 `prefers-color-scheme: dark`일 때 `--background`/`--foreground`를 어둡게 바꾸는 규칙이 남아있었는데, SEED Design은 `data-seed-color-mode="light"`로 항상 라이트라, OS가 다크모드면 우리 커스텀 배경/텍스트만 어두워지고 SEED 컴포넌트는 밝은 채로 남아 화면이 반반 섞이는 상태였음. 다크모드 미디어쿼리를 제거하고 `color-scheme: light`로 고정.
+**영향**: `src/app/globals.css`.
+
+### 2026-07-29 — `/sources` 페이지가 PC 화면에서 좌측으로 쏠리던 버그 수정
+**결정**: 홈(`/`)은 `margin: "0 auto"`로 중앙정렬돼 있었는데 `/sources`는 `maxWidth`만 있고 `margin: auto`가 빠져 있어 넓은 화면에서 왼쪽에 붙어 보였음. 페이지마다 폭/중앙정렬을 각자 넣다 보니 생긴 문제라, 아예 루트 레이아웃(`src/app/layout.tsx`)에 `.app-shell` 컨테이너(`max-width: 720px; margin: 0 auto;`)를 두고 모든 페이지가 공통으로 상속받게 바꿔서 이 종류의 버그가 페이지별로 다시 생기지 않게 함.
+**영향**: `src/app/layout.tsx`, `src/app/globals.css`, `src/app/page.tsx`/`src/app/sources/page.tsx`(중복 스타일 제거).
+
+### 2026-07-29 — 소스 라벨 앞에 파비콘 표시
+**결정**: 등록 시점에 홈페이지의 `<link rel=icon>`(없으면 `/favicon.ico` 관례 경로)을 추출해 `sources.favicon_url`에 저장하고, 글 목록의 블로그 배지·소스 관리 목록 양쪽에 이름 앞에 작게 표시. 마이그레이션 `0003_source_favicon.sql` 필요.
+**영향**: `src/lib/ingestion/discover-feed.ts`(`extractFaviconUrl`), `src/lib/ingestion/types.ts`, `src/lib/data/sources.ts`/`src/app/sources/actions.ts`/`src/components/add-source-form.tsx`(siteTitle과 동일한 방식으로 carry-forward), `src/lib/data/articles.ts`(select에 `favicon_url` 추가), `src/components/article-row.tsx`/`src/components/source-row.tsx`.
+
+### 2026-07-29 — SEED Design TextField의 `defaultValue`/`value` 동시 사용 경고 수정
+**결정**: `TextFieldInput`에 직접 `defaultValue`를 주면, 감싸는 `TextField`가 내부적으로 `useTextFieldWithGraphemes` 훅을 통해 항상 `value`(빈 문자열이라도)를 함께 내려보내서 "controlled/uncontrolled input" React 경고가 났음. 우리가 커스터마이징 가능한 `seed-design/ui/text-field.tsx`(CLI가 복사해준 코드)를 고쳐서 `defaultValue`를 `TextField` 자체가 받아 훅에 전달하도록 하고, 사용하는 쪽(`AddSourceForm` 등)은 `defaultValue`를 안쪽 `TextFieldInput`이 아니라 바깥 `TextField`에 주도록 변경.
+**영향**: `seed-design/ui/text-field.tsx`, `src/components/add-source-form.tsx`.
+
 ### 2026-07-28 — `scrapeConfig.linkSelector`를 선택값으로 변경 (카드 전체가 `<a>`인 사이트 지원)
 **결정**: `bucketplace.com/culture/`(오늘의집 Gatsby 정적 블로그)를 실제로 등록해보니, 글 목록 카드가 `<a class="...post-list__item">`처럼 **앵커 자체가 리스트 아이템**인 구조였음. 기존 코드는 `linkSelector`가 필수였고 `$el.find(linkSelector)`로 자식만 찾아서 이 구조를 지원 못 했음. `linkSelector`를 optional로 바꾸고, 생략 시 리스트 아이템 엘리먼트 자체를 링크로 사용하도록 수정.
 **이유**: "카드 전체가 링크"인 구조는 실제로 꽤 흔한 패턴이라 처음부터 지원하는 게 맞다고 판단.

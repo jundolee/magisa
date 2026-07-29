@@ -1,9 +1,12 @@
 "use client";
 
+import { Badge, Text } from "@seed-design/react";
 import { ActionButton } from "seed-design/ui/action-button";
 import { toggleSourceActiveAction, deleteSourceAction } from "@/app/sources/actions";
 import { IngestNowButton } from "./ingest-now-button";
 import type { Source } from "@/lib/data/sources";
+
+const MUTED = "var(--seed-color-fg-neutral-muted)";
 
 function formatCheckedAt(iso: string | null): string | null {
   if (!iso) return null;
@@ -22,29 +25,47 @@ export function SourceRow({ source }: { source: Source }) {
     <li
       style={{
         border: "1px solid var(--seed-color-stroke-neutral)",
-        borderRadius: 8,
-        padding: 16,
+        borderRadius: 12,
+        padding: 20,
         display: "flex",
         justifyContent: "space-between",
         gap: 16,
         alignItems: "flex-start",
       }}
     >
-      <div>
-        <strong>{source.title ?? source.site_url}</strong>
-        <div style={{ fontSize: 13, color: "var(--seed-color-fg-neutral-muted)" }}>
-          {source.site_url} · {source.feed_type}
-          {!source.is_active && " · 일시중지됨"}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {source.favicon_url && (
+            // eslint-disable-next-line @next/next/no-img-element -- 임의의 외부 도메인 파비콘
+            <img
+              src={source.favicon_url}
+              alt=""
+              width={18}
+              height={18}
+              style={{ borderRadius: 4, flexShrink: 0 }}
+            />
+          )}
+          <Text as="strong" textStyle="t5Bold" color="fg.neutral">
+            {source.title ?? source.site_url}
+          </Text>
+          {!source.is_active && (
+            <Badge size="medium" variant="weak" tone="warning">
+              일시중지됨
+            </Badge>
+          )}
         </div>
+        <Text as="span" textStyle="t2Regular" color={MUTED}>
+          {source.site_url} · {source.feed_type.toUpperCase()}
+        </Text>
         {checkedAt && (
-          <div style={{ fontSize: 12, color: "var(--seed-color-fg-neutral-muted)" }}>
+          <Text as="span" textStyle="t2Regular" color={MUTED}>
             마지막 확인: {checkedAt}
-          </div>
+          </Text>
         )}
         {source.last_error && (
-          <div style={{ fontSize: 13, color: "var(--seed-color-fg-critical)" }}>
+          <Text as="span" textStyle="t2Regular" color="var(--seed-color-fg-critical)">
             마지막 오류: {source.last_error}
-          </div>
+          </Text>
         )}
       </div>
       <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "flex-start" }}>
