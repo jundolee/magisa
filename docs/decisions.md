@@ -115,6 +115,17 @@
 **이유**: 등록 직후 바로 결과를 확인하고 싶은 건 자연스러운 기대라, 매번 다음날까지 기다리게 하는 건 불필요한 마찰. 크론 라우트와 같은 `ingestSource()` 로직을 재사용해서 별도 파이프라인을 만들 필요는 없었음.
 **영향**: `src/app/sources/actions.ts`(`ingestSourceNowAction`), `src/components/ingest-now-button.tsx`(신규), `src/components/source-row.tsx`(마지막 확인 시각 표시 추가). 실제로 이미 등록돼 있었지만 글이 하나도 없던 gccompany 테크블로그 소스에 사용해 10개 글을 즉시 수집하는 것으로 검증함.
 
+### 2026-07-29 — 소스 이름을 URL 대신 실제 사이트명으로 자동 추출
+**결정**: 소스 목록/글 배지에 `source.title ?? source.site_url`로 표시하고 있었는데, `title`을 채워주는 로직이 없어서 항상 URL 그대로 노출되고 있었음(서로 구분이 잘 안 됨). 등록 시점에 이름을 자동으로 뽑아 저장하도록 함: RSS/Atom은 피드의 채널 제목(`parseFeed()`가 이제 `{ title, articles }`를 반환), 스크래핑은 홈페이지의 `og:title` → `og:site_name` → `<title>` 태그 순으로 우선순위를 둬서 추출(`discoverFeed()`가 `siteTitle`도 함께 반환).
+**이유**: og:title/og:site_name이 있으면 대체로 `<title>` 태그보다 깔끔한 이름이라 우선함(예: bucketplace의 `<title>`엔 "오늘의집 - 매일 성장하는..." 같은 긴 태그라인이 붙지만 og:title은 "오늘의집 이야기"로 간결함).
+**백필**: 기존 3개 소스 모두 이름이 없었어서 같은 로직으로 다시 조회해 채움 — 토스: "토스 기술 블로그, 토스 테크", gccompany: "여기어때 기술블로그 - Medium", bucketplace: "오늘의집 이야기".
+**영향**: `src/lib/ingestion/discover-feed.ts`, `src/lib/ingestion/parse-feed.ts`(반환 타입 변경, `src/lib/ingestion/ingest-source.ts`와 `src/app/sources/actions.ts` 호출부도 함께 수정), `src/lib/data/sources.ts`(`insertSource`/`addSource`에 title 추가), `src/components/add-source-form.tsx`(숨김 필드로 carry-forward).
+
+### 2026-07-29 — 블로그(소스)별 글 목록 필터 추가
+**결정**: 읽음/안읽음/전체 탭에 더해, 특정 블로그의 글만 볼 수 있는 드롭다운(`<select>`)을 홈 화면에 추가. `?source=<id>` 쿼리 파라미터로 동작하며 읽음 필터와 독립적으로 조합됨.
+**이유**: 소스가 여러 개로 늘어나면서 "이 블로그 글만 보고 싶다"는 수요가 자연스럽게 생김. SEED Design의 Select Box는 카드형이라 소스 개수가 늘어날수록 공간을 많이 차지해서, 이 용도엔 SEED 토큰으로 스타일링한 네이티브 `<select>`를 사용.
+**영향**: `src/lib/data/articles.ts`(`listArticles`에 `sourceId` 옵션 추가), `src/components/source-filter-select.tsx`(신규), `src/app/page.tsx`.
+
 ### 2026-07-28 — `scrapeConfig.linkSelector`를 선택값으로 변경 (카드 전체가 `<a>`인 사이트 지원)
 **결정**: `bucketplace.com/culture/`(오늘의집 Gatsby 정적 블로그)를 실제로 등록해보니, 글 목록 카드가 `<a class="...post-list__item">`처럼 **앵커 자체가 리스트 아이템**인 구조였음. 기존 코드는 `linkSelector`가 필수였고 `$el.find(linkSelector)`로 자식만 찾아서 이 구조를 지원 못 했음. `linkSelector`를 optional로 바꾸고, 생략 시 리스트 아이템 엘리먼트 자체를 링크로 사용하도록 수정.
 **이유**: "카드 전체가 링크"인 구조는 실제로 꽤 흔한 패턴이라 처음부터 지원하는 게 맞다고 판단.

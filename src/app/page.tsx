@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { countUnreadArticles, listArticles, type ArticleFilter } from "@/lib/data/articles";
+import { listSources } from "@/lib/data/sources";
 import { ArticleRow } from "@/components/article-row";
 import { ArticleFilterTabs } from "@/components/article-filter-tabs";
+import { SourceFilterSelect } from "@/components/source-filter-select";
 
 export const dynamic = "force-dynamic";
 
@@ -12,12 +14,20 @@ function parseFilter(raw: string | undefined): ArticleFilter {
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string }>;
+  searchParams: Promise<{ filter?: string; source?: string }>;
 }) {
-  const { filter: rawFilter } = await searchParams;
+  const { filter: rawFilter, source: sourceId } = await searchParams;
   const filter = parseFilter(rawFilter);
 
-  const [articles, unreadCount] = await Promise.all([listArticles({ filter }), countUnreadArticles()]);
+  const [articles, unreadCount, sources] = await Promise.all([
+    listArticles({ filter, sourceId }),
+    countUnreadArticles(),
+    listSources(),
+  ]);
+
+  const sourceOptions = sources
+    .map((s) => ({ id: s.id, label: s.title ?? s.site_url }))
+    .sort((a, b) => a.label.localeCompare(b.label, "ko"));
 
   return (
     <main style={{ padding: 40, maxWidth: 720, margin: "0 auto" }}>
@@ -26,8 +36,9 @@ export default async function Home({
         <Link href="/sources">소스 관리</Link>
       </div>
 
-      <div style={{ margin: "16px 0" }}>
+      <div style={{ margin: "16px 0", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
         <ArticleFilterTabs current={filter} />
+        <SourceFilterSelect sources={sourceOptions} current={sourceId ?? "all"} filter={filter} />
       </div>
 
       <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0 }}>

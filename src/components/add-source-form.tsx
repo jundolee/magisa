@@ -13,6 +13,7 @@ const initialState: AddSourceFlowState = {
   feedType: "unknown",
   feedUrl: null,
   scrapeConfig: null,
+  siteTitle: null,
   preview: [],
 };
 
@@ -109,6 +110,7 @@ export function AddSourceForm() {
 
       <input type="hidden" name="feedType" value={state.feedType} />
       <input type="hidden" name="feedUrl" value={state.feedUrl ?? ""} />
+      <input type="hidden" name="siteTitle" value={state.siteTitle ?? ""} />
 
       <div style={{ display: "flex", gap: 8 }}>
         <ActionButton

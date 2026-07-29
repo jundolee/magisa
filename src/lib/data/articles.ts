@@ -18,7 +18,10 @@ export interface ArticleListItem {
 
 export type ArticleFilter = "all" | "unread" | "read";
 
-export async function listArticles(options?: { filter?: ArticleFilter }): Promise<ArticleListItem[]> {
+export async function listArticles(options?: {
+  filter?: ArticleFilter;
+  sourceId?: string;
+}): Promise<ArticleListItem[]> {
   const supabase = createServiceClient();
   let query = supabase
     .from("articles")
@@ -32,6 +35,10 @@ export async function listArticles(options?: { filter?: ArticleFilter }): Promis
     query = query.eq("is_read", false);
   } else if (options?.filter === "read") {
     query = query.eq("is_read", true);
+  }
+
+  if (options?.sourceId) {
+    query = query.eq("source_id", options.sourceId);
   }
 
   const { data, error } = await query;

@@ -19,6 +19,7 @@ export interface AddSourceFlowState {
   feedUrl: string | null;
   // JSON을 직접 쓰게 하는 대신, 셀렉터별로 나뉜 폼 입력을 그대로 구조화해서 들고 있는다 (JSON 문법 오류 자체를 없앰).
   scrapeConfig: ScrapeConfig | null;
+  siteTitle: string | null;
   preview: NormalizedArticle[];
 }
 
@@ -31,6 +32,7 @@ const emptyState: AddSourceFlowState = {
   feedType: "unknown",
   feedUrl: null,
   scrapeConfig: null,
+  siteTitle: null,
   preview: [],
 };
 
@@ -87,6 +89,7 @@ export async function addSourceFlowAction(
 
     const feedType = (String(formData.get("feedType") ?? prevState.feedType) || "unknown") as FeedType;
     const feedUrl = String(formData.get("feedUrl") ?? "") || null;
+    const siteTitle = String(formData.get("siteTitle") ?? "").trim() || null;
 
     let scrapeConfig: ScrapeConfig | null = null;
     if (feedType === "scrape") {
@@ -96,7 +99,7 @@ export async function addSourceFlowAction(
       }
     }
 
-    const result = await insertSource({ siteUrl, feedType, feedUrl, scrapeConfig });
+    const result = await insertSource({ siteUrl, feedType, feedUrl, scrapeConfig, title: siteTitle });
     revalidatePath("/sources");
     return { ...emptyState, ok: result.ok, message: result.message };
   }
@@ -106,19 +109,22 @@ export async function addSourceFlowAction(
     return { ...emptyState, ok: false, message: "사이트 URL을 입력해주세요." };
   }
 
-  const discovery = await discoverFeed(siteUrl).catch(() => ({ feedUrl: null, feedType: "unknown" as FeedType }));
+  const discovery = await discoverFeed(siteUrl).catch(
+    () => ({ feedUrl: null, feedType: "unknown" as FeedType, siteTitle: null })
+  );
 
   if (discovery.feedType === "rss" || discovery.feedType === "atom") {
-    const articles = await parseFeed(discovery.feedUrl!);
+    const feed = await parseFeed(discovery.feedUrl!);
     return {
       ok: true,
-      message: `${articles.length}개의 글을 찾았어요. 확인하고 등록해주세요.`,
+      message: `${feed.articles.length}개의 글을 찾았어요. 확인하고 등록해주세요.`,
       step: "previewed",
       siteUrl,
       feedType: discovery.feedType,
       feedUrl: discovery.feedUrl,
       scrapeConfig: null,
-      preview: articles.slice(0, 5),
+      siteTitle: feed.title ?? discovery.siteTitle,
+      preview: feed.articles.slice(0, 5),
     };
   }
 
@@ -137,6 +143,7 @@ export async function addSourceFlowAction(
         feedType: "scrape",
         feedUrl: null,
         scrapeConfig: null,
+        siteTitle: discovery.siteTitle,
         preview: [],
       };
     }
@@ -154,6 +161,7 @@ export async function addSourceFlowAction(
       feedType: "scrape",
       feedUrl: null,
       scrapeConfig: null,
+      siteTitle: discovery.siteTitle,
       preview: [],
     };
   }
@@ -173,6 +181,7 @@ export async function addSourceFlowAction(
       feedType: "scrape",
       feedUrl: null,
       scrapeConfig,
+      siteTitle: discovery.siteTitle,
       preview: articles.slice(0, 5),
     };
   } catch (e) {
@@ -185,6 +194,7 @@ export async function addSourceFlowAction(
       feedType: "scrape",
       feedUrl: null,
       scrapeConfig,
+      siteTitle: discovery.siteTitle,
       preview: [],
     };
   }
