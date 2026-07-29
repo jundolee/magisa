@@ -39,12 +39,24 @@ function detectFeedType(contentType: string, text: string): FeedType | null {
   return null;
 }
 
+/** URL 목록 화면에 그대로 노출하기엔 부적절해서, 등록 시점에 블로그 이름을 뽑아둔다. */
+function extractSiteTitle(html: string): string | null {
+  const $ = cheerio.load(html);
+  const ogTitle = $('meta[property="og:title"]').attr("content")?.trim();
+  if (ogTitle) return ogTitle;
+  const ogSiteName = $('meta[property="og:site_name"]').attr("content")?.trim();
+  if (ogSiteName) return ogSiteName;
+  const titleTag = $("title").first().text().trim();
+  return titleTag || null;
+}
+
 /**
  * 블로그 홈 URL을 받아 RSS/Atom 피드를 자동 탐지한다.
  * architecture.md 3절 "피드 자동 탐지" 참고: <link rel=alternate> 우선, 없으면 관례적 경로 순차 프로브.
  */
 export async function discoverFeed(siteUrl: string): Promise<FeedDiscoveryResult> {
   const homepage = await fetchText(siteUrl);
+  const siteTitle = homepage ? extractSiteTitle(homepage.text) : null;
 
   if (homepage) {
     const $ = cheerio.load(homepage.text);
@@ -59,7 +71,7 @@ export async function discoverFeed(siteUrl: string): Promise<FeedDiscoveryResult
       const candidate = await fetchText(absoluteUrl);
       const feedType = candidate && detectFeedType(candidate.contentType, candidate.text);
       if (feedType) {
-        return { feedUrl: absoluteUrl, feedType };
+        return { feedUrl: absoluteUrl, feedType, siteTitle };
       }
     }
   }
@@ -70,9 +82,9 @@ export async function discoverFeed(siteUrl: string): Promise<FeedDiscoveryResult
     if (!candidate) continue;
     const feedType = detectFeedType(candidate.contentType, candidate.text);
     if (feedType) {
-      return { feedUrl: candidateUrl, feedType };
+      return { feedUrl: candidateUrl, feedType, siteTitle };
     }
   }
 
-  return { feedUrl: null, feedType: "unknown" };
+  return { feedUrl: null, feedType: "unknown", siteTitle };
 }

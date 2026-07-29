@@ -17,7 +17,7 @@ export interface SourceRow {
 
 export async function fetchArticlesForSource(source: SourceRow): Promise<NormalizedArticle[]> {
   if ((source.feed_type === "rss" || source.feed_type === "atom") && source.feed_url) {
-    return parseFeed(source.feed_url);
+    return (await parseFeed(source.feed_url)).articles;
   }
   if (source.feed_type === "scrape" && source.scrape_config) {
     return scrapeSource(source.site_url, source.scrape_config);

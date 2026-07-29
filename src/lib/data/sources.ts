@@ -42,6 +42,7 @@ export async function insertSource(input: {
   feedType: FeedType;
   feedUrl: string | null;
   scrapeConfig: ScrapeConfig | null;
+  title?: string | null;
 }): Promise<AddSourceResult> {
   const supabase = createServiceClient();
   const { error } = await supabase.from("sources").insert({
@@ -49,6 +50,7 @@ export async function insertSource(input: {
     feed_url: input.feedUrl,
     feed_type: input.feedType,
     scrape_config: input.feedType === "scrape" ? input.scrapeConfig : null,
+    title: input.title ?? null,
   });
 
   if (error) {
@@ -70,11 +72,13 @@ export async function addSource(siteUrl: string, scrapeConfig?: ScrapeConfig): P
 
   let feedUrl: string | null = null;
   let feedType: FeedType = "unknown";
+  let title: string | null = null;
 
   try {
     const discovery = await discoverFeed(normalizedUrl);
     feedUrl = discovery.feedUrl;
     feedType = discovery.feedType;
+    title = discovery.siteTitle;
   } catch {
     // 탐지 실패는 무시하고 unknown으로 진행 (scrapeConfig가 있으면 그걸로 등록)
   }
@@ -90,7 +94,7 @@ export async function addSource(siteUrl: string, scrapeConfig?: ScrapeConfig): P
     feedType = "scrape";
   }
 
-  return insertSource({ siteUrl: normalizedUrl, feedType, feedUrl, scrapeConfig: scrapeConfig ?? null });
+  return insertSource({ siteUrl: normalizedUrl, feedType, feedUrl, scrapeConfig: scrapeConfig ?? null, title });
 }
 
 export async function addSourcesBulk(siteUrls: string[]): Promise<AddSourceResult[]> {

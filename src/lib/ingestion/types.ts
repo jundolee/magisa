@@ -24,4 +24,5 @@ export interface NormalizedArticle {
 export interface FeedDiscoveryResult {
   feedUrl: string | null;
   feedType: FeedType;
+  siteTitle: string | null;
 }

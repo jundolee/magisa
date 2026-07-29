@@ -37,13 +37,19 @@ function extractThumbnail(item: Record<string, unknown>): string | null {
   return null;
 }
 
+export interface ParsedFeed {
+  /** 채널(피드) 제목 — 소스 등록 시 블로그 이름으로 사용 */
+  title: string | null;
+  articles: NormalizedArticle[];
+}
+
 /**
  * RSS/Atom 피드 URL을 받아 목록 메타데이터로 정규화한다. architecture.md 3절 "RSS/Atom 파싱" 참고.
  */
-export async function parseFeed(feedUrl: string): Promise<NormalizedArticle[]> {
+export async function parseFeed(feedUrl: string): Promise<ParsedFeed> {
   const feed = await parser.parseURL(feedUrl);
 
-  return (feed.items ?? [])
+  const articles = (feed.items ?? [])
     .filter((item) => item.link && item.title)
     .map((item) => {
       const url = item.link as string;
@@ -61,4 +67,6 @@ export async function parseFeed(feedUrl: string): Promise<NormalizedArticle[]> {
         dedupKey: computeDedupKey({ guid: (guid as string) ?? null, url, title }),
       } satisfies NormalizedArticle;
     });
+
+  return { title: feed.title?.trim() || null, articles };
 }
