@@ -52,9 +52,14 @@ export function ArticleRow({ article }: { article: ArticleListItem }) {
             </Text>
           )}
 
-          <Text as="span" textStyle="t2Regular" color={MUTED}>
-            {formatDate(article.published_at)}
-          </Text>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Text as="span" textStyle="t2Regular" color={MUTED}>
+              {formatDate(article.published_at)}
+            </Text>
+            <Text as="span" textStyle="t2Regular" color={MUTED}>
+              클릭수 : {article.click_count}
+            </Text>
+          </div>
         </ArticleLink>
 
         {article.is_read && <UnreadToggleForm articleId={article.id} />}

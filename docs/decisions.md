@@ -251,3 +251,8 @@
 **원인**: 등록 당시 `excerptSelector`로 잡아둔 `.typo-description1`은 실제로는 "요약문"이 아니라 작성자 여러 명 + 구분점 + `<time>` 날짜를 한 줄에 나열하는 **바이라인(byline) 컨테이너**였음. `scrapeSource()`가 이 엘리먼트에 `.text()`를 호출하면 내부의 모든 텍스트 노드(작성자명들 + 날짜)가 공백 없이 그대로 이어붙어(`"이수빈이혜수신승훈김필섭2026. 7. 14."`) `excerpt` 컬럼에 저장되고 있었음 — 사용자가 보고한 "날짜랑 이름이 같이 딸려온다"는 증상과 정확히 일치.
 **조치**: 실제 페이지 HTML을 직접 fetch해 구조를 확인한 뒤 (1) 해당 소스의 `scrape_config`에서 `excerptSelector`를 제거(이 사이트 목록 뷰에는 애초에 실제 요약 텍스트가 없음 — title + byline + 썸네일만 존재), (2) 이미 잘못 저장된 기존 글 95건의 `excerpt`를 전부 `null`로 정리. 수정된 설정으로 실제 스크래핑을 재현해 제목/날짜가 오염 없이 정상 추출되는 것까지 확인.
 **영향**: DB 데이터만 수정(코드 변경 없음) — `sources.scrape_config`(id: `d063aeca-a22f-44a8-88da-c9a78b26b61c`), `articles.excerpt`(해당 소스 95건).
+
+### 2026-07-30 — 글 클릭수(전역 카운터) 추가
+**결정**: 읽음/안읽음과 달리 클릭수는 "모든 유저에게 공통으로 보이는" 값이라고 명시적으로 요청받아, 방문자별 `read_status`와 분리해 `articles.click_count`에 그대로 전역 컬럼으로 둠. 글 목록에 날짜 옆 "클릭수 : N" 형태로 표시.
+**구현**: 제목/요약/썸네일 어디를 클릭하든 이미 `markArticleReadAction`이 호출되고 있어서(같은 `ArticleLink`), 여기에 증가 로직을 얹음 — 읽음 처리(방문자별)와 달리 방문자 쿠키가 없어도 클릭수는 항상 증가하도록 분리 처리. 동시 클릭 시 `column = column + 1` 형태의 원자적 증가가 필요해서(supabase-js는 이런 산술 업데이트를 직접 지원하지 않음) `increment_article_click_count(target_id uuid)` Postgres 함수를 만들어 RPC로 호출.
+**영향**: `supabase/migrations/0005_article_click_count.sql`(신규 — 컬럼 추가는 기존 행에 영향 없는 안전한 additive 마이그레이션이지만, 코드가 먼저 배포되면 `listArticles()`의 select가 없는 컬럼을 찾다 실패하므로 **마이그레이션을 먼저 실행해야 함** — favicon_url 때와 동일한 패턴), `src/lib/data/articles.ts`(`incrementArticleClickCount`, `ArticleListItem.click_count`), `src/app/articles/actions.ts`, `src/components/article-row.tsx`.
