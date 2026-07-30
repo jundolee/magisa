@@ -157,6 +157,18 @@
 **이유**: 이 문제는 medium.com에만 해당하는 게 아니라, 봇 UA로 홈페이지 접근을 막는 다른 사이트에서도 똑같이 재현될 수 있는 구조적 문제라, 개별 사이트를 special-case 하는 대신 수집 파이프라인 전체의 User-Agent를 브라우저 UA로 통일함. 개인이 이미 구독 중인 공개 블로그를 하루 한 번, 소스당 한 번 읽어오는 저부하·비영리 목적이라 판단 — 대량 스크래핑이나 유료 콘텐츠 우회, CAPTCHA 우회와는 성격이 다름.
 **영향**: `src/lib/ingestion/user-agent.ts`(신규, 공용 상수) — `discover-feed.ts`/`scrape-source.ts`/`auto-detect-scrape-config.ts`/`parse-feed.ts`/`src/lib/storage/thumbnails.ts`에 흩어져 있던 개별 UA 상수를 전부 이걸로 교체해 앞으로 다시 따로 어긋나지 않게 함. 배포 환경에서 진단 라우트로 실제 재현·수정 확인 후 삭제.
 
+### 2026-07-30 — oliveyoung.tech 썸네일이 안 보이던 문제: 상대경로를 그대로 저장하고 있었음
+**결정**: `parse-feed.ts`의 `extractThumbnail()`이 본문 HTML의 `<img src>`를 그대로 반환하고 있었는데, oliveyoung.tech(Gatsby 기반)는 이 `src`가 `/static/...`처럼 도메인 없는 상대경로였음. 우리 사이트(magisa.vercel.app) 기준으로 렌더링되니 당연히 깨짐. 글 URL(`item.link`)을 기준으로 `new URL(imgSrc, articleUrl)`로 절대 URL 변환하도록 수정.
+**추가로 발견한 것**: oliveyoung.tech 일부 글은 썸네일이 SVG(`image/svg+xml`)였는데, `mirrorThumbnail()`의 확장자 매핑에 SVG가 빠져 있어 미러링이 조용히 실패하고 있었음 — jpg/png/webp/gif/avif에 svg 추가.
+**백필**: 기존에 상대경로/누락으로 저장된 썸네일을 소스별로 다시 파싱해 재매칭 후 미러링. oliveyoung 4건 중 2건 성공(SVG 수정으로), 나머지 2건과 toss.tech 2건은 RSS 피드가 최신 N개만 보여줘서 이미 피드 창 밖으로 밀려난 예전 글이라 재파싱으로는 복구 불가 — 개별 글 페이지를 다시 방문해 og:image를 스크래핑하는 별도 폴백이 있어야 하는데, 지금은 범위 밖으로 남겨둠.
+**영향**: `src/lib/ingestion/parse-feed.ts`(`resolveUrl` 추가), `src/lib/storage/thumbnails.ts`(SVG 지원 추가).
+
+### 2026-07-30 — `/sources`를 관리자 비밀번호로 보호
+**결정**: 소스 관리 화면(등록/삭제/일시중지/즉시수집)이 로그인 없이 완전히 공개돼 있어 누구나 건드릴 수 있다는 지적을 받음. Supabase Auth 같은 전체 로그인 시스템(Phase 2로 미뤄둔 항목)을 아직 들이지 않고, `/sources` 하나만 막는 가벼운 비밀번호 게이트를 추가함: `ADMIN_PASSWORD` 환경변수가 설정되어 있으면 `/admin-login`에서 비밀번호를 입력해 쿠키를 발급받아야 `/sources`에 접근 가능. 비밀번호가 설정 안 돼 있으면(로컬 개발 등) 그대로 열어둠.
+**구현 중 발견한 것**: Next.js 16부터 `middleware.ts` 파일명/`middleware` export가 deprecated되고 `proxy.ts`/`export function proxy`로 이름이 바뀜(런타임도 Edge가 아니라 Node.js로 고정). AGENTS.md가 "훈련 데이터와 다를 수 있으니 문서를 먼저 읽으라"고 경고했던 게 정확히 이 케이스라, 옛 `middleware` 컨벤션으로 안 쓰고 번들된 문서를 먼저 확인한 뒤 `src/proxy.ts`로 작성함. 쿠키 해시는 Edge/Node 어디서든 동일하게 동작하는 Web Crypto(`crypto.subtle`)로 계산해 런타임 호환성 문제를 피함.
+**이유**: Server Function(서버 액션)은 별도 라우트가 아니라 그 액션이 쓰인 페이지로의 POST 요청으로 처리되므로, `/sources` 경로를 매칭하는 matcher 하나로 소스 등록/삭제/토글/즉시수집 액션까지 전부 함께 보호됨 (공식 문서에도 이 점이 명시돼 있어 확인 후 그대로 활용).
+**영향**: `src/proxy.ts`(신규), `src/lib/admin-auth.ts`(신규, 공유 해시 유틸), `src/app/admin-login/page.tsx`+`actions.ts`(신규), `.env.example`(`ADMIN_PASSWORD` 추가). 로컬에서 올바른 쿠키로 접근 허용/틀린 쿠키로 리다이렉트/`ADMIN_PASSWORD` 미설정 시 무제한 접근 세 가지 경우 모두 검증함. Vercel에 `ADMIN_PASSWORD` 환경변수를 설정해야 실제로 켜짐.
+
 ### 2026-07-28 — `scrapeConfig.linkSelector`를 선택값으로 변경 (카드 전체가 `<a>`인 사이트 지원)
 **결정**: `bucketplace.com/culture/`(오늘의집 Gatsby 정적 블로그)를 실제로 등록해보니, 글 목록 카드가 `<a class="...post-list__item">`처럼 **앵커 자체가 리스트 아이템**인 구조였음. 기존 코드는 `linkSelector`가 필수였고 `$el.find(linkSelector)`로 자식만 찾아서 이 구조를 지원 못 했음. `linkSelector`를 optional로 바꾸고, 생략 시 리스트 아이템 엘리먼트 자체를 링크로 사용하도록 수정.
 **이유**: "카드 전체가 링크"인 구조는 실제로 꽤 흔한 패턴이라 처음부터 지원하는 게 맞다고 판단.
