@@ -233,3 +233,9 @@
 **중요한 발견**: 단순히 속성만 추가하고 끝내지 않고 실제 렌더된 HTML을 직접 비교해봄 — 적용 **전**에는 React 19가 SSR 중 렌더된 모든 `<img>`를 자동으로 `<link rel="preload" as="image">`로 `<head>`에 미리 박아두고 있었음(글 185개 기준 185개 preload 태그, 즉 화면에 보이지도 않는 이미지까지 페이지 로드와 동시에 전부 프리로드). `loading="lazy"`를 추가하니 이 자동 preload가 정확히 0개로 사라지는 것을 확인 — 즉 이 속성 하나가 없으면 아무리 `<img>`에 lazy를 걸어도 React가 이미 선제적으로 fetch를 걸어놔서 사실상 무의미했을 것이라는 얘기. 이걸 확인하지 않고 넘어갔으면 "적용은 했는데 실제로는 효과가 없는" 상태로 남을 뻔함.
 **한계**: 이 환경엔 실제 브라우저/Lighthouse가 없어 LCP·총 전송량 등 체감 지표까지는 측정하지 못함 — preload 태그 개수(185→0)로 메커니즘이 정상 작동함만 확인.
 **영향**: `src/components/article-row.tsx`.
+
+### 2026-07-30 — 썸네일 없는 글도 동일 규격의 플레이스홀더로 채워 목록 정렬 통일
+**배경**: 썸네일 크기 고정(112x112)과 `object-fit: cover`는 이미 `AspectRatio`로 구현돼 있었지만(`--seed-aspect-ratio-padding`이 padding-bottom 트릭으로 정사각형을 만들고, `.seed-aspect-ratio > img`가 `object-fit: cover`를 강제), `thumbnail_url`이 없는 글(예: bucketplace.com처럼 처음부터 썸네일 셀렉터를 설정 안 한 소스)은 그 자리 자체를 아예 렌더링하지 않아 목록 전체를 봤을 때 정렬이 어긋나 보였음.
+**결정**: `thumbnail_url` 유무와 무관하게 항상 같은 112x112 `AspectRatio` 박스를 렌더링하도록 바꾸고, 없을 때는 `--seed-color-bg-neutral-weak` 배경의 빈 플레이스홀더 div로 채움.
+**검증**: production 빌드로 실제 글 200개(캡 기준) 목록을 렌더링해, 썸네일 있는 196개는 `<img>`로, 없는 4개는 플레이스홀더 div로 — 정확히 200개 모두 하나씩 박스를 갖는 것을 확인.
+**영향**: `src/components/article-row.tsx`.
