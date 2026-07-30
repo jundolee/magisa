@@ -64,7 +64,16 @@ export function ArticleList({
         </div>
       </div>
 
-      <div style={{ marginBottom: 24, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+      <div
+        style={{
+          marginBottom: 24,
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
         <ArticleFilterTabs
           current={filter}
           onChange={(value) => {
