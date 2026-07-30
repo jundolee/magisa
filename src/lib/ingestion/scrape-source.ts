@@ -1,8 +1,9 @@
 import * as cheerio from "cheerio";
 import type { NormalizedArticle, ScrapeConfig } from "./types";
 import { computeDedupKey } from "./dedup";
+import { INGESTION_USER_AGENT } from "./user-agent";
 
-const USER_AGENT = "MagisaBot/0.1 (+personal tech blog aggregator)";
+const USER_AGENT = INGESTION_USER_AGENT;
 const FETCH_TIMEOUT_MS = 15_000;
 
 function normalizeDate(dateText: string): string | null {

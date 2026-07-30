@@ -1,7 +1,8 @@
 import * as cheerio from "cheerio";
 import type { FeedDiscoveryResult, FeedType } from "./types";
+import { INGESTION_USER_AGENT } from "./user-agent";
 
-const USER_AGENT = "MagisaBot/0.1 (+personal tech blog aggregator)";
+const USER_AGENT = INGESTION_USER_AGENT;
 const FETCH_TIMEOUT_MS = 10_000;
 const CANDIDATE_PATHS = [
   "/feed",

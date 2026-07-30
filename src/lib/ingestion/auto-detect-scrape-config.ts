@@ -1,8 +1,9 @@
 import * as cheerio from "cheerio";
 import type { Element } from "domhandler";
 import type { ScrapeConfig } from "./types";
+import { INGESTION_USER_AGENT } from "./user-agent";
 
-const USER_AGENT = "MagisaBot/0.1 (+personal tech blog aggregator)";
+const USER_AGENT = INGESTION_USER_AGENT;
 const FETCH_TIMEOUT_MS = 15_000;
 const MIN_REPEAT = 3;
 const MAX_REPEAT = 200;
