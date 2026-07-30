@@ -59,9 +59,14 @@ export function ArticleRow({ article }: { article: ArticleListItem }) {
         {article.is_read && <UnreadToggleForm articleId={article.id} />}
       </div>
 
-      {article.thumbnail_url && (
-        <AspectRatio ratio={1} width="112px" style={{ flexShrink: 0, borderRadius: 8, overflow: "hidden" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- 임의의 외부 도메인 썸네일이라 next/image 최적화 대상 밖 */}
+      {/* 썸네일 유무와 무관하게 항상 같은 112x112 규격을 유지 — 없는 글은 빈 플레이스홀더로 채워 목록 전체의 정렬을 맞춘다 */}
+      <AspectRatio
+        ratio={1}
+        width="112px"
+        style={{ flexShrink: 0, borderRadius: 8, overflow: "hidden", background: "var(--seed-color-bg-neutral-weak)" }}
+      >
+        {article.thumbnail_url ? (
+          // eslint-disable-next-line @next/next/no-img-element -- 임의의 외부 도메인 썸네일이라 next/image 최적화 대상 밖
           <img
             src={article.thumbnail_url}
             alt=""
@@ -69,8 +74,10 @@ export function ArticleRow({ article }: { article: ArticleListItem }) {
             decoding="async"
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
-        </AspectRatio>
-      )}
+        ) : (
+          <div style={{ width: "100%", height: "100%" }} />
+        )}
+      </AspectRatio>
     </li>
   );
 }
