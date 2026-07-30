@@ -239,3 +239,15 @@
 **결정**: `thumbnail_url` 유무와 무관하게 항상 같은 112x112 `AspectRatio` 박스를 렌더링하도록 바꾸고, 없을 때는 `--seed-color-bg-neutral-weak` 배경의 빈 플레이스홀더 div로 채움.
 **검증**: production 빌드로 실제 글 200개(캡 기준) 목록을 렌더링해, 썸네일 있는 196개는 `<img>`로, 없는 4개는 플레이스홀더 div로 — 정확히 200개 모두 하나씩 박스를 갖는 것을 확인.
 **영향**: `src/components/article-row.tsx`.
+
+### 2026-07-30 — 소스 필터 드롭다운 위치/너비 조정 + 썸네일·본문 전체 클릭 가능하게
+**결정**:
+- 필터 탭(세그먼트 컨트롤)과 소스 드롭다운이 같은 줄에 붙어 있어 드롭다운이 토글 바로 옆이라 답답하다는 피드백 → `justify-content: space-between`으로 좌우 분리(`src/components/article-list.tsx`).
+- 드롭다운 메뉴 항목 텍스트가 두 줄로 잘려 보이던 문제 → 원인은 `MenuRoot`에 걸어둔 `matchReferenceWidth`가 트리거 버튼의 좁은 너비(160px)를 메뉴 팝오버 너비에 그대로 강제하고 있었음. `matchReferenceWidth` 제거 + `MenuContent`에 `minWidth:240/maxWidth:320` 지정 + 각 항목 라벨에 `white-space:nowrap`+`text-overflow:ellipsis`(+flex 자식 축소를 위한 `minWidth:0`)를 줘서 짧은 이름은 한 줄로, 아주 긴 이름은 말줄임표로 처리되도록 함(`src/components/source-filter-select.tsx`).
+- 지금까지 글 제목만 클릭 가능했는데, 썸네일과 요약/날짜도 클릭해서 원문으로 이동하도록 확장. `ArticleLink`에 `style` prop을 추가해 제목+요약+날짜를 하나의 링크로 묶고, 썸네일은 별도의 `ArticleLink`로 감쌈(안읽음 처리 폼/배지는 링크 밖에 그대로 둬 `<a>` 안에 `<form>`이 중첩되는 문제를 피함).
+**영향**: `src/components/article-list.tsx`, `src/components/source-filter-select.tsx`, `src/components/article-link.tsx`(style prop 추가), `src/components/article-row.tsx`.
+
+### 2026-07-30 — 힐링페이퍼 블로그(강남언니) 스크래핑: excerpt에 작성자명+날짜가 뒤섞여 저장되던 버그
+**원인**: 등록 당시 `excerptSelector`로 잡아둔 `.typo-description1`은 실제로는 "요약문"이 아니라 작성자 여러 명 + 구분점 + `<time>` 날짜를 한 줄에 나열하는 **바이라인(byline) 컨테이너**였음. `scrapeSource()`가 이 엘리먼트에 `.text()`를 호출하면 내부의 모든 텍스트 노드(작성자명들 + 날짜)가 공백 없이 그대로 이어붙어(`"이수빈이혜수신승훈김필섭2026. 7. 14."`) `excerpt` 컬럼에 저장되고 있었음 — 사용자가 보고한 "날짜랑 이름이 같이 딸려온다"는 증상과 정확히 일치.
+**조치**: 실제 페이지 HTML을 직접 fetch해 구조를 확인한 뒤 (1) 해당 소스의 `scrape_config`에서 `excerptSelector`를 제거(이 사이트 목록 뷰에는 애초에 실제 요약 텍스트가 없음 — title + byline + 썸네일만 존재), (2) 이미 잘못 저장된 기존 글 95건의 `excerpt`를 전부 `null`로 정리. 수정된 설정으로 실제 스크래핑을 재현해 제목/날짜가 오염 없이 정상 추출되는 것까지 확인.
+**영향**: DB 데이터만 수정(코드 변경 없음) — `sources.scrape_config`(id: `d063aeca-a22f-44a8-88da-c9a78b26b61c`), `articles.excerpt`(해당 소스 95건).
