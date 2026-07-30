@@ -32,7 +32,8 @@ export default async function Home({
 
   return (
     <main>
-      <PageHeader navHref="/sources" navLabel="소스 관리" />
+      {/* 소스 관리(/sources)는 관리자 전용이라 눈에 띄는 링크를 두지 않는다 — 주소를 직접 아는 사람만 접근 (docs/decisions.md 참고) */}
+      <PageHeader />
 
       <ArticleList
         articles={articles}

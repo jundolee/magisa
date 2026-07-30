@@ -5,6 +5,8 @@ import { Badge, Text } from "@seed-design/react";
 import { ArticleRow } from "./article-row";
 import { ArticleFilterTabs } from "./article-filter-tabs";
 import { SourceFilterSelect, type SourceOption } from "./source-filter-select";
+import { ReadAllControls } from "./read-all-controls";
+import { ScrollToTopButton } from "./scroll-to-top-button";
 import type { ArticleFilter, ArticleListItem } from "@/lib/data/articles";
 
 /**
@@ -52,11 +54,14 @@ export function ArticleList({
         <Text as="h1" textStyle="t8Bold" color="fg.neutral">
           글 목록
         </Text>
-        {unreadCount > 0 && (
-          <Badge size="medium" variant="solid" tone="brand">
-            안읽음 {unreadCount}
-          </Badge>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {unreadCount > 0 && (
+            <Badge size="medium" variant="solid" tone="brand">
+              안읽음 {unreadCount}
+            </Badge>
+          )}
+          <ReadAllControls />
+        </div>
       </div>
 
       <div style={{ marginBottom: 24, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
@@ -87,6 +92,7 @@ export function ArticleList({
           표시할 글이 없습니다.
         </Text>
       )}
+      <ScrollToTopButton />
     </>
   );
 }

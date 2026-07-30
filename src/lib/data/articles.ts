@@ -66,3 +66,24 @@ export async function markArticleUnread(visitorId: string, articleId: string): P
     .eq("article_id", articleId);
   if (error) throw error;
 }
+
+export async function markAllArticlesRead(visitorId: string): Promise<void> {
+  const supabase = createServiceClient();
+  const { data: articles, error: articlesError } = await supabase.from("articles").select("id");
+  if (articlesError) throw articlesError;
+  if (!articles || articles.length === 0) return;
+
+  const { error } = await supabase
+    .from("read_status")
+    .upsert(
+      articles.map((a) => ({ visitor_id: visitorId, article_id: a.id })),
+      { onConflict: "visitor_id,article_id" }
+    );
+  if (error) throw error;
+}
+
+export async function markAllArticlesUnread(visitorId: string): Promise<void> {
+  const supabase = createServiceClient();
+  const { error } = await supabase.from("read_status").delete().eq("visitor_id", visitorId);
+  if (error) throw error;
+}

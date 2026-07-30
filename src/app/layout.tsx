@@ -18,10 +18,29 @@ const freesentation = localFont({
   ],
 });
 
+const SITE_URL = "https://magisa.vercel.app";
+const SITE_TITLE = "Magisa — 테크 블로그 아카이버";
+const SITE_DESCRIPTION = "구독한 테크 블로그의 새 글을 모아 보는 아카이버";
+
+// 홈 화면은 검색엔진에 노출돼도 괜찮다 — 관리자 전용 화면(/sources, /admin-login)은
+// 각 페이지에서 robots: noindex로 따로 덮어쓴다 (docs/decisions.md 참고).
 export const metadata: Metadata = {
-  title: "Magisa — 테크 블로그 아카이버",
-  description: "구독한 테크 블로그의 새 글을 모아 보는 개인용 아카이버",
-  robots: { index: false, follow: false },
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: "Magisa",
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({

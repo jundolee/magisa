@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import { Text } from "@seed-design/react";
 import { ActionButton } from "seed-design/ui/action-button";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import { adminLoginAction } from "./actions";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function AdminLoginPage({
   searchParams,
