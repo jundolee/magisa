@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "@seed-design/css/all.css";
 import "./globals.css";
+
+const GA_MEASUREMENT_ID = "G-N87SEEKW9Y";
 
 const freesentation = localFont({
   variable: "--font-freesentation",
@@ -30,6 +33,7 @@ export default function RootLayout({
       <body>
         <div className="app-shell">{children}</div>
       </body>
+      {process.env.NODE_ENV === "production" && <GoogleAnalytics gaId={GA_MEASUREMENT_ID} />}
     </html>
   );
 }

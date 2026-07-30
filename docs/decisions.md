@@ -190,3 +190,8 @@
 **놓칠 뻔한 것**: AI가 `linkAttr`/`thumbnailAttr`(href/src가 아닌 다른 속성에서 URL을 읽어야 하는 경우)까지 추론해줄 수 있는데, 기존 수동 입력 폼에는 이 두 필드가 아예 없어서 `autoWorked`(자동 성공) 시 hidden input으로 다음 요청에 실어보내는 로직에도 빠져 있었음 — 그대로 뒀다면 미리보기는 성공해도 확정(confirm) 저장 시 이 값들이 조용히 유실될 뻔함. `add-source-form.tsx`의 hidden input과 `scrapeConfigFromFormData()` 양쪽에 추가해 방지.
 **영향**: `src/lib/ingestion/ai-selector-inference.ts`(신규), `src/app/sources/actions.ts`(`addSourceFlowAction`의 스크래핑 분기를 후보별 순차 시도 구조로 재작성, `scrapeConfigFromFormData`에 `linkAttr`/`thumbnailAttr` 추가), `src/components/add-source-form.tsx`(hidden input 2개 추가), `.env.example`(`OPENAI_API_KEY` 추가, 비워두면 AI 폴백 없이 기존 그대로 동작).
 **미검증**: 실제 `OPENAI_API_KEY`로 라이브 호출까지는 테스트하지 못함 — 모델명/구조화 출력 스키마 규칙은 OpenAI 공식 pricing/structured-outputs 문서로 직접 확인했지만, 실제 API 키를 넣고 자동 인식이 실패하던 사이트로 등록을 시도해 실제로 selector를 잘 추론하는지는 사용자가 키를 설정한 뒤 확인 필요.
+
+### 2026-07-30 — Google Analytics(GA4) 태그 추가
+**결정**: `@next/third-parties/google`의 `GoogleAnalytics` 컴포넌트를 루트 레이아웃에 추가(측정 ID `G-N87SEEKW9Y`). Next.js 공식 문서(`node_modules/next/dist/docs/01-app/02-guides/third-party-libraries.md`)에서 권장하는 방식 그대로 — 직접 `next/script`로 `gtag.js`를 붙이는 대신, hydration 이후 지연 로드 + 클라이언트 라우팅 시 자동 pageview 추적까지 함께 처리해줌.
+**로컬 개발 트래픽 제외**: `process.env.NODE_ENV === "production"`일 때만 렌더링해 로컬 dev 접속이 GA 데이터에 섞이지 않도록 함. `npm run build` + `npm run start`로 실제 production 모드에서 `gtag.js` 프리로드가 정상 삽입되는지 확인함(`npm run dev`는 NODE_ENV가 development라 의도적으로 GA가 안 뜸 — 정상).
+**영향**: `package.json`(`@next/third-parties` 추가), `src/app/layout.tsx`.
