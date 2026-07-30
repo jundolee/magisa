@@ -44,6 +44,8 @@ export function AddSourceForm() {
           <input type="hidden" name="excerptSelector" value={state.scrapeConfig?.excerptSelector ?? ""} />
           <input type="hidden" name="dateSelector" value={state.scrapeConfig?.dateSelector ?? ""} />
           <input type="hidden" name="thumbnailSelector" value={state.scrapeConfig?.thumbnailSelector ?? ""} />
+          <input type="hidden" name="linkAttr" value={state.scrapeConfig?.linkAttr ?? ""} />
+          <input type="hidden" name="thumbnailAttr" value={state.scrapeConfig?.thumbnailAttr ?? ""} />
         </>
       )}
 
