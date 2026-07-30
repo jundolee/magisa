@@ -8,6 +8,7 @@ export interface ArticleListItem {
   excerpt: string | null;
   thumbnail_url: string | null;
   published_at: string | null;
+  click_count: number;
   is_read: boolean;
   source: {
     id: string;
@@ -31,7 +32,9 @@ export async function listArticles(visitorId: string | null): Promise<ArticleLis
   const [articlesRes, readRes] = await Promise.all([
     supabase
       .from("articles")
-      .select("id, title, url, excerpt, thumbnail_url, published_at, source:sources(id, title, site_url, favicon_url)")
+      .select(
+        "id, title, url, excerpt, thumbnail_url, published_at, click_count, source:sources(id, title, site_url, favicon_url)"
+      )
       // 카드에 보이는 날짜(published_at) 기준 내림차순 — 화면에 표시되는 값과 정렬 순서가 어긋나지 않도록 한다.
       // published_at이 없는 경우만 맨 뒤로 보낸다.
       .order("published_at", { ascending: false, nullsFirst: false })
@@ -47,6 +50,14 @@ export async function listArticles(visitorId: string | null): Promise<ArticleLis
   const readIds = new Set((readRes.data ?? []).map((r) => r.article_id as string));
   const articles = (articlesRes.data as unknown as Omit<ArticleListItem, "is_read">[]) ?? [];
   return articles.map((a) => ({ ...a, is_read: readIds.has(a.id) }));
+}
+
+// 방문자 구분 없이 모든 유저에게 공통으로 보이는 전역 카운터라 read_status와 달리 articles 테이블에 그대로 둔다.
+// 동시 클릭에도 안전하도록 "column + 1" 원자적 증가를 DB 함수(RPC)로 처리한다.
+export async function incrementArticleClickCount(articleId: string): Promise<void> {
+  const supabase = createServiceClient();
+  const { error } = await supabase.rpc("increment_article_click_count", { target_id: articleId });
+  if (error) throw error;
 }
 
 export async function markArticleRead(visitorId: string, articleId: string): Promise<void> {
