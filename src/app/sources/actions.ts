@@ -6,6 +6,7 @@ import { discoverFeed } from "@/lib/ingestion/discover-feed";
 import { parseFeed } from "@/lib/ingestion/parse-feed";
 import { scrapeSource } from "@/lib/ingestion/scrape-source";
 import { autoDetectScrapeConfig } from "@/lib/ingestion/auto-detect-scrape-config";
+import { inferScrapeConfigWithAI } from "@/lib/ingestion/ai-selector-inference";
 import { ingestSource, type SourceRow } from "@/lib/ingestion/ingest-source";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { FeedType, NormalizedArticle, ScrapeConfig } from "@/lib/ingestion/types";
@@ -62,9 +63,11 @@ function scrapeConfigFromFormData(formData: FormData): ScrapeConfig | null {
     listItemSelector,
     titleSelector,
     linkSelector: optional("linkSelector"),
+    linkAttr: optional("linkAttr"),
     excerptSelector: optional("excerptSelector"),
     dateSelector: optional("dateSelector"),
     thumbnailSelector: optional("thumbnailSelector"),
+    thumbnailAttr: optional("thumbnailAttr"),
   };
 }
 
@@ -132,12 +135,9 @@ export async function addSourceFlowAction(
     };
   }
 
-  // RSS/Atom을 못 찾음 -> 스크래핑. 사용자가 필드를 직접 채웠으면 그걸 우선 사용, 비어있으면 자동 인식 시도.
-  let scrapeConfig: ScrapeConfig | null = null;
-  let autoDetected = false;
-
+  // RSS/Atom을 못 찾음 -> 스크래핑. 사용자가 필드를 직접 채웠으면 그걸 그대로 사용.
   if (hasManualScrapeFields(formData)) {
-    scrapeConfig = scrapeConfigFromFormData(formData);
+    const scrapeConfig = scrapeConfigFromFormData(formData);
     if (!scrapeConfig) {
       return {
         ok: false,
@@ -148,63 +148,89 @@ export async function addSourceFlowAction(
         feedUrl: null,
         scrapeConfig: null,
         siteTitle: discovery.siteTitle,
-      faviconUrl: discovery.faviconUrl,
+        faviconUrl: discovery.faviconUrl,
         preview: [],
       };
     }
-  } else {
-    scrapeConfig = await autoDetectScrapeConfig(siteUrl).catch(() => null);
-    autoDetected = true;
-  }
 
-  if (!scrapeConfig) {
+    const articles = await tryScrapePreview(siteUrl, scrapeConfig);
     return {
-      ok: false,
-      message: "이 사이트에서는 새 글 목록을 자동으로 찾지 못했어요. 아래에서 직접 지정해볼 수 있어요.",
+      ok: articles !== null,
+      message:
+        articles === null
+          ? "글을 하나도 찾지 못했어요. 선택자를 다시 확인해주세요."
+          : `${articles.length}개의 글을 찾았어요. 확인하고 등록해주세요.`,
       step: "previewed",
       siteUrl,
       feedType: "scrape",
       feedUrl: null,
-      scrapeConfig: null,
+      scrapeConfig,
       siteTitle: discovery.siteTitle,
       faviconUrl: discovery.faviconUrl,
-      preview: [],
+      preview: articles?.slice(0, 5) ?? [],
     };
   }
 
+  // 사용자가 직접 입력하지 않음 -> ① 규칙 기반 auto-detect, ② 실패 시에만 AI 추론(소스당 최대 1회 호출)을 순서대로 시도.
+  const autoConfig = await autoDetectScrapeConfig(siteUrl).catch(() => null);
+  const autoArticles = autoConfig ? await tryScrapePreview(siteUrl, autoConfig) : null;
+  if (autoConfig && autoArticles) {
+    return {
+      ok: true,
+      message: `${autoArticles.length}개의 글을 찾았어요. 확인하고 등록해주세요.`,
+      step: "previewed",
+      siteUrl,
+      feedType: "scrape",
+      feedUrl: null,
+      scrapeConfig: autoConfig,
+      siteTitle: discovery.siteTitle,
+      faviconUrl: discovery.faviconUrl,
+      preview: autoArticles.slice(0, 5),
+    };
+  }
+
+  const aiConfig = await inferScrapeConfigWithAI(siteUrl).catch((e) => {
+    console.error("AI 선택자 추론 실패:", e);
+    return null;
+  });
+  const aiArticles = aiConfig ? await tryScrapePreview(siteUrl, aiConfig) : null;
+  if (aiConfig && aiArticles) {
+    return {
+      ok: true,
+      message: `${aiArticles.length}개의 글을 찾았어요. 확인하고 등록해주세요.`,
+      step: "previewed",
+      siteUrl,
+      feedType: "scrape",
+      feedUrl: null,
+      scrapeConfig: aiConfig,
+      siteTitle: discovery.siteTitle,
+      faviconUrl: discovery.faviconUrl,
+      preview: aiArticles.slice(0, 5),
+    };
+  }
+
+  return {
+    ok: false,
+    message: "이 사이트에서는 새 글 목록을 자동으로 찾지 못했어요. 아래에서 직접 지정해볼 수 있어요.",
+    step: "previewed",
+    siteUrl,
+    feedType: "scrape",
+    feedUrl: null,
+    scrapeConfig: null,
+    siteTitle: discovery.siteTitle,
+    faviconUrl: discovery.faviconUrl,
+    preview: [],
+  };
+}
+
+/** scrapeConfig 후보 하나를 실제로 시도해보고, 글을 하나도 못 찾거나 에러가 나면 null. */
+async function tryScrapePreview(siteUrl: string, scrapeConfig: ScrapeConfig): Promise<NormalizedArticle[] | null> {
   try {
     const articles = await scrapeSource(siteUrl, scrapeConfig);
-    return {
-      ok: articles.length > 0,
-      message:
-        articles.length === 0
-          ? "글을 하나도 찾지 못했어요. 아래에서 직접 지정해볼 수 있어요."
-          : autoDetected
-            ? `${articles.length}개의 글을 찾았어요. 확인하고 등록해주세요.`
-            : `${articles.length}개의 글을 찾았어요. 확인하고 등록해주세요.`,
-      step: "previewed",
-      siteUrl,
-      feedType: "scrape",
-      feedUrl: null,
-      scrapeConfig,
-      siteTitle: discovery.siteTitle,
-      faviconUrl: discovery.faviconUrl,
-      preview: articles.slice(0, 5),
-    };
+    return articles.length > 0 ? articles : null;
   } catch (e) {
     console.error("스크래핑 미리보기 실패:", e);
-    return {
-      ok: false,
-      message: "이 사이트에서는 글을 가져오지 못했어요. 아래에서 직접 지정해볼 수 있어요.",
-      step: "previewed",
-      siteUrl,
-      feedType: "scrape",
-      feedUrl: null,
-      scrapeConfig,
-      siteTitle: discovery.siteTitle,
-      faviconUrl: discovery.faviconUrl,
-      preview: [],
-    };
+    return null;
   }
 }
 

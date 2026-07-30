@@ -181,3 +181,12 @@
 **크기**: 기존 세그먼트 컨트롤과 나란히 두기엔 `FieldButton` 기본 크기(`large`)가 다소 커서 `size="medium"`으로 조정.
 **검증**: `npm run build`/`npm run lint` 통과 확인 + 로컬 dev 서버에서 렌더된 HTML을 직접 파싱해 (1) 기본 상태에 "전체 소스" 표시, (2) `?source=<id>` 쿼리로 접근 시 실제 소스명("MUSINSA techblog — 무신사 테크 블로그 - Medium")이 트리거에 정확히 표시되는지 확인. 브라우저 조작(클릭 열기/닫기, 키보드 내비게이션)까지는 별도 브라우저 자동화 도구가 없어 직접 확인하지 못함 — 라이브러리 소스 추적으로 동작을 간접 검증함.
 **영향**: `src/components/source-filter-select.tsx`(전면 재작성, `{sources, current, onChange}` 컨트롤드 컴포넌트 계약은 유지해 `src/components/article-list.tsx`는 변경 없음), `seed-design/ui/field-button.tsx`/`seed-design/ui/menu.tsx`(신규, CLI 생성).
+
+### 2026-07-30 — 스크래핑 자동 인식 실패 시 AI(OpenAI) 선택자 추론 폴백 추가
+**결정**: 규칙 기반 auto-detect(`auto-detect-scrape-config.ts`)가 실패하는 사이트는 사용자가 직접 HTML을 열어 selector를 찾아 입력해야 했음 — 이 수공 비용을 줄이기 위해, auto-detect가 실패했을 때만(또는 결과가 0건일 때만) OpenAI API로 한 번 더 추론을 시도하는 폴백을 추가함.
+**모델/비용**: `gpt-5-nano` (OpenAI 최저가 티어, $0.05/$0.40 per 1M input/output 토큰 — 공식 pricing 문서로 직접 확인). 소스 하나 등록할 때, 그것도 규칙 기반이 실패했을 때만 1회 호출되고, 이후 일일 수집(cron)은 저장된 `scrape_config`를 재사용할 뿐 AI를 다시 부르지 않음 — 사용량 자체가 매우 낮아 실사용 비용은 사실상 무시할 수준.
+**입력 데이터**: 페이지를 다시 fetch한 뒤 `<script>/<style>/<svg>/<head>` 등을 cheerio로 제거하고 body HTML을 20,000자로 잘라 전달 — 토큰 비용을 더 줄임. Structured Outputs(`response_format: json_schema`, `strict: true`)로 스키마를 강제해 파싱 실패를 방지하고, 응답에 `found: boolean` 필드를 둬서 "반복되는 글 목록 자체가 없음(예: 빈 SPA 껍데기)"인 경우를 구분하도록 함 — 이 경로가 CSR(자바스크립트 렌더링) 사이트까지 해결해주진 않음(원본 HTML 자체에 내용이 없으면 AI도 볼 게 없음)을 명확히 인지하고 감.
+**적용 우선순위**: (1) 사용자가 폼에 직접 selector를 입력 → 그대로 사용, (2) 규칙 기반 auto-detect 시도 → 성공하면 AI 호출 안 함(비용 0), (3) 그래도 0건이면 AI 추론 시도 → 그것도 실패하면 기존처럼 수동 입력 화면 노출.
+**놓칠 뻔한 것**: AI가 `linkAttr`/`thumbnailAttr`(href/src가 아닌 다른 속성에서 URL을 읽어야 하는 경우)까지 추론해줄 수 있는데, 기존 수동 입력 폼에는 이 두 필드가 아예 없어서 `autoWorked`(자동 성공) 시 hidden input으로 다음 요청에 실어보내는 로직에도 빠져 있었음 — 그대로 뒀다면 미리보기는 성공해도 확정(confirm) 저장 시 이 값들이 조용히 유실될 뻔함. `add-source-form.tsx`의 hidden input과 `scrapeConfigFromFormData()` 양쪽에 추가해 방지.
+**영향**: `src/lib/ingestion/ai-selector-inference.ts`(신규), `src/app/sources/actions.ts`(`addSourceFlowAction`의 스크래핑 분기를 후보별 순차 시도 구조로 재작성, `scrapeConfigFromFormData`에 `linkAttr`/`thumbnailAttr` 추가), `src/components/add-source-form.tsx`(hidden input 2개 추가), `.env.example`(`OPENAI_API_KEY` 추가, 비워두면 AI 폴백 없이 기존 그대로 동작).
+**미검증**: 실제 `OPENAI_API_KEY`로 라이브 호출까지는 테스트하지 못함 — 모델명/구조화 출력 스키마 규칙은 OpenAI 공식 pricing/structured-outputs 문서로 직접 확인했지만, 실제 API 키를 넣고 자동 인식이 실패하던 사이트로 등록을 시도해 실제로 selector를 잘 추론하는지는 사용자가 키를 설정한 뒤 확인 필요.
