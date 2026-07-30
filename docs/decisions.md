@@ -256,3 +256,11 @@
 **결정**: 읽음/안읽음과 달리 클릭수는 "모든 유저에게 공통으로 보이는" 값이라고 명시적으로 요청받아, 방문자별 `read_status`와 분리해 `articles.click_count`에 그대로 전역 컬럼으로 둠. 글 목록에 날짜 옆 "클릭수 : N" 형태로 표시.
 **구현**: 제목/요약/썸네일 어디를 클릭하든 이미 `markArticleReadAction`이 호출되고 있어서(같은 `ArticleLink`), 여기에 증가 로직을 얹음 — 읽음 처리(방문자별)와 달리 방문자 쿠키가 없어도 클릭수는 항상 증가하도록 분리 처리. 동시 클릭 시 `column = column + 1` 형태의 원자적 증가가 필요해서(supabase-js는 이런 산술 업데이트를 직접 지원하지 않음) `increment_article_click_count(target_id uuid)` Postgres 함수를 만들어 RPC로 호출.
 **영향**: `supabase/migrations/0005_article_click_count.sql`(신규 — 컬럼 추가는 기존 행에 영향 없는 안전한 additive 마이그레이션이지만, 코드가 먼저 배포되면 `listArticles()`의 select가 없는 컬럼을 찾다 실패하므로 **마이그레이션을 먼저 실행해야 함** — favicon_url 때와 동일한 패턴), `src/lib/data/articles.ts`(`incrementArticleClickCount`, `ArticleListItem.click_count`), `src/app/articles/actions.ts`, `src/components/article-row.tsx`.
+
+### 2026-07-30 — "LLM으로 스크래핑을 못한다" 문제의 실제 원인: 빈 RSS 피드가 스크래핑/AI 폴백 자체를 막고 있었음
+**배경**: `tech.imweb.me`, `tech.kakaopay.com` 두 사이트를 실제 코드로 재현 확인.
+- `tech.imweb.me`는 RSS 피드가 정상 존재하고 20건이 그대로 잘 파싱됨 — 이 사이트는 원래도 스크래핑/AI가 필요 없는 케이스였음(썸네일이 없는 건 원본 피드 자체에 이미지 데이터가 없어서였고 버그 아님).
+- `tech.kakaopay.com`은 `discoverFeed()`가 `/rss.xml`을 찾긴 하지만, 그 피드 자체가 `<channel><title>...</title></channel>`만 있고 `<item>`이 하나도 없는 빈 스텁이었음. 그런데 기존 `addSourceFlowAction`은 `feedType`이 rss/atom이면 파싱 결과 글이 0개여도 그대로 반환해버려서(`preview.length===0`이라 등록 버튼도 안 뜸), **스크래핑도 AI 추론도 아예 시도되지 않고 거기서 끝나버리는 구조**였음. 사용자가 "LLM이 스크래핑을 못 한다"고 느낀 실제 원인은 이거였음 — LLM이 실패한 게 아니라 애초에 호출된 적이 없었음.
+**수정**: RSS/Atom을 찾았어도 파싱 결과가 0건이면 그 자리에서 끝내지 않고, 기존의 "RSS 못 찾음" 폴백 경로(사용자 수동 입력 → 규칙 기반 auto-detect → AI 추론)로 그대로 흘러가도록 변경.
+**kakaopay 추가 조사**: 수정 후에도 규칙 기반 auto-detect는 이 사이트에서 실패함 — 실제 원인은 태그 알약(`<a class="tag">BE</a>` 등, 9개, 서로 다른 텍스트라 다양성 체크 통과)이 진짜 글 목록(`li._postListItem_...`, CSS 모듈 해시 클래스명, 5개)보다 "적합 개수"가 더 많아서 휴리스틱이 잘못된 후보를 고르고, 그 후보엔 제목 삼을 만한 게 없어(`<a class="tag">BE</a>`는 자식 엘리먼트가 아예 없음) 최종적으로 실패로 끝남. Astro 등 빌드 도구가 만드는 해시 클래스명(`_postListItem_1169t_66`)은 애초에 규칙 기반 키워드 매칭("title", "desc" 등)으로 잡을 수 없는 구조라, 이런 사이트는 AI 추론 폴백에 의존해야 함 — `OPENAI_API_KEY`가 Vercel에 설정되어 있어야 실제로 동작.
+**영향**: `src/app/sources/actions.ts`(RSS 분기에서 0건이면 폴백으로 계속 진행하도록 수정).

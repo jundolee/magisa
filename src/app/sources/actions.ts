@@ -120,19 +120,23 @@ export async function addSourceFlowAction(
   );
 
   if (discovery.feedType === "rss" || discovery.feedType === "atom") {
-    const feed = await parseFeed(discovery.feedUrl!);
-    return {
-      ok: true,
-      message: `${feed.articles.length}개의 글을 찾았어요. 확인하고 등록해주세요.`,
-      step: "previewed",
-      siteUrl,
-      feedType: discovery.feedType,
-      feedUrl: discovery.feedUrl,
-      scrapeConfig: null,
-      siteTitle: feed.title ?? discovery.siteTitle,
-      faviconUrl: discovery.faviconUrl,
-      preview: feed.articles.slice(0, 5),
-    };
+    const feed = await parseFeed(discovery.feedUrl!).catch(() => ({ title: null, articles: [] }));
+    // 피드가 있어도 항목이 0개면(예: <channel>만 있고 <item> 없는 빈 스텁 피드) 그대로 실패로 끝내지 않고
+    // 아래 스크래핑/AI 폴백으로 넘어간다 — RSS URL은 있지만 내용이 비어있는 사이트가 실제로 존재함(docs/decisions.md 참고).
+    if (feed.articles.length > 0) {
+      return {
+        ok: true,
+        message: `${feed.articles.length}개의 글을 찾았어요. 확인하고 등록해주세요.`,
+        step: "previewed",
+        siteUrl,
+        feedType: discovery.feedType,
+        feedUrl: discovery.feedUrl,
+        scrapeConfig: null,
+        siteTitle: feed.title ?? discovery.siteTitle,
+        faviconUrl: discovery.faviconUrl,
+        preview: feed.articles.slice(0, 5),
+      };
+    }
   }
 
   // RSS/Atom을 못 찾음 -> 스크래핑. 사용자가 필드를 직접 채웠으면 그걸 그대로 사용.
