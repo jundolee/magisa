@@ -152,6 +152,11 @@
 **결정**: `TextFieldInput`에 직접 `defaultValue`를 주면, 감싸는 `TextField`가 내부적으로 `useTextFieldWithGraphemes` 훅을 통해 항상 `value`(빈 문자열이라도)를 함께 내려보내서 "controlled/uncontrolled input" React 경고가 났음. 우리가 커스터마이징 가능한 `seed-design/ui/text-field.tsx`(CLI가 복사해준 코드)를 고쳐서 `defaultValue`를 `TextField` 자체가 받아 훅에 전달하도록 하고, 사용하는 쪽(`AddSourceForm` 등)은 `defaultValue`를 안쪽 `TextFieldInput`이 아니라 바깥 `TextField`에 주도록 변경.
 **영향**: `seed-design/ui/text-field.tsx`, `src/components/add-source-form.tsx`.
 
+### 2026-07-30 — medium.com 403 문제: IP가 아니라 User-Agent 차단이었음
+**결정**: `medium.com/daangn`을 등록하면 자동 인식이 실패해 수동 설정 화면으로 넘어간다는 피드백을 받음. 로컬에서는 `discoverFeed()`가 정상 동작했지만 배포된 Vercel에서는 실패해서, 배포 환경에 임시 진단 라우트를 올려 직접 확인함: 우리가 스스로를 밝히는 UA(`MagisaBot/0.1 (+personal tech blog aggregator)`)로 홈페이지에 요청하면 403이지만, 같은 Vercel IP에서 **일반 브라우저 UA**로 요청하면 200이 됨. RSS 피드 엔드포인트(`/feed/daangn`) 자체는 UA와 무관하게 항상 열려 있었음. 즉 IP 차단이 아니라 UA 차단이었다는 뜻.
+**이유**: 이 문제는 medium.com에만 해당하는 게 아니라, 봇 UA로 홈페이지 접근을 막는 다른 사이트에서도 똑같이 재현될 수 있는 구조적 문제라, 개별 사이트를 special-case 하는 대신 수집 파이프라인 전체의 User-Agent를 브라우저 UA로 통일함. 개인이 이미 구독 중인 공개 블로그를 하루 한 번, 소스당 한 번 읽어오는 저부하·비영리 목적이라 판단 — 대량 스크래핑이나 유료 콘텐츠 우회, CAPTCHA 우회와는 성격이 다름.
+**영향**: `src/lib/ingestion/user-agent.ts`(신규, 공용 상수) — `discover-feed.ts`/`scrape-source.ts`/`auto-detect-scrape-config.ts`/`parse-feed.ts`/`src/lib/storage/thumbnails.ts`에 흩어져 있던 개별 UA 상수를 전부 이걸로 교체해 앞으로 다시 따로 어긋나지 않게 함. 배포 환경에서 진단 라우트로 실제 재현·수정 확인 후 삭제.
+
 ### 2026-07-28 — `scrapeConfig.linkSelector`를 선택값으로 변경 (카드 전체가 `<a>`인 사이트 지원)
 **결정**: `bucketplace.com/culture/`(오늘의집 Gatsby 정적 블로그)를 실제로 등록해보니, 글 목록 카드가 `<a class="...post-list__item">`처럼 **앵커 자체가 리스트 아이템**인 구조였음. 기존 코드는 `linkSelector`가 필수였고 `$el.find(linkSelector)`로 자식만 찾아서 이 구조를 지원 못 했음. `linkSelector`를 optional로 바꾸고, 생략 시 리스트 아이템 엘리먼트 자체를 링크로 사용하도록 수정.
 **이유**: "카드 전체가 링크"인 구조는 실제로 꽤 흔한 패턴이라 처음부터 지원하는 게 맞다고 판단.
