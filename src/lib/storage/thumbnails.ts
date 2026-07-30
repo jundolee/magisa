@@ -1,10 +1,11 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { INGESTION_USER_AGENT } from "@/lib/ingestion/user-agent";
 
 const BUCKET = "thumbnails";
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB — Notion 등 일부 CMS가 원본 해상도 이미지를 그대로 서빙해 5MB로는 부족했음
 const FETCH_TIMEOUT_MS = 15_000;
-const USER_AGENT = "MagisaBot/0.1 (+personal tech blog aggregator)";
+const USER_AGENT = INGESTION_USER_AGENT;
 
 const EXT_BY_CONTENT_TYPE: Record<string, string> = {
   "image/jpeg": "jpg",

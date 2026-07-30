@@ -2,10 +2,11 @@ import Parser from "rss-parser";
 import * as cheerio from "cheerio";
 import type { NormalizedArticle } from "./types";
 import { computeDedupKey } from "./dedup";
+import { INGESTION_USER_AGENT } from "./user-agent";
 
 const parser = new Parser({
   timeout: 10_000,
-  headers: { "User-Agent": "MagisaBot/0.1 (+personal tech blog aggregator)" },
+  headers: { "User-Agent": INGESTION_USER_AGENT },
 });
 
 /**
