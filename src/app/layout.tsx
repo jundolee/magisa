@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { GoogleAnalytics } from "@next/third-parties/google";
+import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
 import "@seed-design/css/all.css";
 import "./globals.css";
 
 const GA_MEASUREMENT_ID = "G-N87SEEKW9Y";
+const GTM_CONTAINER_ID = "GTM-P2HHB9CG";
 
 const freesentation = localFont({
   variable: "--font-freesentation",
@@ -30,7 +31,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" data-seed-color-mode="light" className={freesentation.variable}>
+      {process.env.NODE_ENV === "production" && <GoogleTagManager gtmId={GTM_CONTAINER_ID} />}
       <body>
+        {process.env.NODE_ENV === "production" && (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${GTM_CONTAINER_ID}`}
+              height={0}
+              width={0}
+              style={{ display: "none", visibility: "hidden" }}
+            />
+          </noscript>
+        )}
         <div className="app-shell">{children}</div>
       </body>
       {process.env.NODE_ENV === "production" && <GoogleAnalytics gaId={GA_MEASUREMENT_ID} />}
