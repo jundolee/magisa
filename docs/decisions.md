@@ -264,3 +264,10 @@
 **수정**: RSS/Atom을 찾았어도 파싱 결과가 0건이면 그 자리에서 끝내지 않고, 기존의 "RSS 못 찾음" 폴백 경로(사용자 수동 입력 → 규칙 기반 auto-detect → AI 추론)로 그대로 흘러가도록 변경.
 **kakaopay 추가 조사**: 수정 후에도 규칙 기반 auto-detect는 이 사이트에서 실패함 — 실제 원인은 태그 알약(`<a class="tag">BE</a>` 등, 9개, 서로 다른 텍스트라 다양성 체크 통과)이 진짜 글 목록(`li._postListItem_...`, CSS 모듈 해시 클래스명, 5개)보다 "적합 개수"가 더 많아서 휴리스틱이 잘못된 후보를 고르고, 그 후보엔 제목 삼을 만한 게 없어(`<a class="tag">BE</a>`는 자식 엘리먼트가 아예 없음) 최종적으로 실패로 끝남. Astro 등 빌드 도구가 만드는 해시 클래스명(`_postListItem_1169t_66`)은 애초에 규칙 기반 키워드 매칭("title", "desc" 등)으로 잡을 수 없는 구조라, 이런 사이트는 AI 추론 폴백에 의존해야 함 — `OPENAI_API_KEY`가 Vercel에 설정되어 있어야 실제로 동작.
 **영향**: `src/app/sources/actions.ts`(RSS 분기에서 0건이면 폴백으로 계속 진행하도록 수정).
+
+### 2026-07-30 — AI 선택자 추론이 실제로는 매번 타임아웃되고 있던 진짜 원인: `gpt-5-nano`의 기본 reasoning 토큰
+**배경**: OPENAI_API_KEY를 설정한 뒤에도 `tech.kakaopay.com`이 계속 "새 글 목록을 자동으로 찾지 못했어요"로 끝남 — AI 폴백까지 도달은 하는데 매번 실패.
+**원인**: 로컬에 `OPENAI_API_KEY`를 받아 실제로 재현해보니, 우리가 쓰는 `gpt-5-nano`는 기본적으로 상당량의 **내부 reasoning 토큰**을 쓰는 모델이었음 — 아주 단순한 "ok라고만 답해"에도 202 completion 토큰 중 192개가 reasoning 토큰으로 소모됐고(실측), 우리 프롬프트(최대 20,000자 HTML + JSON 스키마 강제)에서는 이게 `AI_TIMEOUT_MS`(30초)를 넘겨 매번 `DOMException [TimeoutError]`로 끝나고 있었음. 즉 LLM이 틀린 답을 낸 게 아니라 **응답이 오기도 전에 타임아웃으로 끊기고 있었음**.
+**수정**: 요청에 `reasoning_effort: "minimal"` 추가. 같은 테스트 프롬프트로 재측정하니 reasoning 토큰 0, 응답 시간이 수십 초에서 약 2~3초로 단축됨 — 이 정도 선택자 추출 작업에는 깊은 추론이 필요 없어 품질 저하 없이 지연시간·비용 모두 줄어듦.
+**추가로 발견한 것**: reasoning_effort 수정 후 실제로 호출은 되지만, 복잡하게 중첩된 DOM(예: `li._postListItem_1169t_66` 안에 `<a>`가 들어있는데, `div._postList_1169t_34 > a`처럼 실제 구조와 다르게 짐작)에서 모델이 존재하지 않는 selector를 만들어내는 경우가 있었음(실측으로 확인, 결과 0건). 그래서 응답을 그대로 믿지 않고 **원본 페이지에 실제로 매칭되는지(cheerio로 listItemSelector/titleSelector 검증) 확인 후, 실패하면 그 사실을 알려주고 한 번 더 시도**하는 재검증 루프를 추가함 (최대 2회 호출, 실패해도 여전히 저렴).
+**영향**: `src/lib/ingestion/ai-selector-inference.ts`(`reasoning_effort` 추가, `validatesAgainstPage()`/`callModel()` 분리 + 실패 시 피드백을 포함한 재시도 로직 추가). 실제 `OPENAI_API_KEY`로 `tech.kakaopay.com`을 대상으로 재현 테스트해 2~3초 내 정상적으로 3개 글(제목/링크/썸네일 포함)을 스크래핑하는 것까지 확인함.
