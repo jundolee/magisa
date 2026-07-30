@@ -195,3 +195,14 @@
 **결정**: `@next/third-parties/google`의 `GoogleAnalytics` 컴포넌트를 루트 레이아웃에 추가(측정 ID `G-N87SEEKW9Y`). Next.js 공식 문서(`node_modules/next/dist/docs/01-app/02-guides/third-party-libraries.md`)에서 권장하는 방식 그대로 — 직접 `next/script`로 `gtag.js`를 붙이는 대신, hydration 이후 지연 로드 + 클라이언트 라우팅 시 자동 pageview 추적까지 함께 처리해줌.
 **로컬 개발 트래픽 제외**: `process.env.NODE_ENV === "production"`일 때만 렌더링해 로컬 dev 접속이 GA 데이터에 섞이지 않도록 함. `npm run build` + `npm run start`로 실제 production 모드에서 `gtag.js` 프리로드가 정상 삽입되는지 확인함(`npm run dev`는 NODE_ENV가 development라 의도적으로 GA가 안 뜸 — 정상).
 **영향**: `package.json`(`@next/third-parties` 추가), `src/app/layout.tsx`.
+
+### 2026-07-30 — 읽음/안읽음을 전역 컬럼에서 방문자(브라우저)별 구분으로 전환
+**배경**: 홈 화면(`/`)이 `/sources`와 달리 로그인/비밀번호 게이트가 없어 완전히 공개돼 있는데, `articles.is_read`가 테이블 전체에 딱 하나뿐인 전역 컬럼이라 누가 사이트에 들어오든 사용자님과 완전히 동일한 읽음 상태를 보고, 심지어 방문자가 글을 클릭하면 그 전역 상태 자체가 바뀌어버리는 문제가 있었음.
+**결정**: 정식 로그인(Supabase Auth) 없이, 쿠키로 부여하는 익명 `visitor_id`(브라우저별) 기준으로 읽음 상태를 분리. `articles.is_read`/`read_at` 컬럼을 없애고, 대신 `read_status(visitor_id, article_id, read_at)` 테이블을 둬서 "이 방문자가 이 글을 읽었다"는 관계로 표현 — 읽음 처리는 `insert`(upsert), 안읽음 처리는 `delete`.
+**구현**:
+- `src/proxy.ts`: 관리자 게이트(`/sources`)와 별개로 `/`(홈)에도 적용 범위를 넓혀, 쿠키가 없는 첫 방문자에게 `crypto.randomUUID()`로 익명 `visitor_id`를 발급해 httpOnly 쿠키(2년)로 내려줌. 같은 요청의 RSC 렌더링에서도 바로 이 값을 쓸 수 있도록 `NextResponse.next({ request: { headers } })`로 요청 쿠키 헤더 자체에도 반영(Next.js 공식 문서의 "Setting Headers" 레시피 — 응답 쿠키만 설정하면 이번 요청이 아니라 다음 요청부터 반영됨).
+- **기존 읽음 기록 보존**: 마이그레이션 시점에 전역 `is_read=true`였던 글들을 특수 `'__legacy__'` visitor_id로 스냅샷 저장해두고, 이후 신규 방문자가 최초 쿠키를 받을 때 이 스냅샷을 자신의 읽음 상태로 복사해 옴 — 결과적으로 이 배포 이후 가장 먼저 사이트를 여는 사람(대개 운영자 본인)이 기존 읽음 기록을 그대로 이어받고, 그 이후 방문자부터는 완전히 독립적으로 추적됨.
+- `src/lib/data/articles.ts`: `listArticles(visitorId)`가 `articles`와 `read_status`(해당 visitor_id만) 두 번 조회해 클라이언트에는 기존과 동일한 `is_read: boolean` 필드로 합쳐서 내려줌 — `ArticleListItem`/`ArticleList`/`ArticleRow` 등 하위 컴포넌트는 전혀 손대지 않아도 됨. `markArticleRead`/`markArticleUnread`는 이제 `visitorId` 인자를 받아 `read_status` 행을 insert/delete.
+- `src/app/articles/actions.ts`: Server Action 안에서 `cookies()`로 visitor_id를 읽음 — Server Component와 달리 Server Action은 이미 쿠키를 읽을 수 있어 별도 prop 전달 불필요.
+**영향**: `supabase/migrations/0004_read_status.sql`(신규 — `read_status` 테이블 생성 + 레거시 스냅샷 백필 + `articles.is_read`/`read_at` 컬럼 삭제), `src/lib/visitor.ts`(신규, 쿠키 이름/레거시 ID 상수), `src/proxy.ts`, `src/lib/data/articles.ts`, `src/app/articles/actions.ts`, `src/app/page.tsx`.
+**주의**: 이 마이그레이션은 컬럼을 삭제하는 되돌리기 어려운 변경이라, **배포 전에 반드시 먼저 Supabase에서 실행**해야 함 — 순서가 바뀌면(마이그레이션 전에 새 코드가 먼저 뜨면) `read_status` 테이블이 없어 홈 화면이 깨짐.
