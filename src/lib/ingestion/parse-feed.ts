@@ -9,20 +9,30 @@ const parser = new Parser({
   headers: { "User-Agent": INGESTION_USER_AGENT },
 });
 
+function resolveUrl(raw: string, base: string): string | null {
+  try {
+    return new URL(raw, base).toString();
+  } catch {
+    return null;
+  }
+}
+
 /**
  * 많은 피드가 enclosure/media:content 없이 본문(content:encoded)에만 이미지를 담아둔다
  * (toss.tech, Medium 기반 피드 등에서 확인됨 — docs/decisions.md 참고).
  * 그래서 표준 필드 다음으로, 본문 HTML의 첫 <img> 태그를 폴백으로 사용한다.
+ * Gatsby 등 일부 사이트는 이 <img src>가 도메인 없는 상대경로라(예: oliveyoung.tech),
+ * 글 URL을 기준으로 절대 URL로 변환해야 우리 사이트에서 깨지지 않는다.
  */
-function extractThumbnail(item: Record<string, unknown>): string | null {
+function extractThumbnail(item: Record<string, unknown>, articleUrl: string): string | null {
   const enclosure = item.enclosure as { url?: string; type?: string } | undefined;
   if (enclosure?.url && enclosure.type?.startsWith("image")) {
-    return enclosure.url;
+    return resolveUrl(enclosure.url, articleUrl);
   }
   const mediaContent = item["media:content"] as { $?: { url?: string } } | undefined;
-  if (mediaContent?.$?.url) return mediaContent.$.url;
+  if (mediaContent?.$?.url) return resolveUrl(mediaContent.$.url, articleUrl);
   const mediaThumbnail = item["media:thumbnail"] as { $?: { url?: string } } | undefined;
-  if (mediaThumbnail?.$?.url) return mediaThumbnail.$.url;
+  if (mediaThumbnail?.$?.url) return resolveUrl(mediaThumbnail.$.url, articleUrl);
 
   // rss-parser는 item.content를 <description>에 매핑하고, 실제 본문 HTML은 원래 태그명인
   // "content:encoded"로 남겨둔다 (둘 다 없으면 content로 폴백).
@@ -30,9 +40,9 @@ function extractThumbnail(item: Record<string, unknown>): string | null {
   if (content) {
     const $ = cheerio.load(content);
     const imgSrc = $("img").first().attr("src");
-    if (imgSrc) return imgSrc;
+    if (imgSrc) return resolveUrl(imgSrc, articleUrl);
     const preloadHref = $('link[rel="preload"][as="image"]').first().attr("href");
-    if (preloadHref) return preloadHref;
+    if (preloadHref) return resolveUrl(preloadHref, articleUrl);
   }
 
   return null;
@@ -63,7 +73,7 @@ export async function parseFeed(feedUrl: string): Promise<ParsedFeed> {
         title,
         url,
         excerpt: excerpt ? excerpt.slice(0, 500) : null,
-        thumbnailUrl: extractThumbnail(item as Record<string, unknown>),
+        thumbnailUrl: extractThumbnail(item as Record<string, unknown>, url),
         publishedAt: publishedAt ?? null,
         dedupKey: computeDedupKey({ guid: (guid as string) ?? null, url, title }),
       } satisfies NormalizedArticle;

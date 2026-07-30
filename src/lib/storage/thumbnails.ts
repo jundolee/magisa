@@ -13,6 +13,7 @@ const EXT_BY_CONTENT_TYPE: Record<string, string> = {
   "image/webp": "webp",
   "image/gif": "gif",
   "image/avif": "avif",
+  "image/svg+xml": "svg",
 };
 
 const CONTENT_TYPE_BY_EXT: Record<string, string> = {
@@ -22,6 +23,7 @@ const CONTENT_TYPE_BY_EXT: Record<string, string> = {
   webp: "image/webp",
   gif: "image/gif",
   avif: "image/avif",
+  svg: "image/svg+xml",
 };
 
 /**
