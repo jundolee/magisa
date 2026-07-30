@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Text } from "@seed-design/react";
 import { listSources } from "@/lib/data/sources";
 import { AddSourceForm } from "@/components/add-source-form";
@@ -6,6 +7,11 @@ import { SourceRow } from "@/components/source-row";
 import { PageHeader } from "@/components/page-header";
 
 export const dynamic = "force-dynamic";
+
+// 관리자 전용 화면 — 검색엔진에 노출되면 안 된다 (홈 화면에도 눈에 띄는 링크를 두지 않음, docs/decisions.md 참고).
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function SourcesPage() {
   const sources = await listSources();

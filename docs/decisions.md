@@ -206,3 +206,30 @@
 - `src/app/articles/actions.ts`: Server Action 안에서 `cookies()`로 visitor_id를 읽음 — Server Component와 달리 Server Action은 이미 쿠키를 읽을 수 있어 별도 prop 전달 불필요.
 **영향**: `supabase/migrations/0004_read_status.sql`(신규 — `read_status` 테이블 생성 + 레거시 스냅샷 백필 + `articles.is_read`/`read_at` 컬럼 삭제), `src/lib/visitor.ts`(신규, 쿠키 이름/레거시 ID 상수), `src/proxy.ts`, `src/lib/data/articles.ts`, `src/app/articles/actions.ts`, `src/app/page.tsx`.
 **주의**: 이 마이그레이션은 컬럼을 삭제하는 되돌리기 어려운 변경이라, **배포 전에 반드시 먼저 Supabase에서 실행**해야 함 — 순서가 바뀌면(마이그레이션 전에 새 코드가 먼저 뜨면) `read_status` 테이블이 없어 홈 화면이 깨짐.
+
+### 2026-07-30 — 신규 방문자는 항상 안읽음으로 시작 (레거시 스냅샷 시딩 제거)
+**결정**: 방문자별 읽음 분리 배포 직후 "브라우저를 바꿔도 읽음/안읽음이 똑같다"는 피드백을 받아 확인해보니, 실제로는 `read_status` 격리 자체는 정상 동작(DB 레벨에서 직접 재현 테스트로 확인)했고, 두 브라우저 다 아직 서로 다르게 건드린 적이 없어서 마이그레이션 시점의 `'__legacy__'` 스냅샷이라는 동일한 출발점을 보고 있었을 뿐이었음. 이 자체가 "완전 신규 방문자는 모두 안읽음으로 시작해야 한다"는 사용자 기대와 어긋난다는 지적을 받아, `proxy.ts`의 레거시 스냅샷 복사 로직을 제거함 — 이제 쿠키가 없는 방문자는 예외 없이 빈 읽음 상태로 시작한다.
+**트레이드오프**: 운영자 본인의 기존 읽음 기록(마이그레이션 전 전역 `is_read=true`였던 13개 글)도 함께 사라짐 — 명시적으로 받아들이기로 함.
+**영향**: `src/proxy.ts`(`seedFromLegacySnapshot` 제거, `assignVisitorId`가 다시 동기 함수로 단순화), `src/lib/visitor.ts`(`LEGACY_VISITOR_ID` 상수 제거). DB의 `'__legacy__'` visitor_id 행들은 이제 아무 코드에서도 참조하지 않는 죽은 데이터로 남아있음(원하면 나중에 정리 가능).
+
+### 2026-07-30 — 소스 관리 링크를 홈 화면에서 제거
+**결정**: `/sources`는 이미 관리자 비밀번호로 막혀 있었지만, 홈 화면에 "소스 관리 →" 링크가 그대로 노출돼 있어 URL 존재 자체가 눈에 띄었음. `PageHeader`의 `navHref`/`navLabel`을 optional로 바꾸고, 홈 화면(`src/app/page.tsx`)에서는 아예 넘기지 않도록 해 링크 자체를 렌더링하지 않음 — 주소를 직접 아는 사람만 접근 가능. `/sources` 페이지 자체의 "글 목록 →" 백링크는 그대로 둠(이미 관리자 화면에 있는 사람에게는 노출돼도 문제없음).
+**영향**: `src/components/page-header.tsx`, `src/app/page.tsx`.
+
+### 2026-07-30 — SEO 기본 설정 (홈 인덱싱 허용 + robots/sitemap + OG/Twitter 메타)
+**결정**: 그동안 루트 레이아웃에 `robots: { index: false, follow: false }`가 걸려 있어 사이트 전체가 검색엔진에서 제외돼 있었음. "혹시 모르니 SEO도 준비해두자"는 요청으로, 공개해도 되는 홈 화면은 인덱싱을 허용하고 관리자 화면만 명시적으로 막는 구조로 전환.
+**구현**: 루트 레이아웃의 블랭킷 `noindex`를 제거하고 `metadataBase`/OpenGraph/Twitter 카드 메타 추가. 대신 `/sources`, `/admin-login` 페이지에 각각 `export const metadata = { robots: { index: false, follow: false } }`를 얹어 그 두 화면만 개별적으로 noindex. `app/robots.ts`(관리자 화면 Disallow + sitemap 경로 명시)와 `app/sitemap.ts`(공개 페이지가 홈 하나뿐이라 단순하게 유지) 추가.
+**검증**: `next build && next start`로 실제 production 모드에서 홈에는 robots meta 태그가 없고(=인덱싱 허용), `/sources`에는 `<meta name="robots" content="noindex, nofollow">`가 정상적으로 붙는 것을 확인. `/robots.txt`/`/sitemap.xml` 응답 내용도 직접 curl로 확인.
+**영향**: `src/app/layout.tsx`, `src/app/robots.ts`(신규), `src/app/sitemap.ts`(신규), `src/app/sources/page.tsx`, `src/app/admin-login/page.tsx`.
+
+### 2026-07-30 — 전체 읽음/안읽음 처리 + 맨 위로 스크롤 버튼
+**결정**: 글이 많아지면서 하나씩 읽음 처리하기 번거롭다는 요청으로 "전체 읽음"/"전체 안읽음" 버튼을 글 목록 상단(안읽음 배지 옆)에 추가. 방문자별 `read_status` 테이블 기준으로, 전체 읽음은 `articles` 전체 id를 대상으로 벌크 upsert, 전체 안읽음은 해당 visitor_id의 `read_status` 행을 통째로 delete. React 19의 `useTransition`으로 로딩 상태 표시.
+**함께 추가**: 목록이 길어질 때를 위한 "맨 위로" 플로팅 버튼(`ScrollToTopButton`) — 400px 이상 스크롤했을 때만 나타나고 클릭 시 부드럽게 최상단으로 이동.
+**검증**: 실제 프로덕션 DB(글 267개)에 대해 전체 읽음 upsert → 267건 반영, 전체 안읽음 delete → 0건으로 복귀하는 것을 직접 스크립트로 재현 확인.
+**영향**: `src/lib/data/articles.ts`(`markAllArticlesRead`/`markAllArticlesUnread` 추가), `src/app/articles/actions.ts`(대응 서버 액션 추가), `src/components/read-all-controls.tsx`(신규), `src/components/scroll-to-top-button.tsx`(신규), `src/components/article-list.tsx`.
+
+### 2026-07-30 — 이미지 lazy loading 적용 (React 19 자동 preload를 무력화하고 있었음을 확인 후 수정)
+**결정**: 글 목록 썸네일/파비콘 `<img>`에 `loading="lazy"`/`decoding="async"`를 추가해 화면 밖 이미지는 스크롤 전까지 받아오지 않도록 함.
+**중요한 발견**: 단순히 속성만 추가하고 끝내지 않고 실제 렌더된 HTML을 직접 비교해봄 — 적용 **전**에는 React 19가 SSR 중 렌더된 모든 `<img>`를 자동으로 `<link rel="preload" as="image">`로 `<head>`에 미리 박아두고 있었음(글 185개 기준 185개 preload 태그, 즉 화면에 보이지도 않는 이미지까지 페이지 로드와 동시에 전부 프리로드). `loading="lazy"`를 추가하니 이 자동 preload가 정확히 0개로 사라지는 것을 확인 — 즉 이 속성 하나가 없으면 아무리 `<img>`에 lazy를 걸어도 React가 이미 선제적으로 fetch를 걸어놔서 사실상 무의미했을 것이라는 얘기. 이걸 확인하지 않고 넘어갔으면 "적용은 했는데 실제로는 효과가 없는" 상태로 남을 뻔함.
+**한계**: 이 환경엔 실제 브라우저/Lighthouse가 없어 LCP·총 전송량 등 체감 지표까지는 측정하지 못함 — preload 태그 개수(185→0)로 메커니즘이 정상 작동함만 확인.
+**영향**: `src/components/article-row.tsx`.

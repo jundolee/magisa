@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ADMIN_COOKIE_NAME, sha256Hex } from "@/lib/admin-auth";
-import { LEGACY_VISITOR_ID, VISITOR_COOKIE_NAME } from "@/lib/visitor";
-import { createServiceClient } from "@/lib/supabase/service";
+import { VISITOR_COOKIE_NAME } from "@/lib/visitor";
 
 /**
  * /sources(소스 관리)는 누구나 글을 추가/삭제/일시중지할 수 있으면 안 되는 관리자 전용 화면.
@@ -29,16 +28,14 @@ async function guardSourcesAdmin(request: NextRequest): Promise<NextResponse> {
 
 /**
  * 읽음/안읽음을 로그인 없이 브라우저별로 구분하기 위해, 처음 방문한 브라우저에 익명 visitor_id 쿠키를 부여한다.
- * '__legacy__' 스냅샷(이 기능 도입 전 전역으로 읽음 처리돼 있던 글들)을 그대로 복사해 와서,
- * 이 배포 이후 가장 먼저 사이트를 여는 사람(대개 운영자 본인)이 기존 읽음 기록을 이어받도록 한다.
+ * 완전히 처음 온 방문자는 항상 안읽음 상태에서 시작한다 (기존 전역 읽음 기록은 이어받지 않음).
  */
-async function assignVisitorId(request: NextRequest): Promise<NextResponse> {
+function assignVisitorId(request: NextRequest): NextResponse {
   if (request.cookies.get(VISITOR_COOKIE_NAME)?.value) {
     return NextResponse.next();
   }
 
   const visitorId = crypto.randomUUID();
-  await seedFromLegacySnapshot(visitorId).catch((e) => console.error("레거시 읽음 상태 시딩 실패:", e));
 
   // 같은 요청의 RSC 렌더링에서도 바로 이 방문자로 인식되도록 요청 쿠키 헤더 자체에도 반영한다.
   const requestHeaders = new Headers(request.headers);
@@ -59,22 +56,6 @@ async function assignVisitorId(request: NextRequest): Promise<NextResponse> {
     path: "/",
   });
   return response;
-}
-
-async function seedFromLegacySnapshot(visitorId: string): Promise<void> {
-  const supabase = createServiceClient();
-  const { data, error } = await supabase
-    .from("read_status")
-    .select("article_id")
-    .eq("visitor_id", LEGACY_VISITOR_ID);
-  if (error || !data || data.length === 0) return;
-
-  await supabase
-    .from("read_status")
-    .upsert(
-      data.map((row) => ({ visitor_id: visitorId, article_id: row.article_id })),
-      { onConflict: "visitor_id,article_id" }
-    );
 }
 
 export async function proxy(request: NextRequest) {

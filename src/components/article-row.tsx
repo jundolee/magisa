@@ -31,6 +31,8 @@ export function ArticleRow({ article }: { article: ArticleListItem }) {
                 alt=""
                 width={14}
                 height={14}
+                loading="lazy"
+                decoding="async"
                 style={{ borderRadius: 3, flexShrink: 0 }}
               />
             )}
@@ -60,7 +62,13 @@ export function ArticleRow({ article }: { article: ArticleListItem }) {
       {article.thumbnail_url && (
         <AspectRatio ratio={1} width="112px" style={{ flexShrink: 0, borderRadius: 8, overflow: "hidden" }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- 임의의 외부 도메인 썸네일이라 next/image 최적화 대상 밖 */}
-          <img src={article.thumbnail_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <img
+            src={article.thumbnail_url}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
         </AspectRatio>
       )}
     </li>

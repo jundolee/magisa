@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { markArticleRead, markArticleUnread } from "@/lib/data/articles";
+import { markAllArticlesRead, markAllArticlesUnread, markArticleRead, markArticleUnread } from "@/lib/data/articles";
 import { VISITOR_COOKIE_NAME } from "@/lib/visitor";
 
 async function getVisitorId(): Promise<string | null> {
@@ -24,5 +24,19 @@ export async function markArticleUnreadAction(formData: FormData) {
   const visitorId = await getVisitorId();
   if (!visitorId) return;
   await markArticleUnread(visitorId, id);
+  revalidatePath("/");
+}
+
+export async function markAllArticlesReadAction() {
+  const visitorId = await getVisitorId();
+  if (!visitorId) return;
+  await markAllArticlesRead(visitorId);
+  revalidatePath("/");
+}
+
+export async function markAllArticlesUnreadAction() {
+  const visitorId = await getVisitorId();
+  if (!visitorId) return;
+  await markAllArticlesUnread(visitorId);
   revalidatePath("/");
 }
