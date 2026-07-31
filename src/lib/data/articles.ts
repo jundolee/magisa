@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export interface ArticleListItem {
@@ -21,6 +22,30 @@ export interface ArticleListItem {
 export type ArticleFilter = "all" | "unread" | "read";
 
 /**
+ * 글 목록(articles + source 조인)은 방문자와 무관하게 모두에게 동일하다 — 크론 수집 주기에 맞춰
+ * 60초 정도 캐시해도 체감 지연이 없고, 매 요청마다 Supabase를 왕복하지 않아 초기 로딩이 빨라진다
+ * (docs/decisions.md 참고). 방문자별 읽음 여부(read_status)만 이 캐시 밖에서 매번 가볍게 조회해 합친다.
+ */
+const getCachedArticleFeed = unstable_cache(
+  async (): Promise<Omit<ArticleListItem, "is_read">[]> => {
+    const supabase = createServiceClient();
+    const { data, error } = await supabase
+      .from("articles")
+      .select(
+        "id, title, url, excerpt, thumbnail_url, published_at, click_count, source:sources(id, title, site_url, favicon_url)"
+      )
+      // 카드에 보이는 날짜(published_at) 기준 내림차순 — 화면에 표시되는 값과 정렬 순서가 어긋나지 않도록 한다.
+      // published_at이 없는 경우만 맨 뒤로 보낸다.
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .limit(200);
+    if (error) throw error;
+    return (data as unknown as Omit<ArticleListItem, "is_read">[]) ?? [];
+  },
+  ["article-feed"],
+  { revalidate: 60 }
+);
+
+/**
  * 항상 전체를 한 번에 불러온다 — 읽음/소스 필터는 클라이언트(ArticleList)에서 즉시 적용한다.
  * 탭을 바꿀 때마다 서버를 다시 왕복하면 Supabase 지연이 매번 그대로 드러나서 느리게 느껴졌기 때문
  * (docs/decisions.md 참고).
@@ -29,26 +54,16 @@ export type ArticleFilter = "all" | "unread" | "read";
 export async function listArticles(visitorId: string | null): Promise<ArticleListItem[]> {
   const supabase = createServiceClient();
 
-  const [articlesRes, readRes] = await Promise.all([
-    supabase
-      .from("articles")
-      .select(
-        "id, title, url, excerpt, thumbnail_url, published_at, click_count, source:sources(id, title, site_url, favicon_url)"
-      )
-      // 카드에 보이는 날짜(published_at) 기준 내림차순 — 화면에 표시되는 값과 정렬 순서가 어긋나지 않도록 한다.
-      // published_at이 없는 경우만 맨 뒤로 보낸다.
-      .order("published_at", { ascending: false, nullsFirst: false })
-      .limit(200),
+  const [articles, readRes] = await Promise.all([
+    getCachedArticleFeed(),
     visitorId
       ? supabase.from("read_status").select("article_id").eq("visitor_id", visitorId)
       : Promise.resolve({ data: [], error: null }),
   ]);
 
-  if (articlesRes.error) throw articlesRes.error;
   if (readRes.error) throw readRes.error;
 
   const readIds = new Set((readRes.data ?? []).map((r) => r.article_id as string));
-  const articles = (articlesRes.data as unknown as Omit<ArticleListItem, "is_read">[]) ?? [];
   return articles.map((a) => ({ ...a, is_read: readIds.has(a.id) }));
 }
 
