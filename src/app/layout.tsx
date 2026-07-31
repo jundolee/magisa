@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
+import { GoogleTagManager } from "@next/third-parties/google";
 import "@seed-design/css/all.css";
 import "./globals.css";
 
-const GA_MEASUREMENT_ID = "G-N87SEEKW9Y";
 const GTM_CONTAINER_ID = "GTM-P2HHB9CG";
 
 const freesentation = localFont({
@@ -64,7 +63,6 @@ export default function RootLayout({
         )}
         <div className="app-shell">{children}</div>
       </body>
-      {process.env.NODE_ENV === "production" && <GoogleAnalytics gaId={GA_MEASUREMENT_ID} />}
     </html>
   );
 }
