@@ -7,7 +7,10 @@ import { ArticleFilterTabs } from "./article-filter-tabs";
 import { SourceFilterSelect, type SourceOption } from "./source-filter-select";
 import { ReadAllControls } from "./read-all-controls";
 import { ScrollToTopButton } from "./scroll-to-top-button";
+import { PaginationControls } from "./pagination-controls";
 import type { ArticleFilter, ArticleListItem } from "@/lib/data/articles";
+
+const PAGE_SIZE = 30;
 
 /**
  * 탭/소스 필터를 바꿀 때마다 서버에 새로 요청하면 Supabase 왕복 시간이 매번 그대로 드는 게 느려서,
@@ -27,6 +30,7 @@ export function ArticleList({
 }) {
   const [filter, setFilter] = useState<ArticleFilter>(initialFilter);
   const [sourceId, setSourceId] = useState(initialSourceId);
+  const [page, setPage] = useState(1);
 
   const unreadCount = useMemo(() => articles.filter((a) => !a.is_read).length, [articles]);
 
@@ -38,6 +42,15 @@ export function ArticleList({
       return true;
     });
   }, [articles, filter, sourceId]);
+
+  const totalPages = Math.max(1, Math.ceil(visibleArticles.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedArticles = visibleArticles.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  function goToPage(nextPage: number) {
+    setPage(nextPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   function updateUrl(nextFilter: ArticleFilter, nextSourceId: string) {
     const params = new URLSearchParams();
@@ -78,6 +91,7 @@ export function ArticleList({
           current={filter}
           onChange={(value) => {
             setFilter(value);
+            setPage(1);
             updateUrl(value, sourceId);
           }}
         />
@@ -86,13 +100,14 @@ export function ArticleList({
           current={sourceId}
           onChange={(value) => {
             setSourceId(value);
+            setPage(1);
             updateUrl(filter, value);
           }}
         />
       </div>
 
       <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0 }}>
-        {visibleArticles.map((article) => (
+        {pagedArticles.map((article) => (
           <ArticleRow key={article.id} article={article} />
         ))}
       </ul>
@@ -101,6 +116,7 @@ export function ArticleList({
           표시할 글이 없습니다.
         </Text>
       )}
+      {totalPages > 1 && <PaginationControls page={safePage} totalPages={totalPages} onChange={goToPage} />}
       <ScrollToTopButton />
     </>
   );
