@@ -53,16 +53,25 @@ const getCachedArticleFeed = unstable_cache(
  */
 export async function listArticles(visitorId: string | null): Promise<ArticleListItem[]> {
   const supabase = createServiceClient();
+  const articles = await getCachedArticleFeed();
 
-  const [articles, readRes] = await Promise.all([
-    getCachedArticleFeed(),
-    visitorId
-      ? supabase.from("read_status").select("article_id").eq("visitor_id", visitorId)
-      : Promise.resolve({ data: [], error: null }),
-  ]);
+  // read_status 전체를 방문자 기준으로만 조회하면(.eq("visitor_id", ...)) PostgREST 기본 1000행 제한에
+  // 걸릴 수 있다 — 방문자가 오래 쓸수록 누적 행이 늘어나 결국 최신 글이 응답에서 잘려나가 안읽음으로
+  // 보이는 버그가 있었음. 화면에 보이는 글(최대 200개)의 article_id로만 좁혀서 조회해 항상 1000행 미만이
+  // 되도록 한다.
+  const readRes =
+    visitorId && articles.length > 0
+      ? await supabase
+          .from("read_status")
+          .select("article_id")
+          .eq("visitor_id", visitorId)
+          .in(
+            "article_id",
+            articles.map((a) => a.id)
+          )
+      : { data: [], error: null };
 
   if (readRes.error) throw readRes.error;
-  console.log("[DEBUG listArticles]", { visitorId, readCount: readRes.data?.length });
 
   const readIds = new Set((readRes.data ?? []).map((r) => r.article_id as string));
   return articles.map((a) => ({ ...a, is_read: readIds.has(a.id) }));
@@ -78,11 +87,9 @@ export async function incrementArticleClickCount(articleId: string): Promise<voi
 
 export async function markArticleRead(visitorId: string, articleId: string): Promise<void> {
   const supabase = createServiceClient();
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("read_status")
-    .upsert({ visitor_id: visitorId, article_id: articleId }, { onConflict: "visitor_id,article_id" })
-    .select();
-  console.log("[DEBUG markArticleRead]", { visitorId, articleId, data, error });
+    .upsert({ visitor_id: visitorId, article_id: articleId }, { onConflict: "visitor_id,article_id" });
   if (error) throw error;
 }
 
@@ -98,18 +105,29 @@ export async function markArticleUnread(visitorId: string, articleId: string): P
 
 export async function markAllArticlesRead(visitorId: string): Promise<void> {
   const supabase = createServiceClient();
-  const { data: articles, error: articlesError } = await supabase.from("articles").select("id");
-  if (articlesError) throw articlesError;
-  if (!articles || articles.length === 0) return;
 
-  const { data, error } = await supabase
+  // .select("id")는 PostgREST 기본 1000행 제한에 걸려 전체 글이 1000개를 넘으면 일부만 읽음
+  // 처리되던 버그가 있었음 — range()로 페이지를 넘겨가며 전체 id를 다 모은다.
+  const PAGE_SIZE = 1000;
+  const articleIds: string[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("articles")
+      .select("id")
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    articleIds.push(...data.map((a) => a.id));
+    if (data.length < PAGE_SIZE) break;
+  }
+  if (articleIds.length === 0) return;
+
+  const { error } = await supabase
     .from("read_status")
     .upsert(
-      articles.map((a) => ({ visitor_id: visitorId, article_id: a.id })),
+      articleIds.map((id) => ({ visitor_id: visitorId, article_id: id })),
       { onConflict: "visitor_id,article_id" }
-    )
-    .select();
-  console.log("[DEBUG markAllArticlesRead]", { visitorId, articleCount: articles.length, savedCount: data?.length, error });
+    );
   if (error) throw error;
 }
 
