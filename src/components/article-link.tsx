@@ -35,10 +35,12 @@ export function ArticleLink({ articleId, articleTitle, href, children, style }: 
       rel="noopener noreferrer"
       style={style}
       onClick={trackClick}
-      // 휠 버튼(가운데) 클릭으로 백그라운드 새 탭에 여는 경우 "click"이 아니라 "auxclick"이 발생해
-      // onClick만으로는 읽음 처리가 누락됨 — 목록에서 여러 글을 새 탭으로 열어두는 흔한 사용 패턴이라 별도로 처리.
+      // 휠 버튼(가운데)이나 우클릭으로 여는 경우 "click"이 아니라 "auxclick"이 발생해 onClick만으로는
+      // 읽음 처리가 누락됨. 우클릭 메뉴에서 실제로 "새 탭에서 링크 열기"를 선택했는지는 JS로 알 수 없어
+      // (메뉴 선택은 브라우저 네이티브 UI라 관측 불가) 우클릭 자체를 "열었다"로 간주하는 근사치 처리다 —
+      // 메뉴를 취소하거나 "링크 복사" 등 다른 항목을 골라도 읽음 처리된다.
       onAuxClick={(e: MouseEvent<HTMLAnchorElement>) => {
-        if (e.button === 1) trackClick();
+        if (e.button === 1 || e.button === 2) trackClick();
       }}
     >
       {children}
