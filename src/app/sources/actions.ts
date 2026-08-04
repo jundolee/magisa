@@ -333,3 +333,49 @@ export async function ingestSourceNowAction(
     return { ok: false, message: "수집에 실패했어요." };
   }
 }
+
+export interface IngestAllState {
+  ok: boolean;
+  message: string;
+}
+
+/**
+ * 크론(매일 1회)을 기다리지 않고 활성 소스 전체를 지금 바로 수집한다.
+ * 소스 하나가 실패해도 나머지는 계속 진행 — /api/cron/ingest와 동일한 처리 방식.
+ */
+export async function ingestAllSourcesNowAction(
+  _prevState: IngestAllState,
+  _formData: FormData
+): Promise<IngestAllState> {
+  const supabase = createServiceClient();
+  const { data: sources, error } = await supabase
+    .from("sources")
+    .select("id, site_url, feed_url, feed_type, scrape_config")
+    .eq("is_active", true);
+
+  if (error) return { ok: false, message: "소스 목록을 불러오지 못했습니다." };
+
+  let succeeded = 0;
+  let inserted = 0;
+  for (const source of (sources ?? []) as SourceRow[]) {
+    const checkedAt = new Date().toISOString();
+    try {
+      const result = await ingestSource(supabase, source);
+      await supabase
+        .from("sources")
+        .update({ last_checked_at: checkedAt, last_success_at: checkedAt, last_error: null })
+        .eq("id", source.id);
+      succeeded += 1;
+      inserted += result.inserted;
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      await supabase.from("sources").update({ last_checked_at: checkedAt, last_error: message }).eq("id", source.id);
+    }
+  }
+
+  revalidatePath("/sources");
+  revalidatePath("/");
+
+  const total = sources?.length ?? 0;
+  return { ok: true, message: `${total}개 중 ${succeeded}개 성공, 새 글 ${inserted}개 수집` };
+}
