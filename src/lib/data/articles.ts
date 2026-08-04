@@ -62,6 +62,7 @@ export async function listArticles(visitorId: string | null): Promise<ArticleLis
   ]);
 
   if (readRes.error) throw readRes.error;
+  console.log("[DEBUG listArticles]", { visitorId, readCount: readRes.data?.length });
 
   const readIds = new Set((readRes.data ?? []).map((r) => r.article_id as string));
   return articles.map((a) => ({ ...a, is_read: readIds.has(a.id) }));
@@ -77,9 +78,11 @@ export async function incrementArticleClickCount(articleId: string): Promise<voi
 
 export async function markArticleRead(visitorId: string, articleId: string): Promise<void> {
   const supabase = createServiceClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("read_status")
-    .upsert({ visitor_id: visitorId, article_id: articleId }, { onConflict: "visitor_id,article_id" });
+    .upsert({ visitor_id: visitorId, article_id: articleId }, { onConflict: "visitor_id,article_id" })
+    .select();
+  console.log("[DEBUG markArticleRead]", { visitorId, articleId, data, error });
   if (error) throw error;
 }
 
@@ -99,12 +102,14 @@ export async function markAllArticlesRead(visitorId: string): Promise<void> {
   if (articlesError) throw articlesError;
   if (!articles || articles.length === 0) return;
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("read_status")
     .upsert(
       articles.map((a) => ({ visitor_id: visitorId, article_id: a.id })),
       { onConflict: "visitor_id,article_id" }
-    );
+    )
+    .select();
+  console.log("[DEBUG markAllArticlesRead]", { visitorId, articleCount: articles.length, savedCount: data?.length, error });
   if (error) throw error;
 }
 
