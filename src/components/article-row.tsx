@@ -10,7 +10,13 @@ function formatDate(iso: string | null): string {
   return new Date(iso).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" });
 }
 
-export function ArticleRow({ article }: { article: ArticleListItem }) {
+export function ArticleRow({
+  article,
+  onRead,
+}: {
+  article: ArticleListItem;
+  onRead?: (articleId: string) => void;
+}) {
   return (
     <li
       style={{
@@ -46,6 +52,7 @@ export function ArticleRow({ article }: { article: ArticleListItem }) {
           articleTitle={article.title}
           href={article.url}
           style={{ display: "flex", flexDirection: "column", gap: 8 }}
+          onRead={onRead}
         >
           <Text as="h3" textStyle="t7Bold" color="fg.neutral" maxLines={2}>
             {article.title}
@@ -76,6 +83,7 @@ export function ArticleRow({ article }: { article: ArticleListItem }) {
         articleTitle={article.title}
         href={article.url}
         style={{ flexShrink: 0, display: "block" }}
+        onRead={onRead}
       >
         <AspectRatio
           ratio={1}
