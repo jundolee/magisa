@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { Badge, Text } from "@seed-design/react";
 import { ArticleRow } from "./article-row";
 import { ArticleFilterTabs } from "./article-filter-tabs";
@@ -32,16 +32,30 @@ export function ArticleList({
   const [sourceId, setSourceId] = useState(initialSourceId);
   const [page, setPage] = useState(1);
 
-  const unreadCount = useMemo(() => articles.filter((a) => !a.is_read).length, [articles]);
+  // 새 탭으로 열리는 동안 서버 액션(revalidatePath) 왕복을 기다리면 클릭과 목록 반영 사이에
+  // 체감되는 시간차가 생긴다 — 클릭 즉시 이 목록에서 읽음으로 보이도록 낙관적으로 먼저 반영하고,
+  // 실제 서버 값(articles prop)이 도착하면 자연스럽게 그 값으로 정리된다.
+  const [optimisticArticles, markReadOptimistically] = useOptimistic(articles, (state, articleId: string) =>
+    state.map((a) => (a.id === articleId ? { ...a, is_read: true } : a))
+  );
+  const [, startTransition] = useTransition();
+
+  function handleRead(articleId: string) {
+    startTransition(() => {
+      markReadOptimistically(articleId);
+    });
+  }
+
+  const unreadCount = useMemo(() => optimisticArticles.filter((a) => !a.is_read).length, [optimisticArticles]);
 
   const visibleArticles = useMemo(() => {
-    return articles.filter((a) => {
+    return optimisticArticles.filter((a) => {
       if (filter === "unread" && a.is_read) return false;
       if (filter === "read" && !a.is_read) return false;
       if (sourceId !== "all" && a.source?.id !== sourceId) return false;
       return true;
     });
-  }, [articles, filter, sourceId]);
+  }, [optimisticArticles, filter, sourceId]);
 
   const totalPages = Math.max(1, Math.ceil(visibleArticles.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -108,7 +122,7 @@ export function ArticleList({
 
       <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0 }}>
         {pagedArticles.map((article) => (
-          <ArticleRow key={article.id} article={article} />
+          <ArticleRow key={article.id} article={article} onRead={handleRead} />
         ))}
       </ul>
       {visibleArticles.length === 0 && (

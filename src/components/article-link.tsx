@@ -9,13 +9,15 @@ interface ArticleLinkProps {
   href: string;
   children: ReactNode;
   style?: CSSProperties;
+  // 서버 액션 응답(revalidatePath)을 기다리지 않고 클릭 즉시 목록에 읽음으로 반영하기 위한 낙관적 업데이트 콜백.
+  onRead?: (articleId: string) => void;
 }
 
 /**
  * 클릭 시 원문을 새 탭으로 열면서 동시에 읽음 처리를 트리거한다.
  * 기본 앵커 내비게이션을 막지 않아 새 탭 열기/우클릭 메뉴 등 브라우저 기본 동작은 그대로 유지된다.
  */
-export function ArticleLink({ articleId, articleTitle, href, children, style }: ArticleLinkProps) {
+export function ArticleLink({ articleId, articleTitle, href, children, style, onRead }: ArticleLinkProps) {
   const trackClick = () => {
     // GTM 맞춤 이벤트 트리거(article_click)로 GA4에서 아티클명 기준 집계가 가능하도록 push
     (window as { dataLayer?: unknown[] }).dataLayer?.push({
@@ -23,6 +25,7 @@ export function ArticleLink({ articleId, articleTitle, href, children, style }: 
       article_id: articleId,
       article_title: articleTitle,
     });
+    onRead?.(articleId);
     startTransition(() => {
       markArticleReadAction(articleId);
     });
