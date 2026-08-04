@@ -44,7 +44,7 @@ export default async function SourcesPage() {
           <Text as="h2" textStyle="t6Bold" color="fg.neutral">
             등록된 소스 ({sources.length})
           </Text>
-          <IngestAllButton />
+          <IngestAllButton sourceIds={sources.filter((s) => s.is_active).map((s) => s.id)} />
         </div>
         <ul style={{ display: "flex", flexDirection: "column", gap: 12, listStyle: "none", padding: 0 }}>
           {sources.map((source) => (
