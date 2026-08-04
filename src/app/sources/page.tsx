@@ -5,6 +5,7 @@ import { AddSourceForm } from "@/components/add-source-form";
 import { BulkAddSourceForm } from "@/components/bulk-add-source-form";
 import { SourceRow } from "@/components/source-row";
 import { PageHeader } from "@/components/page-header";
+import { IngestAllButton } from "@/components/ingest-all-button";
 
 export const dynamic = "force-dynamic";
 
@@ -39,9 +40,12 @@ export default async function SourcesPage() {
       </section>
 
       <section style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <Text as="h2" textStyle="t6Bold" color="fg.neutral">
-          등록된 소스 ({sources.length})
-        </Text>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <Text as="h2" textStyle="t6Bold" color="fg.neutral">
+            등록된 소스 ({sources.length})
+          </Text>
+          <IngestAllButton />
+        </div>
         <ul style={{ display: "flex", flexDirection: "column", gap: 12, listStyle: "none", padding: 0 }}>
           {sources.map((source) => (
             <SourceRow key={source.id} source={source} />
