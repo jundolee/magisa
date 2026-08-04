@@ -13,9 +13,7 @@ import { VISITOR_COOKIE_NAME } from "@/lib/visitor";
 
 async function getVisitorId(): Promise<string | null> {
   const cookieStore = await cookies();
-  const id = cookieStore.get(VISITOR_COOKIE_NAME)?.value ?? null;
-  console.log("[DEBUG visitorId/write]", id);
-  return id;
+  return cookieStore.get(VISITOR_COOKIE_NAME)?.value ?? null;
 }
 
 export async function markArticleReadAction(articleId: string) {
