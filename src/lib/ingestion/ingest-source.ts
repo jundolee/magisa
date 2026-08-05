@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseFeed } from "./parse-feed";
 import { scrapeSource } from "./scrape-source";
 import { canonicalizeUrl } from "./dedup";
+import { fetchOgImage } from "./fetch-og-image";
 import { mirrorThumbnail } from "@/lib/storage/thumbnails";
 import type { FeedType, NormalizedArticle, ScrapeConfig } from "./types";
 
@@ -52,6 +53,10 @@ export async function ingestSource(
       canonicalUrl = a.url;
     }
 
+    // RSS 필드/thumbnailSelector로 못 찾았을 때만 원문 페이지의 og:image를 한 번 더 시도한다 —
+    // 소스마다 thumbnailSelector를 신경 쓰지 않아도 대부분의 사이트가 공유하는 메타 태그로 커버된다.
+    const thumbnailUrl = a.thumbnailUrl ?? (await fetchOgImage(a.url));
+
     const { data: insertedRow, error } = await supabase
       .from("articles")
       .insert({
@@ -60,7 +65,7 @@ export async function ingestSource(
         url: a.url,
         canonical_url: canonicalUrl,
         excerpt: a.excerpt,
-        thumbnail_url: a.thumbnailUrl,
+        thumbnail_url: thumbnailUrl,
         published_at: a.publishedAt,
         dedup_key: a.dedupKey,
       })
@@ -78,8 +83,8 @@ export async function ingestSource(
 
     // 새로 들어온 글일 때만(중복이면 여기 안 옴) 썸네일을 우리 스토리지로 미러링한다 —
     // presigned URL처럼 만료되는 원본 이미지를 영구 URL로 바꿔둔다 (docs/decisions.md 참고).
-    if (a.thumbnailUrl && insertedRow) {
-      const mirroredUrl = await mirrorThumbnail(supabase, a.thumbnailUrl, insertedRow.id);
+    if (thumbnailUrl && insertedRow) {
+      const mirroredUrl = await mirrorThumbnail(supabase, thumbnailUrl, insertedRow.id);
       if (mirroredUrl) {
         await supabase.from("articles").update({ thumbnail_url: mirroredUrl }).eq("id", insertedRow.id);
       }
