@@ -52,6 +52,7 @@ export function ArticleList({
     return optimisticArticles.filter((a) => {
       if (filter === "unread" && a.is_read) return false;
       if (filter === "read" && !a.is_read) return false;
+      if (filter === "favorite" && !a.is_favorite) return false;
       if (sourceId !== "all" && a.source?.id !== sourceId) return false;
       return true;
     });

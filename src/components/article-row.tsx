@@ -1,6 +1,7 @@
 import { AspectRatio, Badge, Text } from "@seed-design/react";
 import { ArticleLink } from "./article-link";
 import { UnreadToggleForm } from "./unread-toggle-form";
+import { FavoriteToggleForm } from "./favorite-toggle-form";
 import type { ArticleListItem } from "@/lib/data/articles";
 
 const MUTED = "var(--seed-color-fg-neutral-muted)";
@@ -74,7 +75,10 @@ export function ArticleRow({
           </div>
         </ArticleLink>
 
-        {article.is_read && <UnreadToggleForm articleId={article.id} />}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <FavoriteToggleForm articleId={article.id} isFavorite={article.is_favorite} />
+          {article.is_read && <UnreadToggleForm articleId={article.id} />}
+        </div>
       </div>
 
       {/* 썸네일 유무와 무관하게 항상 같은 112x112 규격을 유지 — 없는 글은 빈 플레이스홀더로 채워 목록 전체의 정렬을 맞춘다 */}

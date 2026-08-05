@@ -7,6 +7,7 @@ const OPTIONS: { value: ArticleFilter; label: string }[] = [
   { value: "all", label: "전체" },
   { value: "unread", label: "안읽음" },
   { value: "read", label: "읽음" },
+  { value: "favorite", label: "즐겨찾기" },
 ];
 
 export function ArticleFilterTabs({

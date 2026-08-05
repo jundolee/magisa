@@ -10,7 +10,7 @@ import { VISITOR_COOKIE_NAME } from "@/lib/visitor";
 export const dynamic = "force-dynamic";
 
 function parseFilter(raw: string | undefined): ArticleFilter {
-  return raw === "read" || raw === "all" ? raw : "unread";
+  return raw === "read" || raw === "all" || raw === "favorite" ? raw : "unread";
 }
 
 /**

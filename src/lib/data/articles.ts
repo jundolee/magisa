@@ -11,6 +11,7 @@ export interface ArticleListItem {
   published_at: string | null;
   click_count: number;
   is_read: boolean;
+  is_favorite: boolean;
   source: {
     id: string;
     title: string | null;
@@ -19,7 +20,7 @@ export interface ArticleListItem {
   } | null;
 }
 
-export type ArticleFilter = "all" | "unread" | "read";
+export type ArticleFilter = "all" | "unread" | "read" | "favorite";
 
 /**
  * 글 목록(articles + source 조인)은 방문자와 무관하게 모두에게 동일하다 — 크론 수집 주기에 맞춰
@@ -27,7 +28,7 @@ export type ArticleFilter = "all" | "unread" | "read";
  * (docs/decisions.md 참고). 방문자별 읽음 여부(read_status)만 이 캐시 밖에서 매번 가볍게 조회해 합친다.
  */
 const getCachedArticleFeed = unstable_cache(
-  async (): Promise<Omit<ArticleListItem, "is_read">[]> => {
+  async (): Promise<Omit<ArticleListItem, "is_read" | "is_favorite">[]> => {
     const supabase = createServiceClient();
     const { data, error } = await supabase
       .from("articles")
@@ -39,7 +40,7 @@ const getCachedArticleFeed = unstable_cache(
       .order("published_at", { ascending: false, nullsFirst: false })
       .limit(200);
     if (error) throw error;
-    return (data as unknown as Omit<ArticleListItem, "is_read">[]) ?? [];
+    return (data as unknown as Omit<ArticleListItem, "is_read" | "is_favorite">[]) ?? [];
   },
   ["article-feed"],
   { revalidate: 60 }
@@ -59,22 +60,38 @@ export async function listArticles(visitorId: string | null): Promise<ArticleLis
   // 걸릴 수 있다 — 방문자가 오래 쓸수록 누적 행이 늘어나 결국 최신 글이 응답에서 잘려나가 안읽음으로
   // 보이는 버그가 있었음. 화면에 보이는 글(최대 200개)의 article_id로만 좁혀서 조회해 항상 1000행 미만이
   // 되도록 한다.
-  const readRes =
+  // 즐겨찾기도 read_status와 같은 이유로 화면에 보이는 글의 article_id로만 좁혀서 조회한다.
+  const [readRes, favoriteRes] =
     visitorId && articles.length > 0
-      ? await supabase
-          .from("read_status")
-          .select("article_id")
-          .eq("visitor_id", visitorId)
-          .in(
-            "article_id",
-            articles.map((a) => a.id)
-          )
-      : { data: [], error: null };
+      ? await Promise.all([
+          supabase
+            .from("read_status")
+            .select("article_id")
+            .eq("visitor_id", visitorId)
+            .in(
+              "article_id",
+              articles.map((a) => a.id)
+            ),
+          supabase
+            .from("favorites")
+            .select("article_id")
+            .eq("visitor_id", visitorId)
+            .in(
+              "article_id",
+              articles.map((a) => a.id)
+            ),
+        ])
+      : [
+          { data: [], error: null },
+          { data: [], error: null },
+        ];
 
   if (readRes.error) throw readRes.error;
+  if (favoriteRes.error) throw favoriteRes.error;
 
   const readIds = new Set((readRes.data ?? []).map((r) => r.article_id as string));
-  return articles.map((a) => ({ ...a, is_read: readIds.has(a.id) }));
+  const favoriteIds = new Set((favoriteRes.data ?? []).map((r) => r.article_id as string));
+  return articles.map((a) => ({ ...a, is_read: readIds.has(a.id), is_favorite: favoriteIds.has(a.id) }));
 }
 
 // 방문자 구분 없이 모든 유저에게 공통으로 보이는 전역 카운터라 read_status와 달리 articles 테이블에 그대로 둔다.
@@ -101,6 +118,27 @@ export async function markArticleUnread(visitorId: string, articleId: string): P
     .eq("visitor_id", visitorId)
     .eq("article_id", articleId);
   if (error) throw error;
+}
+
+export async function setArticleFavorite(
+  visitorId: string,
+  articleId: string,
+  isFavorite: boolean
+): Promise<void> {
+  const supabase = createServiceClient();
+  if (isFavorite) {
+    const { error } = await supabase
+      .from("favorites")
+      .upsert({ visitor_id: visitorId, article_id: articleId }, { onConflict: "visitor_id,article_id" });
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from("favorites")
+      .delete()
+      .eq("visitor_id", visitorId)
+      .eq("article_id", articleId);
+    if (error) throw error;
+  }
 }
 
 export async function markAllArticlesRead(visitorId: string): Promise<void> {

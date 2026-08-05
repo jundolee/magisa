@@ -8,6 +8,7 @@ import {
   markAllArticlesUnread,
   markArticleRead,
   markArticleUnread,
+  setArticleFavorite,
 } from "@/lib/data/articles";
 import { VISITOR_COOKIE_NAME } from "@/lib/visitor";
 
@@ -41,6 +42,16 @@ export async function markArticleUnreadAction(formData: FormData) {
   const visitorId = await getVisitorId();
   if (!visitorId) return;
   await markArticleUnread(visitorId, id);
+  revalidatePath("/");
+}
+
+export async function toggleArticleFavoriteAction(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const nextFavorite = formData.get("nextFavorite") === "true";
+  if (!id) return;
+  const visitorId = await getVisitorId();
+  if (!visitorId) return;
+  await setArticleFavorite(visitorId, id, nextFavorite);
   revalidatePath("/");
 }
 
