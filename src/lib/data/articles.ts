@@ -52,15 +52,18 @@ const getCachedArticleFeed = unstable_cache(
  * (docs/decisions.md 참고).
  * 읽음 여부는 전역 컬럼이 아니라 `read_status`(visitor_id, article_id) 테이블 기준 — 방문자(브라우저)별로 구분된다.
  */
-export async function listArticles(visitorId: string | null): Promise<ArticleListItem[]> {
+/**
+ * 방문자별 읽음/즐겨찾기 여부를 붙여준다. read_status/favorites를 방문자 기준으로만 조회하면
+ * (.eq("visitor_id", ...)) PostgREST 기본 1000행 제한에 걸릴 수 있다 — 방문자가 오래 쓸수록 누적 행이
+ * 늘어나 결국 최신 글이 응답에서 잘려나가 안읽음으로 보이는 버그가 있었음. 화면에 보이는 글의
+ * article_id로만 좁혀서 조회해 항상 1000행 미만이 되도록 한다. listArticles/searchArticles가 공유.
+ */
+async function attachVisitorState(
+  articles: Omit<ArticleListItem, "is_read" | "is_favorite">[],
+  visitorId: string | null
+): Promise<ArticleListItem[]> {
   const supabase = createServiceClient();
-  const articles = await getCachedArticleFeed();
 
-  // read_status 전체를 방문자 기준으로만 조회하면(.eq("visitor_id", ...)) PostgREST 기본 1000행 제한에
-  // 걸릴 수 있다 — 방문자가 오래 쓸수록 누적 행이 늘어나 결국 최신 글이 응답에서 잘려나가 안읽음으로
-  // 보이는 버그가 있었음. 화면에 보이는 글(최대 200개)의 article_id로만 좁혀서 조회해 항상 1000행 미만이
-  // 되도록 한다.
-  // 즐겨찾기도 read_status와 같은 이유로 화면에 보이는 글의 article_id로만 좁혀서 조회한다.
   const [readRes, favoriteRes] =
     visitorId && articles.length > 0
       ? await Promise.all([
@@ -92,6 +95,51 @@ export async function listArticles(visitorId: string | null): Promise<ArticleLis
   const readIds = new Set((readRes.data ?? []).map((r) => r.article_id as string));
   const favoriteIds = new Set((favoriteRes.data ?? []).map((r) => r.article_id as string));
   return articles.map((a) => ({ ...a, is_read: readIds.has(a.id), is_favorite: favoriteIds.has(a.id) }));
+}
+
+export async function listArticles(visitorId: string | null): Promise<ArticleListItem[]> {
+  const articles = await getCachedArticleFeed();
+  return attachVisitorState(articles, visitorId);
+}
+
+interface SearchArticleRow {
+  id: string;
+  title: string;
+  url: string;
+  excerpt: string | null;
+  thumbnail_url: string | null;
+  published_at: string | null;
+  click_count: number;
+  source_id: string;
+  source_title: string | null;
+  source_site_url: string;
+  source_favicon_url: string | null;
+}
+
+/**
+ * 제목/요약 전문검색 — listArticles와 달리 최근 200개 캐시가 아니라 전체 아카이브를 대상으로
+ * DB에서 직접 검색한다(supabase/migrations/0007_article_search.sql의 search_articles RPC,
+ * pg_trgm 기반). 검색 중이 아닐 때 쓰는 60초 캐시(getCachedArticleFeed)는 여기서 재사용하지 않는다 —
+ * 검색어마다 결과가 달라 캐시 키를 만들 실익이 없다.
+ */
+export async function searchArticles(query: string, visitorId: string | null): Promise<ArticleListItem[]> {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase.rpc("search_articles", { search_query: query });
+  if (error) throw error;
+
+  const rows = (data as SearchArticleRow[]) ?? [];
+  const articles: Omit<ArticleListItem, "is_read" | "is_favorite">[] = rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    url: r.url,
+    excerpt: r.excerpt,
+    thumbnail_url: r.thumbnail_url,
+    published_at: r.published_at,
+    click_count: r.click_count,
+    source: { id: r.source_id, title: r.source_title, site_url: r.source_site_url, favicon_url: r.source_favicon_url },
+  }));
+
+  return attachVisitorState(articles, visitorId);
 }
 
 // 방문자 구분 없이 모든 유저에게 공통으로 보이는 전역 카운터라 read_status와 달리 articles 테이블에 그대로 둔다.
