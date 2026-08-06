@@ -52,10 +52,11 @@ export function ExpandableSearch({
       style={{
         display: "flex",
         alignItems: "center",
-        height: COLLAPSED_SIZE,
+        // 실제 입력창(TextField) 높이가 40px보다 커서, 여기 높이를 40으로 고정하고 overflow:hidden을
+        // 걸면 둥근 테두리 위아래가 잘려 보였다 — 높이는 내용에 맞기고 너비만 애니메이션한다.
+        // TextField 쪽 너비가 이 컨테이너의 100%라 폭이 넘칠 일이 없어 overflow도 필요 없다.
         width: expanded ? EXPANDED_WIDTH : COLLAPSED_SIZE,
         transition: "width 180ms ease",
-        overflow: "hidden",
         flexShrink: 0,
       }}
     >
