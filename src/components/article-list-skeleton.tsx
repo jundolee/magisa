@@ -34,7 +34,7 @@ export function ArticleListSkeleton() {
               display: "flex",
               gap: 20,
               padding: "20px 0",
-              borderBottom: "1px solid var(--seed-color-stroke-neutral)",
+              borderBottom: "1px solid var(--seed-color-stroke-neutral-subtle)",
             }}
           >
             <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>

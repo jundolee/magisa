@@ -32,7 +32,7 @@ export function ScrollToTopButton() {
         width: 44,
         height: 44,
         borderRadius: "50%",
-        border: "1px solid var(--seed-color-stroke-neutral)",
+        border: "1px solid var(--seed-color-stroke-neutral-subtle)",
         background: "var(--seed-color-bg-layer-default)",
         boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
         display: "flex",

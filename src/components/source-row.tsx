@@ -24,7 +24,7 @@ export function SourceRow({ source }: { source: Source }) {
   return (
     <li
       style={{
-        border: "1px solid var(--seed-color-stroke-neutral)",
+        border: "1px solid var(--seed-color-stroke-neutral-subtle)",
         borderRadius: 12,
         padding: 20,
         display: "flex",

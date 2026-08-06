@@ -5,7 +5,10 @@ import { Icon } from "@seed-design/react";
 import { IconMagnifyingglassLine } from "@karrotmarket/react-monochrome-icon";
 import { SearchInput } from "./search-input";
 
-const COLLAPSED_SIZE = 40;
+// seed-design TextField(input)의 min-height가 52px로 고정돼 있어 (.seed-text-input__root) 접힌 상태의
+// 원형 버튼도 같은 52px로 맞춘다 — 다르면 펼치고 접을 때마다 이 줄의 높이가 바뀌어 배지/전체읽음 버튼이
+// 살짝씩 흔들리는 것처럼 보였다.
+const COLLAPSED_SIZE = 52;
 const EXPANDED_WIDTH = 240;
 
 /**
@@ -71,7 +74,7 @@ export function ExpandableSearch({
             width: COLLAPSED_SIZE,
             height: COLLAPSED_SIZE,
             borderRadius: "50%",
-            border: "1px solid var(--seed-color-stroke-neutral)",
+            border: "1px solid var(--seed-color-stroke-neutral-subtle)",
             background: "var(--seed-color-bg-layer-default)",
             display: "flex",
             alignItems: "center",
