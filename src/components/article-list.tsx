@@ -210,7 +210,10 @@ export function ArticleList({
         <Text as="h1" textStyle="t8Bold" color="fg.neutral">
           글 목록
         </Text>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {/* 검색창이 펼쳐지면(240px) 좁은 화면에서 이 그룹이 화면 밖으로 밀려날 수 있어 자체적으로도
+            줄바꿈되게 한다 — 바깥 헤더 줄의 flexWrap은 "제목"과 "이 그룹" 두 덩어리 사이에서만 작동해서
+            그룹 안의 검색/배지/버튼들끼리는 줄바꿈이 안 됐었다. */}
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end", gap: 12 }}>
           <ExpandableSearch value={query} onValueChange={handleQueryChange} onSubmit={handleSearchSubmit} />
           {unreadCount > 0 && (
             <Badge size="medium" variant="solid" tone="brand">
@@ -237,14 +240,18 @@ export function ArticleList({
           alignItems: "center",
         }}
       >
-        <ArticleFilterTabs
-          current={filter}
-          onChange={(value) => {
-            setFilter(value);
-            setPage(1);
-            updateUrl(value, sourceId);
-          }}
-        />
+        <div style={{ overflowX: "auto", maxWidth: "100%" }}>
+          <div style={{ width: "max-content" }}>
+            <ArticleFilterTabs
+              current={filter}
+              onChange={(value) => {
+                setFilter(value);
+                setPage(1);
+                updateUrl(value, sourceId);
+              }}
+            />
+          </div>
+        </div>
         <SourceFilterSelect
           sources={sources}
           current={sourceId}

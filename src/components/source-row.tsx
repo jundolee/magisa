@@ -29,11 +29,14 @@ export function SourceRow({ source }: { source: Source }) {
         padding: 20,
         display: "flex",
         justifyContent: "space-between",
+        flexWrap: "wrap",
         gap: 16,
         alignItems: "flex-start",
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+      {/* minWidth를 0 대신 지정해 좁은 화면에서 버튼 3개(지금 수집/일시중지/삭제)에 밀려 이 텍스트
+          컬럼이 한 글자씩 세로로 쪼그라들지 않고, 그 전에 버튼 묶음이 다음 줄로 넘어가도록 한다. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 200 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           {source.favicon_url && (
             // eslint-disable-next-line @next/next/no-img-element -- 임의의 외부 도메인 파비콘
