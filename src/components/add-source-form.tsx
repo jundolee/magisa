@@ -56,7 +56,7 @@ export function AddSourceForm() {
             flexDirection: "column",
             gap: 12,
             padding: 16,
-            border: "1px solid var(--seed-color-stroke-neutral)",
+            border: "1px solid var(--seed-color-stroke-neutral-subtle)",
             borderRadius: 10,
           }}
         >
@@ -156,7 +156,7 @@ export function AddSourceForm() {
           {state.preview.map((a) => (
             <li
               key={a.url}
-              style={{ border: "1px solid var(--seed-color-stroke-neutral)", borderRadius: 8, padding: 12 }}
+              style={{ border: "1px solid var(--seed-color-stroke-neutral-subtle)", borderRadius: 8, padding: 12 }}
             >
               <Text as="strong" textStyle="t3Bold" color="fg.neutral">
                 {a.title}

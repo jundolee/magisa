@@ -24,7 +24,7 @@ export function ArticleRow({
         display: "flex",
         gap: 20,
         padding: "20px 0",
-        borderBottom: "1px solid var(--seed-color-stroke-neutral)",
+        borderBottom: "1px solid var(--seed-color-stroke-neutral-subtle)",
         opacity: article.is_read ? 0.55 : 1,
       }}
     >

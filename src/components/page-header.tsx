@@ -10,7 +10,7 @@ export function PageHeader({ navHref, navLabel }: { navHref?: string; navLabel?:
         alignItems: "center",
         paddingBottom: 20,
         marginBottom: 28,
-        borderBottom: "1px solid var(--seed-color-stroke-neutral)",
+        borderBottom: "1px solid var(--seed-color-stroke-neutral-subtle)",
       }}
     >
       <Link href="/">
