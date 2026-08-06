@@ -4,11 +4,14 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import {
   incrementArticleClickCount,
+  listArticles,
   markAllArticlesRead,
   markAllArticlesUnread,
   markArticleRead,
   markArticleUnread,
+  searchArticles,
   setArticleFavorite,
+  type ArticleListItem,
 } from "@/lib/data/articles";
 import { VISITOR_COOKIE_NAME } from "@/lib/visitor";
 
@@ -67,4 +70,16 @@ export async function markAllArticlesUnreadAction() {
   if (!visitorId) return;
   await markAllArticlesUnread(visitorId);
   revalidatePath("/");
+}
+
+/**
+ * 검색어가 바뀔 때 클라이언트(ArticleList)에서 직접 호출한다 — 예전엔 router.replace로 페이지
+ * 전체를 다시 요청해서 스켈레톤이 재노출되고 검색과 무관한 listSources()까지 매번 다시 조회됐는데,
+ * 서버 액션으로 이 데이터만 받아와 클라이언트 상태를 갈아끼우는 방식으로 바꿔 그 왕복을 없앤다.
+ * page.tsx의 초기 렌더 분기(검색어 유무에 따라 searchArticles/listArticles)와 동일한 로직을 공유.
+ */
+export async function loadArticlesAction(query: string): Promise<ArticleListItem[]> {
+  const visitorId = await getVisitorId();
+  const trimmed = query.trim();
+  return trimmed ? searchArticles(trimmed, visitorId) : listArticles(visitorId);
 }
