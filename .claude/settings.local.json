@@ -1,7 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:seed-design.io)"
+      "WebFetch(domain:seed-design.io)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Skill(schedule)",
+      "Bash(npx tsc *)",
+      "Bash(xargs grep -lo \"IconMagnify\\\\|IconSearch\")",
+      "Bash(node_modules/.bin/true)",
+      "Bash(npx eslint *)",
+      "Bash(npx next *)",
+      "Bash(npm run *)"
     ]
   }
 }
