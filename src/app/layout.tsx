@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { GoogleTagManager } from "@next/third-parties/google";
+import { AmplitudeAnalytics } from "@/components/amplitude-analytics";
 import "@seed-design/css/all.css";
 import "./globals.css";
 
@@ -50,6 +51,7 @@ export default function RootLayout({
   return (
     <html lang="ko" data-seed-color-mode="light" className={freesentation.variable}>
       {process.env.NODE_ENV === "production" && <GoogleTagManager gtmId={GTM_CONTAINER_ID} />}
+      {process.env.NODE_ENV === "production" && <AmplitudeAnalytics />}
       <body>
         {process.env.NODE_ENV === "production" && (
           <noscript>
