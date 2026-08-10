@@ -14,9 +14,14 @@ function formatDate(iso: string | null): string {
 export function ArticleRow({
   article,
   onRead,
+  priority = false,
 }: {
   article: ArticleListItem;
   onRead?: (articleId: string) => void;
+  // 화면에 처음부터 보이는 상단 몇 개는 lazy 대신 즉시 fetch — loading="lazy"는 브라우저가
+  // 뷰포트 안인지 확인할 때까지 fetch 시작 자체를 늦추므로, 이미 보이는 이미지에 걸면
+  // 오히려 첫 화면 체감 로딩(LCP)이 늦어진다.
+  priority?: boolean;
 }) {
   return (
     <li
@@ -106,7 +111,8 @@ export function ArticleRow({
             <img
               src={article.thumbnail_url}
               alt=""
-              loading="lazy"
+              loading={priority ? "eager" : "lazy"}
+              fetchPriority={priority ? "high" : "auto"}
               decoding="async"
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />

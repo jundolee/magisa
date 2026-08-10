@@ -264,8 +264,9 @@ export function ArticleList({
       </div>
 
       <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0 }}>
-        {pagedArticles.map((article) => (
-          <ArticleRow key={article.id} article={article} onRead={handleRead} />
+        {pagedArticles.map((article, index) => (
+          // 페이지 첫 3개는 스크롤 전에 바로 보이는 썸네일이라 lazy 대신 우선 로드 (ArticleRow 참고).
+          <ArticleRow key={article.id} article={article} onRead={handleRead} priority={index < 3} />
         ))}
       </ul>
       {visibleArticles.length === 0 && (

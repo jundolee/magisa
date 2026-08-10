@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { addSourcesBulk, deleteSource, insertSource, setSourceActive } from "@/lib/data/sources";
 import { discoverFeed } from "@/lib/ingestion/discover-feed";
 import { parseFeed } from "@/lib/ingestion/parse-feed";
@@ -107,6 +107,7 @@ export async function addSourceFlowAction(
 
     const result = await insertSource({ siteUrl, feedType, feedUrl, scrapeConfig, title: siteTitle, faviconUrl });
     revalidatePath("/sources");
+    updateTag("sources");
     return { ...emptyState, ok: result.ok, message: result.message };
   }
 
@@ -260,6 +261,7 @@ export async function addSourcesBulkAction(
 
   const results = await addSourcesBulk(urls);
   revalidatePath("/sources");
+  updateTag("sources");
 
   return {
     total: results.length,
@@ -274,6 +276,7 @@ export async function toggleSourceActiveAction(formData: FormData) {
   if (!id) return;
   await setSourceActive(id, nextActive);
   revalidatePath("/sources");
+  updateTag("sources");
 }
 
 export async function deleteSourceAction(formData: FormData) {
@@ -281,6 +284,7 @@ export async function deleteSourceAction(formData: FormData) {
   if (!id) return;
   await deleteSource(id);
   revalidatePath("/sources");
+  updateTag("sources");
 }
 
 export interface IngestNowState {
@@ -320,6 +324,7 @@ export async function ingestSourceNowAction(
       .eq("id", id);
     revalidatePath("/sources");
     revalidatePath("/");
+    updateTag("sources");
     return {
       ok: true,
       message:
@@ -332,6 +337,7 @@ export async function ingestSourceNowAction(
     const message = e instanceof Error ? e.message : String(e);
     await supabase.from("sources").update({ last_checked_at: checkedAt, last_error: message }).eq("id", id);
     revalidatePath("/sources");
+    updateTag("sources");
     return { ok: false, message: "수집에 실패했어요." };
   }
 }
