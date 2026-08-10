@@ -30,7 +30,12 @@ export function ArticleRow({
     >
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
         <Badge size="medium" variant="weak" tone="neutral">
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+          {/* SEED Badge는 라벨을 고정 px 너비로 재고 overflow:hidden + ellipsis를 적용하는데,
+              그 계산은 순수 텍스트를 가정한다 — 파비콘까지 담은 inline-flex를 통째로 넣으면
+              래퍼가 그 너비를 무시하고 원래 크기로 그려져 ellipsis 없이 글자가 중간에서 잘린다.
+              래퍼에 maxWidth:100%로 라벨 너비를 따르게 하고, 텍스트 쪽에만 별도로
+              ellipsis를 줘서 잘리는 지점에 실제로 "…"가 보이게 한다. */}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, maxWidth: "100%", minWidth: 0 }}>
             {article.source?.favicon_url && (
               // eslint-disable-next-line @next/next/no-img-element -- 임의의 외부 도메인 파비콘
               <img
@@ -43,7 +48,9 @@ export function ArticleRow({
                 style={{ borderRadius: 3, flexShrink: 0 }}
               />
             )}
-            {article.source?.title ?? article.source?.site_url}
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
+              {article.source?.title ?? article.source?.site_url}
+            </span>
           </span>
         </Badge>
 
