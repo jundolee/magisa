@@ -24,10 +24,16 @@ export function SourceFilterSelect({
   const [open, setOpen] = useState(false);
   const currentLabel = current === "all" ? ALL_LABEL : sources.find((s) => s.id === current)?.label ?? ALL_LABEL;
 
+  // maxWidth:"100%"는 부모(SEED의 .seed-menu-item__label)가 특정 텍스트(길거나 특수문자가
+  // 섞인 경우)에서 자기 폭을 content 기준으로 잘못 계산해버리면 그 불안정한 값의 100%가 되어
+  // 함께 무너진다 — 실제로 "마이리얼트립 블로그 | Myrealtrip Blog", "MUSINSA techblog —
+  // 무신사 테크 블로그 - Medium" 두 소스명에서 ellipsis 없이 메뉴 밖으로 넘쳐 가로 스크롤이
+  // 생기는 걸 확인함. 부모 크기와 무관하게 고정 px로 캡을 걸어 항상 안전하게 잘리도록 한다
+  // (MenuContent minWidth 240 - 좌우 패딩/아이콘 여유 기준으로 여유있게 잡은 값).
   const labelStyle: CSSProperties = {
     display: "block",
     minWidth: 0,
-    maxWidth: "100%",
+    maxWidth: 190,
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
