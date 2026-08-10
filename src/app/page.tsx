@@ -8,6 +8,12 @@ import { PageHeader } from "@/components/page-header";
 import { VISITOR_COOKIE_NAME } from "@/lib/visitor";
 
 export const dynamic = "force-dynamic";
+// Vercel Node 서버리스 함수는 고정 리전(iad1, 버지니아)에서만 실행돼 한국 사용자 기준
+// 왕복이 매번 태평양을 건너감 — Edge Runtime + preferredRegion="global"로 바꿔 방문자와
+// 가장 가까운 엣지에서 직접 실행되게 한다. Vercel에서 이 옵션은 runtime="edge"일 때만 적용됨
+// (docs/decisions.md 참고).
+export const runtime = "edge";
+export const preferredRegion = "global";
 
 // 필터 탭을 명시적으로 고르지 않았을 때의 기본값 — 검색 중이 아니면 "안읽음"이 자연스럽지만,
 // 검색은 이미 읽은 글을 다시 찾으려는 경우가 흔해서 검색어가 있을 땐 기본을 "전체"로 바꾼다.
