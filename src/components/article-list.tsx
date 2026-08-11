@@ -260,17 +260,19 @@ export function ArticleList({
           alignItems: "center",
         }}
       >
-        <div style={{ overflowX: "auto", maxWidth: "100%" }}>
-          <div style={{ width: "max-content" }}>
-            <ArticleFilterTabs
-              current={filter}
-              onChange={(value) => {
-                setFilter(value);
-                setPage(1);
-                updateUrl(value, sourceId);
-              }}
-            />
-          </div>
+        {/* 가로 스크롤 대신 flexShrink:0 + 부모의 flexWrap으로 이 자리에 다 안 들어가면
+            소스 드롭다운과 나란히 두지 않고 다음 줄로 통째로 넘어가게 한다 — 예전엔 이 자리를
+            overflow-x:auto로 만들어 좁은 화면에서 옆으로 스크롤해야 "즐겨찾기"가 보였는데,
+            그 자체가 화면이 어색하게 잘려 보인다는 피드백을 받아 없앴다. */}
+        <div style={{ flexShrink: 0 }}>
+          <ArticleFilterTabs
+            current={filter}
+            onChange={(value) => {
+              setFilter(value);
+              setPage(1);
+              updateUrl(value, sourceId);
+            }}
+          />
         </div>
         <SourceFilterSelect
           sources={sources}
