@@ -54,6 +54,10 @@ export function ArticleList({
   const [searchResults, setSearchResults] = useState<ArticleListItem[] | null>(null);
   const startedWithQuery = initialQuery.trim().length > 0;
   const defaultArticlesRef = useRef<ArticleListItem[] | null>(null);
+  // 검색창이 펼쳐지면 그 줄에서 배지/전체읽음 버튼을 숨긴다 — 좁은 화면에서 네 가지가 한 줄에
+  // 다 안 들어가 여러 단으로 겹쳐 접히며 그 아래 내용까지 크게 밀려나던 문제(docs/decisions.md 참고)를
+  // 애초에 그 줄에 검색창만 남겨서 해결한다.
+  const [searchExpanded, setSearchExpanded] = useState(startedWithQuery);
 
   const baseArticles = searchResults ?? articles;
 
@@ -210,17 +214,33 @@ export function ArticleList({
         <Text as="h1" textStyle="t8Bold" color="fg.neutral">
           글 목록
         </Text>
-        {/* 검색창이 펼쳐지면(240px) 좁은 화면에서 이 그룹이 화면 밖으로 밀려날 수 있어 자체적으로도
-            줄바꿈되게 한다 — 바깥 헤더 줄의 flexWrap은 "제목"과 "이 그룹" 두 덩어리 사이에서만 작동해서
-            그룹 안의 검색/배지/버튼들끼리는 줄바꿈이 안 됐었다. */}
-        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end", gap: 12 }}>
-          <ExpandableSearch value={query} onValueChange={handleQueryChange} onSubmit={handleSearchSubmit} />
-          {unreadCount > 0 && (
+        {/* 검색창이 펼쳐지면 배지/전체읽음 버튼을 숨기고 이 그룹이 줄 전체(flexBasis:100%)를
+            차지하게 한다 — 넷을 한 줄에 다 맞추려다 보니 좁은 화면에서 검색창과 버튼들이 각자
+            다른 지점에서 줄바꿈되며 그 아래 목록까지 크게 밀려나던 문제(docs/decisions.md 참고)를,
+            펼친 동안은 애초에 검색창 하나만 그 줄에 있게 해서 없앤다. */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            justifyContent: "flex-end",
+            gap: 12,
+            flexBasis: searchExpanded ? "100%" : "auto",
+          }}
+        >
+          <ExpandableSearch
+            value={query}
+            onValueChange={handleQueryChange}
+            onSubmit={handleSearchSubmit}
+            expanded={searchExpanded}
+            onExpandedChange={setSearchExpanded}
+          />
+          {!searchExpanded && unreadCount > 0 && (
             <Badge size="medium" variant="solid" tone="brand">
               안읽음 {unreadCount}
             </Badge>
           )}
-          <ReadAllControls />
+          {!searchExpanded && <ReadAllControls />}
         </div>
       </div>
 
