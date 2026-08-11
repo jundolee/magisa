@@ -30,11 +30,19 @@ async function ArticleListSection({
   initialFilter,
   initialSourceId,
   initialQuery,
+  debugTiming,
 }: {
   initialFilter: ArticleFilter;
   initialSourceId: string;
   initialQuery: string;
+  debugTiming: boolean;
 }) {
+  // temp: 이 컴포넌트가 실제로 실행되는 데 걸리는 시간 전체(쿠키 읽기+DB 조회+렌더링 준비)를 재서,
+  // 클라이언트에서 curl로 잰 총 TTFB와 비교해 "우리 코드 안에서 걸리는 시간"과 "그 앞뒤 네트워크/
+  // 라우팅 오버헤드"를 구분한다. 확인 후 되돌릴 예정 (docs/decisions.md 참고).
+  // eslint-disable-next-line react-hooks/purity -- temp 진단 코드, 측정 후 제거할 예정
+  const tStart = debugTiming ? performance.now() : 0;
+
   // 읽음 여부는 방문자(브라우저)별로 구분된다 — proxy.ts가 부여한 익명 쿠키 기준 (docs/decisions.md 참고).
   const visitorId = (await cookies()).get(VISITOR_COOKIE_NAME)?.value ?? null;
 
@@ -51,23 +59,29 @@ async function ArticleListSection({
     .map((s) => ({ id: s.id, label: s.title ?? s.site_url }))
     .sort((a, b) => a.label.localeCompare(b.label, "ko"));
 
+  // eslint-disable-next-line react-hooks/purity -- temp 진단 코드, 측정 후 제거할 예정
+  const totalServerMs = debugTiming ? Math.round(performance.now() - tStart) : null;
+
   return (
-    <ArticleList
-      articles={articles}
-      sources={sourceOptions}
-      initialFilter={initialFilter}
-      initialSourceId={initialSourceId}
-      initialQuery={initialQuery}
-    />
+    <>
+      {debugTiming && <div id="debug-timing" style={{ display: "none" }} data-total-server-ms={totalServerMs} />}
+      <ArticleList
+        articles={articles}
+        sources={sourceOptions}
+        initialFilter={initialFilter}
+        initialSourceId={initialSourceId}
+        initialQuery={initialQuery}
+      />
+    </>
   );
 }
 
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; source?: string; q?: string }>;
+  searchParams: Promise<{ filter?: string; source?: string; q?: string; debugTiming?: string }>;
 }) {
-  const { filter: rawFilter, source: sourceId, q } = await searchParams;
+  const { filter: rawFilter, source: sourceId, q, debugTiming } = await searchParams;
   const initialQuery = (q ?? "").trim();
   const initialFilter = parseFilter(rawFilter, initialQuery.length > 0);
 
@@ -81,6 +95,7 @@ export default async function Home({
           initialFilter={initialFilter}
           initialSourceId={sourceId ?? "all"}
           initialQuery={initialQuery}
+          debugTiming={debugTiming === "1"}
         />
       </Suspense>
     </main>
