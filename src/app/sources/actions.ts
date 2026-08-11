@@ -9,6 +9,7 @@ import { autoDetectScrapeConfig } from "@/lib/ingestion/auto-detect-scrape-confi
 import { inferScrapeConfigWithAI } from "@/lib/ingestion/ai-selector-inference";
 import { ingestSource, type SourceRow } from "@/lib/ingestion/ingest-source";
 import { createServiceClient } from "@/lib/supabase/service";
+import { BOT_USER_AGENT } from "@/lib/ingestion/user-agent";
 import type { FeedType, NormalizedArticle, ScrapeConfig } from "@/lib/ingestion/types";
 
 export interface AddSourceFlowState {
@@ -68,6 +69,7 @@ function scrapeConfigFromFormData(formData: FormData): ScrapeConfig | null {
     dateSelector: optional("dateSelector"),
     thumbnailSelector: optional("thumbnailSelector"),
     thumbnailAttr: optional("thumbnailAttr"),
+    useBotUserAgent: formData.get("useBotUserAgent") === "true",
   };
 }
 
@@ -177,43 +179,43 @@ export async function addSourceFlowAction(
   }
 
   // 사용자가 직접 입력하지 않음 -> ① AI 추론(소스당 최대 1회 호출), ② 실패 시(OPENAI_API_KEY
-  // 미설정 포함)에만 규칙 기반 auto-detect를 순서대로 시도.
+  // 미설정 포함)에만 규칙 기반 auto-detect를 순서대로 시도. 둘 다 일반 UA로 실패하면(완전 CSR
+  // 셸일 가능성) 무료인 규칙 기반부터 봇 UA로 재시도하고, 그것도 실패해야 AI를 봇 UA로 한 번 더
+  // 호출한다 — AI 호출 횟수를 최소화하면서 동적 렌더링 사이트도 커버한다 (docs/decisions.md 참고).
+  const previewed = (config: ScrapeConfig, articles: NormalizedArticle[]) => ({
+    ok: true,
+    message: `${articles.length}개의 글을 찾았어요. 확인하고 등록해주세요.`,
+    step: "previewed" as const,
+    siteUrl,
+    feedType: "scrape" as const,
+    feedUrl: null,
+    scrapeConfig: config,
+    siteTitle: discovery.siteTitle,
+    faviconUrl: discovery.faviconUrl,
+    preview: articles.slice(0, 5),
+  });
+
   const aiConfig = await inferScrapeConfigWithAI(siteUrl).catch((e) => {
     console.error("AI 선택자 추론 실패:", e);
     return null;
   });
   const aiArticles = aiConfig ? await tryScrapePreview(siteUrl, aiConfig) : null;
-  if (aiConfig && aiArticles) {
-    return {
-      ok: true,
-      message: `${aiArticles.length}개의 글을 찾았어요. 확인하고 등록해주세요.`,
-      step: "previewed",
-      siteUrl,
-      feedType: "scrape",
-      feedUrl: null,
-      scrapeConfig: aiConfig,
-      siteTitle: discovery.siteTitle,
-      faviconUrl: discovery.faviconUrl,
-      preview: aiArticles.slice(0, 5),
-    };
-  }
+  if (aiConfig && aiArticles) return previewed(aiConfig, aiArticles);
 
   const autoConfig = await autoDetectScrapeConfig(siteUrl).catch(() => null);
   const autoArticles = autoConfig ? await tryScrapePreview(siteUrl, autoConfig) : null;
-  if (autoConfig && autoArticles) {
-    return {
-      ok: true,
-      message: `${autoArticles.length}개의 글을 찾았어요. 확인하고 등록해주세요.`,
-      step: "previewed",
-      siteUrl,
-      feedType: "scrape",
-      feedUrl: null,
-      scrapeConfig: autoConfig,
-      siteTitle: discovery.siteTitle,
-      faviconUrl: discovery.faviconUrl,
-      preview: autoArticles.slice(0, 5),
-    };
-  }
+  if (autoConfig && autoArticles) return previewed(autoConfig, autoArticles);
+
+  const autoConfigBot = await autoDetectScrapeConfig(siteUrl, BOT_USER_AGENT).catch(() => null);
+  const autoArticlesBot = autoConfigBot ? await tryScrapePreview(siteUrl, { ...autoConfigBot, useBotUserAgent: true }) : null;
+  if (autoConfigBot && autoArticlesBot) return previewed({ ...autoConfigBot, useBotUserAgent: true }, autoArticlesBot);
+
+  const aiConfigBot = await inferScrapeConfigWithAI(siteUrl, BOT_USER_AGENT).catch((e) => {
+    console.error("AI 선택자 추론 실패(봇 UA):", e);
+    return null;
+  });
+  const aiArticlesBot = aiConfigBot ? await tryScrapePreview(siteUrl, { ...aiConfigBot, useBotUserAgent: true }) : null;
+  if (aiConfigBot && aiArticlesBot) return previewed({ ...aiConfigBot, useBotUserAgent: true }, aiArticlesBot);
 
   return {
     ok: false,

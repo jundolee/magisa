@@ -46,6 +46,11 @@ export function AddSourceForm() {
           <input type="hidden" name="thumbnailSelector" value={state.scrapeConfig?.thumbnailSelector ?? ""} />
           <input type="hidden" name="linkAttr" value={state.scrapeConfig?.linkAttr ?? ""} />
           <input type="hidden" name="thumbnailAttr" value={state.scrapeConfig?.thumbnailAttr ?? ""} />
+          <input
+            type="hidden"
+            name="useBotUserAgent"
+            value={state.scrapeConfig?.useBotUserAgent ? "true" : "false"}
+          />
         </>
       )}
 

@@ -23,9 +23,12 @@ function classTokens($el: cheerio.Cheerio<Element>): string[] {
  * 정확한 결과를 보장하지 않으며, 반드시 addSourceFlowAction의 미리보기 단계와 함께 써서
  * 사용자가 실제 추출 결과를 눈으로 확인한 뒤 등록하도록 한다 (docs/decisions.md 참고).
  */
-export async function autoDetectScrapeConfig(siteUrl: string): Promise<ScrapeConfig | null> {
+export async function autoDetectScrapeConfig(
+  siteUrl: string,
+  userAgent: string = USER_AGENT
+): Promise<ScrapeConfig | null> {
   const res = await fetch(siteUrl, {
-    headers: { "User-Agent": USER_AGENT },
+    headers: { "User-Agent": userAgent },
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
   if (!res.ok) return null;

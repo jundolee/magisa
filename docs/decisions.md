@@ -337,3 +337,11 @@
 **결정**: 사용자 요청으로 `addSourceFlowAction`의 스크래핑 폴백 순서를 뒤집음 — 이제 RSS/Atom이 없으면 먼저 AI(gpt-5-nano)로 선택자를 추론하고, AI가 실패했을 때(또는 `OPENAI_API_KEY` 미설정 시, 함수가 조용히 null을 반환)만 규칙 기반 `autoDetectScrapeConfig()`를 시도한다.
 **검증**: 로컬에서 실제로 `ahnheejong.name/articles`(등록 안 된 사이트)를 미리보기로 등록 시도 — AI 경로가 67개 글을 정상적으로 찾아 성공했고(임시 로그로 `aiConfig found? true` 확인 후 제거), 규칙 기반 경로는 시도되지 않고 건너뛴 것을 확인.
 **영향**: `src/app/sources/actions.ts`(`addSourceFlowAction`의 스크래핑 분기 순서만 교체, 로직 자체는 변경 없음).
+
+### 2026-08-11 — 완전 CSR(SPA) 사이트를 헤드리스 브라우저 없이 지원: 검색엔진 크롤러 UA 폴백
+**배경**: 사용자가 `https://d2.naver.com/home` 등록 시 AI도 규칙 기반도 선택자를 못 찾는다고 문의. 원본 HTML을 직접 확인한 결과 `<div class="contents"></div>`가 완전히 비어 있었음 — 목록이 전부 클라이언트 JS로 렌더링되는 SPA라, 선택자가 아무리 정확해도 담을 데이터 자체가 원본 HTML에 없는 근본적으로 다른 문제였음(개별 글 상세 페이지도 CSR이고 sitemap.xml도 없어 og:image류 우회도 불가능함을 확인). 헤드리스 브라우저(Playwright 등)가 유일한 범용 해법이지만 `architecture.md`에서 이미 유지보수 비용 대비 실익이 낮다고 배제한 방식.
+**발견**: 이 사이트에 **Googlebot UA로 요청하면 서버가 완전히 다른, 이미 렌더링된 HTML을 내려줌**(일반 UA 4,080바이트 빈 셸 → Googlebot UA 20,585바이트, 실제 글 목록 포함)을 직접 재현 확인. SEO를 위해 알려진 크롤러 UA에 미리 렌더링된 스냅샷을 주는 "동적 렌더링"이 원인 — 헤드리스 브라우저 없이 User-Agent 헤더만 바꿔서 해결 가능한 사이트가 CSR 사이트 중 상당수 있을 것으로 추정.
+**결정**: `ScrapeConfig`에 `useBotUserAgent?: boolean` 필드를 추가하고, 소스 등록 시 일반 UA로 AI/규칙 기반이 모두 실패하면 **무료인 규칙 기반부터 Googlebot UA로 재시도**(비용 없음) → 그것도 실패해야 AI를 Googlebot UA로 한 번 더 호출(최후 수단)하도록 폴백 체인을 확장. 성공한 경로의 결과에 `useBotUserAgent:true`를 심어 저장하면, `scrapeSource()`가 이 플래그를 보고 일일 크론 수집 때도 자동으로 같은 UA를 재사용 — 등록 시점과 매일 수집 양쪽 다 추가 헤드리스 브라우저 비용 없이 해결됨.
+**검증**: 로컬 프로덕션 빌드로 실제 `d2.naver.com/home`을 미리보기 등록 시도 — "20개의 글을 찾았어요"로 실제 최신 글 제목들(Googlebot UA로 확인했던 것과 일치)이 정상 추출됨을 확인. 실제 소스로 저장(등록)까지는 진행하지 않음(테스트 목적).
+**한계**: 모든 CSR 사이트가 동적 렌더링을 지원하진 않음(일부는 크롤러도 차단) — 이 폴백이 안 통하는 사이트는 여전히 지원 대상 밖(surfit.io 사례와 동일). d2.naver.com 자체는 사실 `/d2.atom` Atom 피드도 갖고 있어(현재 `discoverFeed()`가 못 찾는 비표준 경로) 피드 자동탐지를 개선하면 이 폴백 없이도 더 간단히 해결되는 케이스지만, 그 개선은 이번엔 별도로 미룸.
+**영향**: `src/lib/ingestion/user-agent.ts`(`BOT_USER_AGENT` 추가), `src/lib/ingestion/types.ts`(`ScrapeConfig.useBotUserAgent`), `src/lib/ingestion/scrape-source.ts`, `src/lib/ingestion/auto-detect-scrape-config.ts`/`ai-selector-inference.ts`(UA 파라미터화), `src/app/sources/actions.ts`(폴백 체인 확장), `src/components/add-source-form.tsx`(hidden input 추가).

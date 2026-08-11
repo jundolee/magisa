@@ -1,9 +1,8 @@
 import * as cheerio from "cheerio";
 import type { NormalizedArticle, ScrapeConfig } from "./types";
 import { computeDedupKey } from "./dedup";
-import { INGESTION_USER_AGENT } from "./user-agent";
+import { INGESTION_USER_AGENT, BOT_USER_AGENT } from "./user-agent";
 
-const USER_AGENT = INGESTION_USER_AGENT;
 const FETCH_TIMEOUT_MS = 15_000;
 
 function normalizeDate(dateText: string): string | null {
@@ -33,11 +32,14 @@ export function extractDateFromUrl(url: string): string | null {
 
 /**
  * RSS가 없는 사이트를 위한 CSS 셀렉터 기반 정적 HTML 스크래핑.
- * architecture.md 3절 "스크래핑 폴백" 참고 — JS 렌더링(CSR) 사이트는 지원하지 않는다 (docs/decisions.md 참고).
+ * architecture.md 3절 "스크래핑 폴백" 참고 — 기본적으로 JS 렌더링(CSR) 사이트는 지원하지 않지만,
+ * 검색엔진 크롤러 UA에 미리 렌더링된 HTML을 내려주는 사이트는 `config.useBotUserAgent`로
+ * 예외적으로 지원한다 (docs/decisions.md 참고, 헤드리스 브라우저 없이 해결하는 저비용 폴백).
  */
 export async function scrapeSource(siteUrl: string, config: ScrapeConfig): Promise<NormalizedArticle[]> {
+  const userAgent = config.useBotUserAgent ? BOT_USER_AGENT : INGESTION_USER_AGENT;
   const res = await fetch(siteUrl, {
-    headers: { "User-Agent": USER_AGENT },
+    headers: { "User-Agent": userAgent },
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
   if (!res.ok) {

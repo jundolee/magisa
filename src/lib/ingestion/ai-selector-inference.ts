@@ -148,12 +148,15 @@ async function callModel(
  * 그대로 재사용하므로 다시 호출되지 않는다 (docs/decisions.md 참고).
  * OPENAI_API_KEY가 설정되어 있지 않으면 조용히 null을 반환해 폴백 없이 동작한다.
  */
-export async function inferScrapeConfigWithAI(siteUrl: string): Promise<ScrapeConfig | null> {
+export async function inferScrapeConfigWithAI(
+  siteUrl: string,
+  userAgent: string = USER_AGENT
+): Promise<ScrapeConfig | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
 
   const pageRes = await fetch(siteUrl, {
-    headers: { "User-Agent": USER_AGENT },
+    headers: { "User-Agent": userAgent },
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
   if (!pageRes.ok) return null;
