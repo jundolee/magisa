@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { cookies } from "next/headers";
-import { listArticles, searchArticles, type ArticleFilter } from "@/lib/data/articles";
+import { listArticles, listArticlesWithTiming, searchArticles, type ArticleFilter } from "@/lib/data/articles";
 import { listSources } from "@/lib/data/sources";
 import { ArticleList } from "@/components/article-list";
 import { ArticleListSkeleton } from "@/components/article-list-skeleton";
@@ -30,13 +30,53 @@ async function ArticleListSection({
   initialFilter,
   initialSourceId,
   initialQuery,
+  debugTiming,
 }: {
   initialFilter: ArticleFilter;
   initialSourceId: string;
   initialQuery: string;
+  debugTiming: boolean;
 }) {
   // 읽음 여부는 방문자(브라우저)별로 구분된다 — proxy.ts가 부여한 익명 쿠키 기준 (docs/decisions.md 참고).
   const visitorId = (await cookies()).get(VISITOR_COOKIE_NAME)?.value ?? null;
+
+  // temp: 방문자별 read_status/favorites 조회가 초기 로딩에서 실제로 차지하는 비중을 재기 위한
+  // 진단 경로 — ?debugTiming=1일 때만 타면서 각 단계 소요시간을 HTML 주석으로 남긴다.
+  // 확인 후 되돌릴 예정 (docs/decisions.md 참고).
+  if (debugTiming && !initialQuery) {
+    // eslint-disable-next-line react-hooks/purity -- temp 진단 코드, 측정 후 제거할 예정
+    const tSourcesStart = performance.now();
+    const sourcesPromise = listSources().then((s) => {
+      // eslint-disable-next-line react-hooks/purity -- temp 진단 코드, 측정 후 제거할 예정
+      const sourcesMs = Math.round(performance.now() - tSourcesStart);
+      return { s, sourcesMs };
+    });
+    const [{ articles, timing }, { s: sources, sourcesMs }] = await Promise.all([
+      listArticlesWithTiming(visitorId),
+      sourcesPromise,
+    ]);
+    const sourceOptions = sources
+      .map((s) => ({ id: s.id, label: s.title ?? s.site_url }))
+      .sort((a, b) => a.label.localeCompare(b.label, "ko"));
+    return (
+      <>
+        <div
+          id="debug-timing"
+          style={{ display: "none" }}
+          data-cached-feed-ms={timing.cachedFeedMs}
+          data-visitor-state-ms={timing.visitorStateMs}
+          data-sources-ms={sourcesMs}
+        />
+        <ArticleList
+          articles={articles}
+          sources={sourceOptions}
+          initialFilter={initialFilter}
+          initialSourceId={initialSourceId}
+          initialQuery={initialQuery}
+        />
+      </>
+    );
+  }
 
   // 탭/소스 필터 전환마다 서버를 다시 왕복하지 않도록, 전체 글/소스를 한 번만 불러와
   // 클라이언트(ArticleList)에서 즉시 필터링한다 (docs/decisions.md 참고).
@@ -65,9 +105,9 @@ async function ArticleListSection({
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; source?: string; q?: string }>;
+  searchParams: Promise<{ filter?: string; source?: string; q?: string; debugTiming?: string }>;
 }) {
-  const { filter: rawFilter, source: sourceId, q } = await searchParams;
+  const { filter: rawFilter, source: sourceId, q, debugTiming } = await searchParams;
   const initialQuery = (q ?? "").trim();
   const initialFilter = parseFilter(rawFilter, initialQuery.length > 0);
 
@@ -81,6 +121,7 @@ export default async function Home({
           initialFilter={initialFilter}
           initialSourceId={sourceId ?? "all"}
           initialQuery={initialQuery}
+          debugTiming={debugTiming === "1"}
         />
       </Suspense>
     </main>

@@ -102,6 +102,23 @@ export async function listArticles(visitorId: string | null): Promise<ArticleLis
   return attachVisitorState(articles, visitorId);
 }
 
+// temp: 초기 로딩 중 방문자별 read_status/favorites 조회가 실제로 얼마나 걸리는지 측정하기 위한
+// 진단용 함수 — 캐시된 글 목록 조회와 방문자별 조회 각 단계를 나눠서 시간을 잰다.
+// 확인 후 되돌릴 예정 (docs/decisions.md 참고).
+export async function listArticlesWithTiming(
+  visitorId: string | null
+): Promise<{ articles: ArticleListItem[]; timing: { cachedFeedMs: number; visitorStateMs: number } }> {
+  const t0 = performance.now();
+  const articles = await getCachedArticleFeed();
+  const t1 = performance.now();
+  const result = await attachVisitorState(articles, visitorId);
+  const t2 = performance.now();
+  return {
+    articles: result,
+    timing: { cachedFeedMs: Math.round(t1 - t0), visitorStateMs: Math.round(t2 - t1) },
+  };
+}
+
 interface SearchArticleRow {
   id: string;
   title: string;
