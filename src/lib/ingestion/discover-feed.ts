@@ -86,6 +86,24 @@ export async function discoverFeed(siteUrl: string): Promise<FeedDiscoveryResult
         return { feedUrl: absoluteUrl, feedType, siteTitle, faviconUrl };
       }
     }
+
+    // <head>의 <link rel=alternate>가 표준이지만, 본문 어딘가(예: 푸터)에 평범한 <a>로만
+    // 피드를 걸어둔 사이트도 있다 — d2.naver.com/home의 <a href="https://d2.naver.com/d2.atom">이
+    // 그런 경우(비표준 경로라 아래 관례적 경로 탐색으로도 못 찾음). href가 .atom/.rss로 끝나는
+    // 앵커를 추가로 훑어본다 (docs/decisions.md 참고).
+    const anchorHref = $("a[href]")
+      .toArray()
+      .map((el) => $(el).attr("href"))
+      .find((href) => href && /\.(atom|rss)(?:$|[?#])/i.test(href));
+
+    if (anchorHref) {
+      const absoluteUrl = new URL(anchorHref, siteUrl).toString();
+      const candidate = await fetchText(absoluteUrl);
+      const feedType = candidate && detectFeedType(candidate.contentType, candidate.text);
+      if (feedType) {
+        return { feedUrl: absoluteUrl, feedType, siteTitle, faviconUrl };
+      }
+    }
   }
 
   for (const path of CANDIDATE_PATHS) {

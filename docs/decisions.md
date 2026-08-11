@@ -345,3 +345,12 @@
 **검증**: 로컬 프로덕션 빌드로 실제 `d2.naver.com/home`을 미리보기 등록 시도 — "20개의 글을 찾았어요"로 실제 최신 글 제목들(Googlebot UA로 확인했던 것과 일치)이 정상 추출됨을 확인. 실제 소스로 저장(등록)까지는 진행하지 않음(테스트 목적).
 **한계**: 모든 CSR 사이트가 동적 렌더링을 지원하진 않음(일부는 크롤러도 차단) — 이 폴백이 안 통하는 사이트는 여전히 지원 대상 밖(surfit.io 사례와 동일). d2.naver.com 자체는 사실 `/d2.atom` Atom 피드도 갖고 있어(현재 `discoverFeed()`가 못 찾는 비표준 경로) 피드 자동탐지를 개선하면 이 폴백 없이도 더 간단히 해결되는 케이스지만, 그 개선은 이번엔 별도로 미룸.
 **영향**: `src/lib/ingestion/user-agent.ts`(`BOT_USER_AGENT` 추가), `src/lib/ingestion/types.ts`(`ScrapeConfig.useBotUserAgent`), `src/lib/ingestion/scrape-source.ts`, `src/lib/ingestion/auto-detect-scrape-config.ts`/`ai-selector-inference.ts`(UA 파라미터화), `src/app/sources/actions.ts`(폴백 체인 확장), `src/components/add-source-form.tsx`(hidden input 추가).
+
+### 2026-08-11 — d2.naver.com을 결국 RSS/Atom으로 정상 인식: 비표준 피드 링크 탐지 + rss-parser 406 버그 수정
+**배경**: 위 결정에서 미뤄뒀던 "d2.naver.com은 사실 `/d2.atom` 피드가 있다"는 케이스를 이어서 처리. `discoverFeed()`에 `<a href>` 중 `.atom`/`.rss`로 끝나는 링크를 훑어보는 탐지를 추가했는데도 여전히 scrape로 떨어져서, 임시 로그로 단계별 추적함.
+**발견한 두 가지 버그**:
+1. **탐지 자체는 성공, 그런데 결과가 반영 안 됨**: 앵커 탐지는 정상적으로 `https://d2.naver.com/d2.atom`을 찾아 `feedType:'atom'`까지 정확히 판정했는데, 최종적으로 `addSourceFlowAction`은 계속 `feedType:'scrape'`를 반환하고 있었음.
+2. **진짜 원인은 `parseFeed()`(rss-parser)가 이 피드에서 매번 `Status code 406`으로 실패하고 있었음**: `discoverFeed()`의 자체 fetch는 `Accept:"*/*"`를 보내 통과했지만, `rss-parser`의 `Parser` 설정엔 `Accept` 헤더가 전혀 없었음 — 이 피드 서버가 Accept 헤더 없는 요청을 406으로 거부. `addSourceFlowAction`이 `parseFeed(...).catch(() => ({articles:[]}))`로 이 실패를 조용히 삼켜서, "RSS를 찾았지만 항목이 0개"인 것처럼 보여 그대로 scrape 폴백으로 흘러갔음 — 2026-07-30 tech.kakaopay.com 사례("빈 스텁 피드")와 겉보기 증상은 같지만 원인은 다른, 새로운 종류의 버그였음.
+**수정**: (1) `discoverFeed()`에 `<link rel=alternate>` 확인 다음으로 `<a href$=".atom|.rss">` 탐지를 추가. (2) `parse-feed.ts`의 `rss-parser` 생성자에 `Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, */*"` 헤더를 명시적으로 추가.
+**검증**: 로컬 프로덕션 빌드에서 `d2.naver.com/home`을 실제로 등록 시도 — 최종 상태가 `feedType:"atom"`, `feedUrl:"https://d2.naver.com/d2.atom"`으로 정상 확정되고, 미리보기에 Atom 피드 본문(content:encoded) 기반의 풍부한 요약이 표시되는 것까지 확인(스크래핑 결과와 뚜렷이 다른 형태라 경로 전환을 시각적으로도 재확인함).
+**영향**: `src/lib/ingestion/discover-feed.ts`, `src/lib/ingestion/parse-feed.ts`.
