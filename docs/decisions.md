@@ -332,3 +332,8 @@
 **② 검색 열기 / ③ 소스 드롭다운**: 각각 2026-08-10/2026-08-10 결정으로 이미 고친 부분 — 로컬 프로덕션 빌드를 320~428px(320/344/360/375/390/393/412/414/428) 전부 iframe으로 재현해 재검증했으나 페이지 레벨 가로 스크롤(`document.documentElement.scrollWidth > clientWidth`)이 어떤 폭에서도 발생하지 않음을 재확인함 — 즉 이 두 가지는 코드 상으로는 이미 정상이며, 이번엔 추가로 손댈 지점을 찾지 못함.
 **한계**: 이 환경은 실제 모바일 기기가 아니라 데스크톱 Chrome에 iframe으로 폭을 강제하는 방식이라, 실제 기기의 폰트 렌더링/터치 키보드 뷰포트 변화 등 여기서 재현 못 하는 차이가 있을 수 있음 — ②③이 실제 기기에서도 계속 보인다면 스크린샷 등 추가 정보가 필요함.
 **영향**: `src/components/article-filter-tabs.tsx`, `src/components/article-list.tsx`.
+
+### 2026-08-11 — 스크래핑 선택자 추론 순서를 "규칙 기반 → AI"에서 "AI → 규칙 기반"으로 변경
+**결정**: 사용자 요청으로 `addSourceFlowAction`의 스크래핑 폴백 순서를 뒤집음 — 이제 RSS/Atom이 없으면 먼저 AI(gpt-5-nano)로 선택자를 추론하고, AI가 실패했을 때(또는 `OPENAI_API_KEY` 미설정 시, 함수가 조용히 null을 반환)만 규칙 기반 `autoDetectScrapeConfig()`를 시도한다.
+**검증**: 로컬에서 실제로 `ahnheejong.name/articles`(등록 안 된 사이트)를 미리보기로 등록 시도 — AI 경로가 67개 글을 정상적으로 찾아 성공했고(임시 로그로 `aiConfig found? true` 확인 후 제거), 규칙 기반 경로는 시도되지 않고 건너뛴 것을 확인.
+**영향**: `src/app/sources/actions.ts`(`addSourceFlowAction`의 스크래핑 분기 순서만 교체, 로직 자체는 변경 없음).

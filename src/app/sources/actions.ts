@@ -176,24 +176,8 @@ export async function addSourceFlowAction(
     };
   }
 
-  // 사용자가 직접 입력하지 않음 -> ① 규칙 기반 auto-detect, ② 실패 시에만 AI 추론(소스당 최대 1회 호출)을 순서대로 시도.
-  const autoConfig = await autoDetectScrapeConfig(siteUrl).catch(() => null);
-  const autoArticles = autoConfig ? await tryScrapePreview(siteUrl, autoConfig) : null;
-  if (autoConfig && autoArticles) {
-    return {
-      ok: true,
-      message: `${autoArticles.length}개의 글을 찾았어요. 확인하고 등록해주세요.`,
-      step: "previewed",
-      siteUrl,
-      feedType: "scrape",
-      feedUrl: null,
-      scrapeConfig: autoConfig,
-      siteTitle: discovery.siteTitle,
-      faviconUrl: discovery.faviconUrl,
-      preview: autoArticles.slice(0, 5),
-    };
-  }
-
+  // 사용자가 직접 입력하지 않음 -> ① AI 추론(소스당 최대 1회 호출), ② 실패 시(OPENAI_API_KEY
+  // 미설정 포함)에만 규칙 기반 auto-detect를 순서대로 시도.
   const aiConfig = await inferScrapeConfigWithAI(siteUrl).catch((e) => {
     console.error("AI 선택자 추론 실패:", e);
     return null;
@@ -211,6 +195,23 @@ export async function addSourceFlowAction(
       siteTitle: discovery.siteTitle,
       faviconUrl: discovery.faviconUrl,
       preview: aiArticles.slice(0, 5),
+    };
+  }
+
+  const autoConfig = await autoDetectScrapeConfig(siteUrl).catch(() => null);
+  const autoArticles = autoConfig ? await tryScrapePreview(siteUrl, autoConfig) : null;
+  if (autoConfig && autoArticles) {
+    return {
+      ok: true,
+      message: `${autoArticles.length}개의 글을 찾았어요. 확인하고 등록해주세요.`,
+      step: "previewed",
+      siteUrl,
+      feedType: "scrape",
+      feedUrl: null,
+      scrapeConfig: autoConfig,
+      siteTitle: discovery.siteTitle,
+      faviconUrl: discovery.faviconUrl,
+      preview: autoArticles.slice(0, 5),
     };
   }
 
