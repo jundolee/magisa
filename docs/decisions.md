@@ -354,3 +354,10 @@
 **수정**: (1) `discoverFeed()`에 `<link rel=alternate>` 확인 다음으로 `<a href$=".atom|.rss">` 탐지를 추가. (2) `parse-feed.ts`의 `rss-parser` 생성자에 `Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, */*"` 헤더를 명시적으로 추가.
 **검증**: 로컬 프로덕션 빌드에서 `d2.naver.com/home`을 실제로 등록 시도 — 최종 상태가 `feedType:"atom"`, `feedUrl:"https://d2.naver.com/d2.atom"`으로 정상 확정되고, 미리보기에 Atom 피드 본문(content:encoded) 기반의 풍부한 요약이 표시되는 것까지 확인(스크래핑 결과와 뚜렷이 다른 형태라 경로 전환을 시각적으로도 재확인함).
 **영향**: `src/lib/ingestion/discover-feed.ts`, `src/lib/ingestion/parse-feed.ts`.
+
+### 2026-08-12 — 일일 수집 크론이 소스 일부만 처리하고 조용히 끊기던 문제
+**배경**: 사용자가 "/sources의 마지막 확인이 어제 날짜로 남아있다"고 지적. 실제 DB를 조회해보니 크론은 매일 돌고는 있었지만, 29개 소스 중 매번 14~15개만 갱신되고 나머지는 서로 다른 과거 시점에 멈춰있었음(에러 기록도 없이) — 회차마다 어느 소스가 밀리는지도 달랐음.
+**원인**: `/api/cron/ingest`가 소스를 하나씩 순차 처리했는데, 소스당 fetch+(경우에 따라)AI 호출+썸네일 업로드로 평균 수 초 이상 걸려 29개를 다 처리하기 전에 Vercel의 실행시간 제한에 걸려 함수가 중간에 그냥 종료됨 — 남은 소스는 시도조차 못 해 에러 기록조차 없음. `maxDuration`을 지정하지 않아 플랫폼 기본값에 그대로 걸리고 있었고, 소스 조회에 `ORDER BY`가 없어 Postgres가 매번 다른 순서로 행을 반환할 수 있어(순서 보장 없음) 회차마다 밀리는 소스가 무작위로 바뀌었던 것.
+**수정**: (1) `export const maxDuration = 60`(Vercel Hobby 플랜 허용 최대치)을 명시. (2) 소스를 하나씩이 아니라 6개씩 동시 처리(`Promise.all` 배치)하도록 바꿔 총 소요시간을 줄임 — 소스마다 서로 다른 사이트라 동시 처리해도 안전함. (3) 소스 조회에 `.order("last_checked_at", {ascending:true, nullsFirst:true})`를 추가해, 혹시 이번에도 시간이 부족해 다 못 끝내더라도 가장 오래 밀린 소스가 항상 먼저 처리되도록 함(무작위로 밀리는 대신 자연스럽게 회복되는 구조).
+**검증**: 로컬에서 실제 프로덕션 DB를 대상으로 크론 라우트를 직접 호출 — 29개 전부 성공(`succeeded: 29`, 실패 0건). 로컬 실행은 4분 35초 걸렸는데, 그동안 밀려있던 여러 소스가 한꺼번에 새 글을 발견해 썸네일 업로드가 몰린 일회성 "밀린 작업" 상황이라 평소 하루치보다 오래 걸린 것으로 보임 — 정상 상태(소스당 새 글이 거의 없는 평범한 하루)에서는 훨씬 빠를 것으로 예상되지만, Vercel 실제 환경에서의 정확한 소요시간은 배포 후 다음 크론 실행으로만 확인 가능.
+**영향**: `src/app/api/cron/ingest/route.ts`.
