@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { Text } from "@seed-design/react";
+import { ActionButton } from "seed-design/ui/action-button";
 import { listSources } from "@/lib/data/sources";
+import { listPendingSourceSuggestions } from "@/lib/data/source-suggestions";
 import { AddSourceForm } from "@/components/add-source-form";
 import { BulkAddSourceForm } from "@/components/bulk-add-source-form";
 import { SourceRow } from "@/components/source-row";
 import { PageHeader } from "@/components/page-header";
 import { IngestAllButton } from "@/components/ingest-all-button";
+import { reviewSourceSuggestionAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 export default async function SourcesPage() {
-  const sources = await listSources();
+  const [sources, suggestions] = await Promise.all([listSources(), listPendingSourceSuggestions()]);
 
   return (
     <main style={{ display: "flex", flexDirection: "column", gap: 40 }}>
@@ -24,6 +27,50 @@ export default async function SourcesPage() {
       <Text as="h1" textStyle="t8Bold" color="fg.neutral">
         소스 관리
       </Text>
+
+      {suggestions.length > 0 && (
+        <section style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <Text as="h2" textStyle="t6Bold" color="fg.neutral">
+            블로그 추천 ({suggestions.length})
+          </Text>
+          <ul style={{ display: "flex", flexDirection: "column", gap: 12, listStyle: "none", padding: 0 }}>
+            {suggestions.map((s) => (
+              <li
+                key={s.id}
+                style={{
+                  border: "1px solid var(--seed-color-stroke-neutral-subtle)",
+                  borderRadius: 12,
+                  padding: 20,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 16,
+                  alignItems: "flex-start",
+                }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 200 }}>
+                  <a href={s.url} target="_blank" rel="noopener noreferrer">
+                    <Text as="span" textStyle="t5Bold" color="fg.neutral">
+                      {s.url}
+                    </Text>
+                  </a>
+                  {s.note && (
+                    <Text as="span" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)">
+                      {s.note}
+                    </Text>
+                  )}
+                </div>
+                <form action={reviewSourceSuggestionAction}>
+                  <input type="hidden" name="id" value={s.id} />
+                  <ActionButton type="submit" variant="neutralWeak" size="small">
+                    확인함
+                  </ActionButton>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <Text as="h2" textStyle="t6Bold" color="fg.neutral">

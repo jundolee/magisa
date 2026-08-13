@@ -410,3 +410,14 @@
 **결정**: 회원가입 폼에 "닉네임" 필드(필수)를 추가. 별도 `profiles` 테이블을 새로 만들지 않고, `supabase.auth.signUp()`의 `options.data.nickname`으로 Supabase Auth의 `user_metadata`에 저장 — `getCurrentUser()`가 이미 돌려주는 `User` 객체에 `user_metadata.nickname`으로 바로 들어있어 추가 조회/조인 없이 어디서든 꺼내 쓸 수 있다.
 **이유**: 이메일/비밀번호 가입은 Google OAuth와 달리 이름 정보가 전혀 없음. 지금 규모에서 프로필 테이블을 새로 만들 이유는 없고(조회할 곳도 아직 없음), Auth가 이미 제공하는 메타데이터 저장소로 충분함 — 나중에 검색/정렬 등으로 별도 컬럼이 필요해지면 그때 `profiles` 테이블 분리를 검토.
 **영향**: `src/app/login/actions.ts`(`signUpAction`), `src/app/login/signup-section.tsx`. 아직 닉네임을 노출하는 화면은 없음 — 필요해지면 `header-auth-slot.tsx` 등에서 `user.user_metadata.nickname`으로 바로 읽으면 됨.
+
+### 2026-08-13 — 사용 확대 전략: 자체 RSS 피드 + 공개 소스 추천 폼
+**배경**: `/goal` 명령으로 "매기사를 더 많이 쓰게 할 전략을 세우고 실행"하라는 지시를 받음. 현재 구조상
+글 목록은 관리자 1명이 등록한 소스만 모은 단일 큐레이션 피드이고(멀티테넌시 아님), 클릭하면 원문으로
+바로 나가서 매기사 자체엔 고유 콘텐츠가 거의 없어 SEO로 신규 방문자를 끄는 효과가 작다. 자세한 분석은
+`docs/growth-strategy.md` 참고.
+**결정**: 제품 구조를 바꾸는(멀티테넌시) 대신 (1) 지금 큐레이션 결과를 다른 사람도 자기 RSS 리더로
+구독할 수 있게 `/feed.xml` 공개 피드를 추가하고, (2) 소스 등록 권한은 계속 관리자 전용으로 두되 누구나
+"이 블로그도 넣어달라"고 제안할 수 있는 `/suggest` 폼을 추가해 관리자가 `/sources`에서 검토하도록 함,
+(3) 처음 오는 방문자가 이게 뭐 하는 사이트인지 바로 알 수 있게 홈에 한 줄 소개를 추가함.
+**영향**: `src/app/feed.xml/route.ts`(신규), `src/app/suggest/*`(신규), `src/lib/data/source-suggestions.ts`(신규), `supabase/migrations/0010_source_suggestions.sql`(신규 — 아직 원격에 미적용, 사용자가 `supabase db push` 필요), `src/app/sources/page.tsx`/`actions.ts`(추천 검토 UI), `src/app/page.tsx`(소개 문구), `src/components/page-header.tsx`(RSS 링크), `src/app/layout.tsx`(RSS alternate 메타), `src/app/sitemap.ts`.

@@ -2,6 +2,7 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 import { addSourcesBulk, deleteSource, insertSource, setSourceActive } from "@/lib/data/sources";
+import { markSourceSuggestionReviewed } from "@/lib/data/source-suggestions";
 import { discoverFeed } from "@/lib/ingestion/discover-feed";
 import { parseFeed } from "@/lib/ingestion/parse-feed";
 import { scrapeSource } from "@/lib/ingestion/scrape-source";
@@ -288,6 +289,13 @@ export async function deleteSourceAction(formData: FormData) {
   await deleteSource(id);
   revalidatePath("/sources");
   updateTag("sources");
+}
+
+export async function reviewSourceSuggestionAction(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await markSourceSuggestionReviewed(id);
+  revalidatePath("/sources");
 }
 
 export interface IngestNowState {

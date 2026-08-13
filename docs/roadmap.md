@@ -22,6 +22,7 @@ MVP 완료 이후 추가로 들어온 요청:
 - [x] 스크래핑 선택자 UI는 자동 인식 실패 시에만 노출 (성공 시 사용자는 URL만 입력)
 - [x] 글 목록 정렬을 discovered_at(수집 시각) 기준으로 변경
 - [x] 썸네일 영구 저장 (Supabase Storage로 다운로드/재호스팅, presigned URL 만료 문제 해결)
+- [x] 자체 RSS 피드(`/feed.xml`) 공개 + "블로그 추천하기" 공개 제안 폼 (`docs/growth-strategy.md` 참고)
 
 ## Phase 2+ 후보 (제안 — 우선순위는 MVP 완료 후 논의)
 

@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Text } from "@seed-design/react";
 import { listArticles, searchArticles, type ArticleFilter } from "@/lib/data/articles";
 import { listSources } from "@/lib/data/sources";
 import { ArticleList } from "@/components/article-list";
@@ -76,7 +77,17 @@ export default async function Home({
   return (
     <main>
       {/* 소스 관리(/sources)는 관리자 전용이라 눈에 띄는 링크를 두지 않는다 — 주소를 직접 아는 사람만 접근 (docs/decisions.md 참고) */}
-      <PageHeader authSlot={<HeaderAuthSlot />} />
+      <PageHeader navHref="/suggest" navLabel="블로그 추천하기" authSlot={<HeaderAuthSlot />} />
+
+      {/* 처음 들어온 방문자가 "이게 뭐 하는 사이트인지" 바로 알 수 있게 짧게 설명 (docs/growth-strategy.md 참고) */}
+      <Text
+        as="p"
+        textStyle="t3Regular"
+        color="var(--seed-color-fg-neutral-muted)"
+        style={{ marginBottom: 20 }}
+      >
+        구독한 테크 블로그의 새 글을 매일 모아 보는 아카이버예요. 로그인하면 읽음/즐겨찾기가 계정에 저장돼요.
+      </Text>
 
       <Suspense fallback={<ArticleListSkeleton />}>
         <ArticleListSection

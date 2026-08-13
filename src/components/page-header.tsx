@@ -34,6 +34,11 @@ export function PageHeader({
             </Text>
           </Link>
         )}
+        <a href="/feed.xml" title="RSS 피드 구독">
+          <Text as="span" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">
+            RSS
+          </Text>
+        </a>
         {authSlot}
       </div>
     </header>
