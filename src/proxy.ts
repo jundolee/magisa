@@ -61,19 +61,30 @@ async function assignVisitorIdAndRefreshSession(request: NextRequest): Promise<N
   // getUser()를 호출해 필요하면 토큰을 갱신하고 그 결과를 응답 쿠키에 실어 보낸다(Supabase SSR 공식 패턴).
   // getSession()이 아니라 getUser()를 쓰는 이유: 전자는 로컬 JWT를 검증 없이 그대로 믿지만, 후자는
   // Supabase Auth 서버에 다시 확인한다.
-  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
+  //
+  // 단, 이 호출은 페이지 렌더링(스트리밍)이 시작되기 전에 끝나야 하는 미들웨어라 Supabase Auth
+  // 서버 왕복 시간만큼 첫 응답 자체가 늦어진다 — 로그인 세션 쿠키가 아예 없는 비로그인 방문자에게는
+  // 갱신할 게 없어 이 왕복이 통째로 낭비이므로, Supabase 세션 쿠키(`sb-*-auth-token*`)가 있을 때만
+  // 호출한다("URL 입력 후 한참 있다 한꺼번에 뜬다"는 문제의 원인이었음).
+  const hasSupabaseSessionCookie = request.cookies
+    .getAll()
+    .some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
+
+  if (hasSupabaseSessionCookie) {
+    const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => setRequestCookie(name, value));
+          response = NextResponse.next({ request: { headers: requestHeaders } });
+          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        },
       },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => setRequestCookie(name, value));
-        response = NextResponse.next({ request: { headers: requestHeaders } });
-        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
-      },
-    },
-  });
-  await supabase.auth.getUser();
+    });
+    await supabase.auth.getUser();
+  }
 
   return response;
 }

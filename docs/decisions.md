@@ -386,3 +386,9 @@
 **사고**: 위 검증 과정에서 "전체 읽음" 다음 "전체 안읽음"을 연달아 테스트하다가, 방금 정상적으로 이전됐던 실사용자의 실제 읽음 기록 1002건을 실수로 삭제함(`markAllArticlesUnread`는 해당 계정의 `read_status`를 전부 지우는 동작이라는 걸 테스트 순서상 놓침). 사용자 확인 결과 큰 문제 아님으로 판단, 별도 복구는 진행하지 않음. 다른 방문자 쿠키에 남아있던 미마이그레이션 데이터(3227건)는 영향받지 않음 — 각자 로그인 시 정상적으로 이전됨.
 **영향**: `supabase/migrations/0008_read_status_favorites_user_id.sql`(신규), `supabase/migrations/0009_fix_read_status_favorites_conflict_indexes.sql`(신규), `src/lib/data/articles.ts`, `src/app/articles/actions.ts`, `src/app/page.tsx`, `src/components/header-auth-slot.tsx`, `src/lib/supabase/current-user.ts`(신규, 요청 범위 캐시된 `getCurrentUser()`), `src/app/login/actions.ts`, `src/app/auth/callback/route.ts`.
 **다음 단계(미착수)**: `/sources` 관리자 게이트를 `ADMIN_PASSWORD` 대신 로그인+관리자 이메일 허용목록으로 교체, `profiles` 테이블 신설.
+
+### 2026-08-13 — proxy.ts의 세션 갱신이 모든 요청의 첫 응답을 지연시키던 문제
+**배경**: 사용자가 "주소 입력 후 한참 있다 한꺼번에 다 뜬다"고 지적. 글 목록은 이미 Suspense+스켈레톤으로 스트리밍되고 있어 원인이 아니었고, `src/proxy.ts`가 로그인 세션 갱신을 위해 **모든** `/` 요청에서 무조건 `supabase.auth.getUser()`를 호출(2026-08-13 로그인 도입 결정)하는 게 원인이었음 — 미들웨어는 페이지 렌더링(스트리밍 포함)이 시작되기 전에 반드시 끝나야 해서, 이 Supabase Auth 서버 왕복 시간만큼 스켈레톤을 포함한 첫 응답 자체가 통째로 늦어짐. 로그인 세션 쿠키가 아예 없는 비로그인 방문자에게는 갱신할 게 없어 이 왕복이 완전히 낭비였음.
+**결정**: `request.cookies`에 Supabase 세션 쿠키(`sb-*-auth-token*` 패턴)가 있을 때만 `getUser()`를 호출하도록 가드 추가. 로그인 안 한 방문자는 이 검사 자체를 건너뛰어 미들웨어가 즉시 통과되고, 로그인한 사용자만 기존대로 세션 갱신 왕복을 거침.
+**검증**: 로컬에서 curl로 TTFB(Time To First Byte) 측정 — 수정 전엔 익명 요청도 매번 Auth 서버 왕복을 기다렸는데, 수정 후 워밍업 이후 익명 요청 TTFB가 약 100~150ms로 확인됨(수정 전에는 이 안에 Supabase Auth 왕복이 추가로 포함됐었음). 브라우저로 로그인/비로그인 양쪽 모두 정상 렌더링되는 것도 재확인.
+**영향**: `src/proxy.ts`.
