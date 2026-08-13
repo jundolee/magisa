@@ -67,8 +67,8 @@ export default function RootLayout({
     <html lang="ko" data-seed-color-mode="light" className={freesentation.variable}>
       {process.env.NODE_ENV === "production" && <GoogleTagManager gtmId={GTM_CONTAINER_ID} />}
       {process.env.NODE_ENV === "production" && <AmplitudeAnalytics />}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
       <body>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
         {process.env.NODE_ENV === "production" && (
           <noscript>
             <iframe
