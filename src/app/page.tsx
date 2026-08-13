@@ -1,12 +1,11 @@
 import { Suspense } from "react";
-import { cookies } from "next/headers";
 import { listArticles, searchArticles, type ArticleFilter } from "@/lib/data/articles";
 import { listSources } from "@/lib/data/sources";
 import { ArticleList } from "@/components/article-list";
 import { ArticleListSkeleton } from "@/components/article-list-skeleton";
 import { PageHeader } from "@/components/page-header";
 import { HeaderAuthSlot } from "@/components/header-auth-slot";
-import { VISITOR_COOKIE_NAME } from "@/lib/visitor";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 
 export const dynamic = "force-dynamic";
 // Vercel Node 서버리스 함수는 고정 리전(iad1, 버지니아)에서만 실행돼 한국 사용자 기준
@@ -36,15 +35,17 @@ async function ArticleListSection({
   initialSourceId: string;
   initialQuery: string;
 }) {
-  // 읽음 여부는 방문자(브라우저)별로 구분된다 — proxy.ts가 부여한 익명 쿠키 기준 (docs/decisions.md 참고).
-  const visitorId = (await cookies()).get(VISITOR_COOKIE_NAME)?.value ?? null;
+  // 읽음/즐겨찾기 여부는 로그인 계정별로 구분된다 — 로그인 안 한 사람은 전부 false로 내려온다
+  // (열람 자체는 자유, docs/decisions.md 참고).
+  const user = await getCurrentUser();
+  const userId = user?.id ?? null;
 
   // 탭/소스 필터 전환마다 서버를 다시 왕복하지 않도록, 전체 글/소스를 한 번만 불러와
   // 클라이언트(ArticleList)에서 즉시 필터링한다 (docs/decisions.md 참고).
   // 검색어(q)가 있을 때만 예외 — 검색은 최근 200개 캐시가 아니라 전체 아카이브를 대상으로 해야 하므로
   // searchArticles()로 DB에서 직접 검색해온다.
   const [articles, sources] = await Promise.all([
-    initialQuery ? searchArticles(initialQuery, visitorId) : listArticles(visitorId),
+    initialQuery ? searchArticles(initialQuery, userId) : listArticles(userId),
     listSources(),
   ]);
 

@@ -1,10 +1,20 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { migrateVisitorDataToUser } from "@/lib/data/articles";
+import { VISITOR_COOKIE_NAME } from "@/lib/visitor";
 
 type OAuthProvider = "google";
+
+// 로그인 전 익명 방문자 쿠키로 쌓아둔 읽음/즐겨찾기 기록을 최초 로그인 시 이 계정으로 옮긴다
+// (docs/decisions.md 참고). 방문자 쿠키가 없으면(이미 옮겨졌거나 애초에 없던 경우) 아무 일도 안 한다.
+async function migrateVisitorDataIfNeeded(userId: string): Promise<void> {
+  const visitorId = (await cookies()).get(VISITOR_COOKIE_NAME)?.value;
+  if (!visitorId) return;
+  await migrateVisitorDataToUser(visitorId, userId);
+}
 
 // Vercel(프리뷰 배포 포함)과 로컬 개발 모두에서 정확한 절대 URL을 만들기 위해 실제 요청 헤더에서
 // origin을 구성한다 — 하드코딩된 프로덕션 도메인 대신 이 방식을 쓰면 프리뷰 배포에서도 그대로 동작한다.
@@ -65,9 +75,15 @@ export async function signInWithPasswordAction(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  redirect(error ? `/login?error=${encodeURIComponent(error.message)}` : next);
+  if (error) {
+    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+  }
+  if (data.user) {
+    await migrateVisitorDataIfNeeded(data.user.id);
+  }
+  redirect(next);
 }
 
 export async function signOutAction() {

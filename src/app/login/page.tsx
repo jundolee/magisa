@@ -4,7 +4,7 @@ import { Text } from "@seed-design/react";
 import { ActionButton } from "seed-design/ui/action-button";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import { GoogleIcon } from "@/components/google-icon";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { signInWithPasswordAction, signInWithProviderAction } from "./actions";
 import { SignUpSection } from "./signup-section";
 
@@ -20,10 +20,7 @@ export default async function LoginPage({
   const { next, error, signedUp } = await searchParams;
   const redirectTo = next ?? "/";
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (user) redirect(redirectTo);
 
   return (

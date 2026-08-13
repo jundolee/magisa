@@ -1,17 +1,15 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Text } from "@seed-design/react";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { signOutAction } from "@/app/login/actions";
 
 // PageHeader는 즉시 그려지고 이 부분만 스트리밍으로 채워지도록 별도 Suspense 경계로 분리했다 —
 // getUser()가 Supabase Auth 서버를 왕복하는 동안 헤더 전체가 지연되지 않게 하기 위함
-// (page.tsx의 ArticleListSection과 같은 패턴, docs/decisions.md 참고).
+// (page.tsx의 ArticleListSection과 같은 패턴, docs/decisions.md 참고). getCurrentUser()는 요청
+// 범위로 캐시돼 있어 ArticleListSection이 이미 같은 요청에서 호출했다면 왕복이 중복되지 않는다.
 async function AuthSlotContent() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     return (

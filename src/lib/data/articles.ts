@@ -53,24 +53,26 @@ const getCachedArticleFeed = unstable_cache(
  * 읽음 여부는 전역 컬럼이 아니라 `read_status`(visitor_id, article_id) 테이블 기준 — 방문자(브라우저)별로 구분된다.
  */
 /**
- * 방문자별 읽음/즐겨찾기 여부를 붙여준다. read_status/favorites를 방문자 기준으로만 조회하면
- * (.eq("visitor_id", ...)) PostgREST 기본 1000행 제한에 걸릴 수 있다 — 방문자가 오래 쓸수록 누적 행이
+ * 로그인 계정별 읽음/즐겨찾기 여부를 붙여준다. read_status/favorites를 계정 기준으로만 조회하면
+ * (.eq("user_id", ...)) PostgREST 기본 1000행 제한에 걸릴 수 있다 — 계정을 오래 쓸수록 누적 행이
  * 늘어나 결국 최신 글이 응답에서 잘려나가 안읽음으로 보이는 버그가 있었음. 화면에 보이는 글의
  * article_id로만 좁혀서 조회해 항상 1000행 미만이 되도록 한다. listArticles/searchArticles가 공유.
+ * 로그인 안 한 사람(userId === null)은 애초에 읽음/즐겨찾기 기능을 못 쓰므로 전부 false로 내려준다
+ * (열람 자체는 자유 — docs/decisions.md 참고).
  */
-async function attachVisitorState(
+async function attachUserState(
   articles: Omit<ArticleListItem, "is_read" | "is_favorite">[],
-  visitorId: string | null
+  userId: string | null
 ): Promise<ArticleListItem[]> {
   const supabase = createServiceClient();
 
   const [readRes, favoriteRes] =
-    visitorId && articles.length > 0
+    userId && articles.length > 0
       ? await Promise.all([
           supabase
             .from("read_status")
             .select("article_id")
-            .eq("visitor_id", visitorId)
+            .eq("user_id", userId)
             .in(
               "article_id",
               articles.map((a) => a.id)
@@ -78,7 +80,7 @@ async function attachVisitorState(
           supabase
             .from("favorites")
             .select("article_id")
-            .eq("visitor_id", visitorId)
+            .eq("user_id", userId)
             .in(
               "article_id",
               articles.map((a) => a.id)
@@ -97,9 +99,9 @@ async function attachVisitorState(
   return articles.map((a) => ({ ...a, is_read: readIds.has(a.id), is_favorite: favoriteIds.has(a.id) }));
 }
 
-export async function listArticles(visitorId: string | null): Promise<ArticleListItem[]> {
+export async function listArticles(userId: string | null): Promise<ArticleListItem[]> {
   const articles = await getCachedArticleFeed();
-  return attachVisitorState(articles, visitorId);
+  return attachUserState(articles, userId);
 }
 
 interface SearchArticleRow {
@@ -122,7 +124,7 @@ interface SearchArticleRow {
  * pg_trgm 기반). 검색 중이 아닐 때 쓰는 60초 캐시(getCachedArticleFeed)는 여기서 재사용하지 않는다 —
  * 검색어마다 결과가 달라 캐시 키를 만들 실익이 없다.
  */
-export async function searchArticles(query: string, visitorId: string | null): Promise<ArticleListItem[]> {
+export async function searchArticles(query: string, userId: string | null): Promise<ArticleListItem[]> {
   const supabase = createServiceClient();
   const { data, error } = await supabase.rpc("search_articles", { search_query: query });
   if (error) throw error;
@@ -139,7 +141,7 @@ export async function searchArticles(query: string, visitorId: string | null): P
     source: { id: r.source_id, title: r.source_title, site_url: r.source_site_url, favicon_url: r.source_favicon_url },
   }));
 
-  return attachVisitorState(articles, visitorId);
+  return attachUserState(articles, userId);
 }
 
 // 방문자 구분 없이 모든 유저에게 공통으로 보이는 전역 카운터라 read_status와 달리 articles 테이블에 그대로 둔다.
@@ -150,46 +152,34 @@ export async function incrementArticleClickCount(articleId: string): Promise<voi
   if (error) throw error;
 }
 
-export async function markArticleRead(visitorId: string, articleId: string): Promise<void> {
+export async function markArticleRead(userId: string, articleId: string): Promise<void> {
   const supabase = createServiceClient();
   const { error } = await supabase
     .from("read_status")
-    .upsert({ visitor_id: visitorId, article_id: articleId }, { onConflict: "visitor_id,article_id" });
+    .upsert({ user_id: userId, article_id: articleId }, { onConflict: "user_id,article_id" });
   if (error) throw error;
 }
 
-export async function markArticleUnread(visitorId: string, articleId: string): Promise<void> {
+export async function markArticleUnread(userId: string, articleId: string): Promise<void> {
   const supabase = createServiceClient();
-  const { error } = await supabase
-    .from("read_status")
-    .delete()
-    .eq("visitor_id", visitorId)
-    .eq("article_id", articleId);
+  const { error } = await supabase.from("read_status").delete().eq("user_id", userId).eq("article_id", articleId);
   if (error) throw error;
 }
 
-export async function setArticleFavorite(
-  visitorId: string,
-  articleId: string,
-  isFavorite: boolean
-): Promise<void> {
+export async function setArticleFavorite(userId: string, articleId: string, isFavorite: boolean): Promise<void> {
   const supabase = createServiceClient();
   if (isFavorite) {
     const { error } = await supabase
       .from("favorites")
-      .upsert({ visitor_id: visitorId, article_id: articleId }, { onConflict: "visitor_id,article_id" });
+      .upsert({ user_id: userId, article_id: articleId }, { onConflict: "user_id,article_id" });
     if (error) throw error;
   } else {
-    const { error } = await supabase
-      .from("favorites")
-      .delete()
-      .eq("visitor_id", visitorId)
-      .eq("article_id", articleId);
+    const { error } = await supabase.from("favorites").delete().eq("user_id", userId).eq("article_id", articleId);
     if (error) throw error;
   }
 }
 
-export async function markAllArticlesRead(visitorId: string): Promise<void> {
+export async function markAllArticlesRead(userId: string): Promise<void> {
   const supabase = createServiceClient();
 
   // .select("id")는 PostgREST 기본 1000행 제한에 걸려 전체 글이 1000개를 넘으면 일부만 읽음
@@ -211,14 +201,56 @@ export async function markAllArticlesRead(visitorId: string): Promise<void> {
   const { error } = await supabase
     .from("read_status")
     .upsert(
-      articleIds.map((id) => ({ visitor_id: visitorId, article_id: id })),
-      { onConflict: "visitor_id,article_id" }
+      articleIds.map((id) => ({ user_id: userId, article_id: id })),
+      { onConflict: "user_id,article_id" }
     );
   if (error) throw error;
 }
 
-export async function markAllArticlesUnread(visitorId: string): Promise<void> {
+export async function markAllArticlesUnread(userId: string): Promise<void> {
   const supabase = createServiceClient();
-  const { error } = await supabase.from("read_status").delete().eq("visitor_id", visitorId);
+  const { error } = await supabase.from("read_status").delete().eq("user_id", userId);
   if (error) throw error;
+}
+
+/**
+ * 로그인 전 익명 방문자 쿠키(visitor_id)로 쌓아온 읽음/즐겨찾기 기록을 최초 로그인 시 계정(user_id)으로
+ * 옮긴다. 로그인 콜백(auth/callback)과 이메일/비밀번호 로그인 양쪽에서 호출된다. 이미 계정 쪽에 같은
+ * article_id 행이 있으면(ignoreDuplicates) 건드리지 않고, 옮긴 뒤엔 방문자 쪽 원본을 지운다 — 다시
+ * 호출돼도(visitor_id에 남은 행이 없으므로) 안전하게 아무 일도 하지 않는다.
+ */
+export async function migrateVisitorDataToUser(visitorId: string, userId: string): Promise<void> {
+  const supabase = createServiceClient();
+
+  const { data: readRows, error: readError } = await supabase
+    .from("read_status")
+    .select("article_id, read_at")
+    .eq("visitor_id", visitorId);
+  if (readError) throw readError;
+  if (readRows && readRows.length > 0) {
+    const { error } = await supabase
+      .from("read_status")
+      .upsert(
+        readRows.map((r) => ({ user_id: userId, article_id: r.article_id, read_at: r.read_at })),
+        { onConflict: "user_id,article_id", ignoreDuplicates: true }
+      );
+    if (error) throw error;
+  }
+  await supabase.from("read_status").delete().eq("visitor_id", visitorId);
+
+  const { data: favoriteRows, error: favoriteError } = await supabase
+    .from("favorites")
+    .select("article_id, created_at")
+    .eq("visitor_id", visitorId);
+  if (favoriteError) throw favoriteError;
+  if (favoriteRows && favoriteRows.length > 0) {
+    const { error } = await supabase
+      .from("favorites")
+      .upsert(
+        favoriteRows.map((r) => ({ user_id: userId, article_id: r.article_id, created_at: r.created_at })),
+        { onConflict: "user_id,article_id", ignoreDuplicates: true }
+      );
+    if (error) throw error;
+  }
+  await supabase.from("favorites").delete().eq("visitor_id", visitorId);
 }

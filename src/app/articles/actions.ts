@@ -1,6 +1,7 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
   incrementArticleClickCount,
@@ -13,23 +14,32 @@ import {
   setArticleFavorite,
   type ArticleListItem,
 } from "@/lib/data/articles";
-import { VISITOR_COOKIE_NAME } from "@/lib/visitor";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 
-async function getVisitorId(): Promise<string | null> {
-  const cookieStore = await cookies();
-  return cookieStore.get(VISITOR_COOKIE_NAME)?.value ?? null;
+async function getCurrentUserId(): Promise<string | null> {
+  const user = await getCurrentUser();
+  return user?.id ?? null;
+}
+
+// 즐겨찾기/전체 읽음 처리처럼 사용자가 명시적으로 누르는 상호작용은 로그인이 필요하다 — 현재 페이지로
+// 되돌아올 수 있도록 referer를 next로 실어 로그인 화면으로 보낸다 (docs/decisions.md 참고).
+async function redirectToLogin(): Promise<never> {
+  const referer = (await headers()).get("referer");
+  const next = referer ? new URL(referer).pathname + new URL(referer).search : "/";
+  redirect(`/login?next=${encodeURIComponent(next)}`);
 }
 
 export async function markArticleReadAction(articleId: string) {
   if (!articleId) return;
-  const visitorId = await getVisitorId();
+  const userId = await getCurrentUserId();
 
   // 클릭수 집계와 읽음 처리는 서로 독립적인 값이라 하나가 실패해도 다른 하나는 반영돼야 한다 —
   // 예전엔 순차로 await해서 클릭수 RPC가 실패하면(일시적 오류 등) 읽음 처리까지 통째로 건너뛰던 버그가 있었음.
+  // 읽음 처리는 열람(누구나 자유)에 곁들여지는 부수 효과라, 로그인 안 한 사람은 로그인으로 보내는 대신
+  // (링크를 새 탭에서 여는 도중 원래 탭이 로그인 화면으로 튀는 건 나쁜 경험) 그냥 조용히 건너뛴다.
   const results = await Promise.allSettled([
     incrementArticleClickCount(articleId),
-    // proxy.ts가 쿠키를 못 내려준 드문 경우 — 읽음 처리만 건너뛰고 클릭수 반영은 그대로 진행
-    visitorId ? markArticleRead(visitorId, articleId) : Promise.resolve(),
+    userId ? markArticleRead(userId, articleId) : Promise.resolve(),
   ]);
   for (const result of results) {
     if (result.status === "rejected") {
@@ -42,9 +52,9 @@ export async function markArticleReadAction(articleId: string) {
 export async function markArticleUnreadAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
-  const visitorId = await getVisitorId();
-  if (!visitorId) return;
-  await markArticleUnread(visitorId, id);
+  const userId = await getCurrentUserId();
+  if (!userId) return redirectToLogin();
+  await markArticleUnread(userId, id);
   revalidatePath("/");
 }
 
@@ -52,23 +62,23 @@ export async function toggleArticleFavoriteAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const nextFavorite = formData.get("nextFavorite") === "true";
   if (!id) return;
-  const visitorId = await getVisitorId();
-  if (!visitorId) return;
-  await setArticleFavorite(visitorId, id, nextFavorite);
+  const userId = await getCurrentUserId();
+  if (!userId) return redirectToLogin();
+  await setArticleFavorite(userId, id, nextFavorite);
   revalidatePath("/");
 }
 
 export async function markAllArticlesReadAction() {
-  const visitorId = await getVisitorId();
-  if (!visitorId) return;
-  await markAllArticlesRead(visitorId);
+  const userId = await getCurrentUserId();
+  if (!userId) return redirectToLogin();
+  await markAllArticlesRead(userId);
   revalidatePath("/");
 }
 
 export async function markAllArticlesUnreadAction() {
-  const visitorId = await getVisitorId();
-  if (!visitorId) return;
-  await markAllArticlesUnread(visitorId);
+  const userId = await getCurrentUserId();
+  if (!userId) return redirectToLogin();
+  await markAllArticlesUnread(userId);
   revalidatePath("/");
 }
 
@@ -79,7 +89,7 @@ export async function markAllArticlesUnreadAction() {
  * page.tsx의 초기 렌더 분기(검색어 유무에 따라 searchArticles/listArticles)와 동일한 로직을 공유.
  */
 export async function loadArticlesAction(query: string): Promise<ArticleListItem[]> {
-  const visitorId = await getVisitorId();
+  const userId = await getCurrentUserId();
   const trimmed = query.trim();
-  return trimmed ? searchArticles(trimmed, visitorId) : listArticles(visitorId);
+  return trimmed ? searchArticles(trimmed, userId) : listArticles(userId);
 }
