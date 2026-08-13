@@ -21,14 +21,23 @@ async function AuthSlotContent() {
     );
   }
 
+  const nickname = user.user_metadata.nickname ?? user.user_metadata.full_name ?? user.user_metadata.name;
+
   return (
-    <form action={signOutAction}>
-      <button type="submit" style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      {nickname && (
         <Text as="span" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">
-          로그아웃
+          {nickname}
         </Text>
-      </button>
-    </form>
+      )}
+      <form action={signOutAction}>
+        <button type="submit" style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+          <Text as="span" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">
+            로그아웃
+          </Text>
+        </button>
+      </form>
+    </div>
   );
 }
 

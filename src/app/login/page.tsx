@@ -15,9 +15,9 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string; signedUp?: string }>;
+  searchParams: Promise<{ next?: string; error?: string }>;
 }) {
-  const { next, error, signedUp } = await searchParams;
+  const { next, error } = await searchParams;
   const redirectTo = next ?? "/";
 
   const user = await getCurrentUser();
@@ -68,14 +68,9 @@ export default async function LoginPage({
         <Text as="h2" textStyle="t4Bold" color="fg.neutral">
           처음이신가요?
         </Text>
-        <SignUpSection />
+        <SignUpSection next={redirectTo} />
       </div>
 
-      {signedUp && (
-        <Text as="p" textStyle="t3Regular" color="fg.positive">
-          가입 확인 메일을 보냈어요. 메일함에서 링크를 확인한 뒤 로그인해주세요.
-        </Text>
-      )}
       {error && (
         <Text as="p" textStyle="t3Regular" color="fg.critical">
           {decodeURIComponent(error)}

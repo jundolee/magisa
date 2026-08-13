@@ -43,26 +43,29 @@ export async function signInWithProviderAction(provider: OAuthProvider, next: st
 }
 
 export async function signUpAction(formData: FormData) {
+  const nickname = String(formData.get("nickname") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const passwordConfirm = String(formData.get("passwordConfirm") ?? "");
+  const next = String(formData.get("next") ?? "/");
 
-  if (!email || !password) {
-    redirect("/login?error=이메일과 비밀번호를 입력해주세요");
+  if (!nickname || !email || !password) {
+    redirect("/login?error=닉네임, 이메일, 비밀번호를 입력해주세요");
   }
   if (password !== passwordConfirm) {
     redirect("/login?error=비밀번호가 서로 일치하지 않아요");
   }
 
-  const origin = await getOrigin();
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { emailRedirectTo: `${origin}/auth/callback` },
-  });
+  const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { nickname } } });
 
-  redirect(error ? `/login?error=${encodeURIComponent(error.message)}` : "/login?signedUp=1");
+  if (error) {
+    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+  }
+  if (data.user) {
+    await migrateVisitorDataIfNeeded(data.user.id);
+  }
+  redirect(next);
 }
 
 export async function signInWithPasswordAction(formData: FormData) {

@@ -398,3 +398,15 @@
 **결정**: `src/components/header-auth-slot.tsx`에서 이메일 표시(`{user.email}`)를 제거하고 로그아웃 버튼만 남김. `/privacy`에 개인정보처리방침 페이지를 신설 — 수집 항목(이메일/이름/프로필 사진, 읽음·즐겨찾기 이용기록), 이용 목적, 보유기간, 제3자 처리위탁(Supabase, Google), 분석도구(Google Analytics, Amplitude) 고지, 문의처를 담음. 문의처 이메일은 사용자 확인 후 `yijunsuc@gmail.com`으로 지정(실제 접근 가능한 페이지여야 Google이 검증 가능).
 **영향**: `src/components/header-auth-slot.tsx`, `src/app/privacy/page.tsx`(신규).
 **다음 단계**: Google Cloud Console → OAuth 동의 화면에 앱 이름/홈페이지(`https://magisa.vercel.app`)/개인정보처리방침(`https://magisa.vercel.app/privacy`) 링크를 등록해 브랜딩 확인을 완료해야 함(사용자가 직접 진행).
+
+### 2026-08-13 — 회원가입 확인메일 폐지 (Confirm email 끄고 즉시 로그인)
+**배경**: Supabase Auth 기본 이메일 발송(회원가입 확인 링크)이 프로덕션용으로 부적합할 만큼 레이트리밋이 심함(시간당 소수 건). 대안으로 Resend 등 커스텀 SMTP 연동을 검토했으나, 개인용 규모 서비스에서 "이메일 소유 확인" 자체가 꼭 필요한 절차인지 다시 물어봄 — 굳이 필요 없다는 결론.
+**결정**: 회원가입 확인메일 발송 자체를 없앤다. `signUpAction`을 `signInWithPasswordAction`과 동일한 패턴으로 변경 — `supabase.auth.signUp()`이 세션을 즉시 반환한다고 가정하고, 성공 시 방문자 데이터 마이그레이션 후 바로 `next`로 리다이렉트(가입 확인 메일 발송용 `emailRedirectTo` 옵션도 제거). `/login` 페이지의 "가입 확인 메일을 보냈어요" 안내 문구(`signedUp` 쿼리 파라미터)도 함께 제거.
+**이유**: 비밀번호 재설정처럼 이메일 소유 증명이 흐름의 목적 자체인 경우는 이메일 발송이 구조적으로 필요하지만, 회원가입 확인은 그 정도의 보증이 필요한 서비스가 아님(개인용 뉴스 애그리게이터, 결제/민감정보 없음). 확인 절차를 없애면 가입 즉시 이용 가능해 UX도 개선됨.
+**영향**: `src/app/login/actions.ts`(`signUpAction`), `src/app/login/page.tsx`, `src/app/login/signup-section.tsx`(`next` prop 추가).
+**다음 단계 (사용자가 Supabase Dashboard에서 직접 진행)**: 프로젝트 → Authentication → Sign In / Providers → Email 항목에서 **"Confirm email"** 토글을 OFF로 변경해야 실제로 확인메일 발송이 멈춘다(코드만 바꿔서는 Supabase가 여전히 발송을 시도함). 이 토글을 끄지 않은 상태로 두면 `signUp()`이 여전히 `session: null`을 반환해 위 코드가 빈 세션으로 리다이렉트만 하고 실제로는 로그인이 안 되는 것처럼 보일 수 있음. 비밀번호 재설정(찾기) 메일은 이 결정과 무관하게 계속 Supabase 기본 발송을 그대로 사용 — 발송량이 적어 우선순위는 낮지만, 필요해지면 그때 Resend 커스텀 SMTP를 별도로 검토.
+
+### 2026-08-13 — 이메일/비밀번호 회원가입에 닉네임 입력 추가
+**결정**: 회원가입 폼에 "닉네임" 필드(필수)를 추가. 별도 `profiles` 테이블을 새로 만들지 않고, `supabase.auth.signUp()`의 `options.data.nickname`으로 Supabase Auth의 `user_metadata`에 저장 — `getCurrentUser()`가 이미 돌려주는 `User` 객체에 `user_metadata.nickname`으로 바로 들어있어 추가 조회/조인 없이 어디서든 꺼내 쓸 수 있다.
+**이유**: 이메일/비밀번호 가입은 Google OAuth와 달리 이름 정보가 전혀 없음. 지금 규모에서 프로필 테이블을 새로 만들 이유는 없고(조회할 곳도 아직 없음), Auth가 이미 제공하는 메타데이터 저장소로 충분함 — 나중에 검색/정렬 등으로 별도 컬럼이 필요해지면 그때 `profiles` 테이블 분리를 검토.
+**영향**: `src/app/login/actions.ts`(`signUpAction`), `src/app/login/signup-section.tsx`. 아직 닉네임을 노출하는 화면은 없음 — 필요해지면 `header-auth-slot.tsx` 등에서 `user.user_metadata.nickname`으로 바로 읽으면 됨.
