@@ -369,3 +369,11 @@
 **검증**: 로컬에서 실제 프로덕션 DB를 대상으로 반복 호출 — 수정 후에는 수동 개입 없이 hop이 끝까지 자동으로 이어져 26시간 넘게 밀려있던 소스 포함 **31개 전부**가 약 11분 만에(당시 대량 밀린 상태 기준) 새로 갱신됨. 마지막 배치가 6개 미만(5개)으로 남자 정상적으로 체이닝이 멈추는 것도 확인.
 **한계**: `maxDuration=60`(Hobby 플랜 상한)과 배치당 실제 소요시간(외부 사이트 응답속도·AI 호출·썸네일 업로드 여부에 좌우)에 따라 한 홉이 처리하는 소스 수(6개 고정)가 상황에 따라 60초를 넘길 수도 있음 — 그 경우 그 홉 자체가 도중에 죽어 일부 소스가 누락될 수 있으나, 다음 크론 실행(또는 그다음 체인 시작)에서 `ORDER BY last_checked_at`에 의해 자연스럽게 우선 재시도되므로 전체 아키텍처의 자연 복구력은 유지됨.
 **영향**: `src/app/api/cron/ingest/route.ts`.
+
+### 2026-08-13 — Supabase Auth 로그인 도입 (Google + 이메일/비밀번호), 카카오는 보류
+**배경**: 지금까지 읽음/즐겨찾기를 로그인 없이 `magisa_visitor` 쿠키(익명 UUID)로만 구분해왔는데(2026-07-30 결정), 사용자가 실제 계정 기반 로그인과 고객 정보 축적을 요청함. `sources.user_id`(auth.users FK)는 MVP 때부터 nullable로 마련만 해두고 미사용 상태였음(2026-07-28 결정).
+**결정**: `@supabase/ssr`을 도입해 서버 사이드 세션 확인용 클라이언트(`src/lib/supabase/server.ts`)를 신설 — 단, 실제 DB 읽기/쓰기는 기존처럼 service role 클라이언트(`service.ts`)로만 수행하는 아키텍처를 그대로 유지(로그인 여부 확인만 anon key로 함). `src/proxy.ts`에 세션 갱신 로직을 추가하되, 기존 방문자 쿠키 부여·관리자 게이트 로직과 하나의 응답 객체를 공유하도록 재작성(각자 별도 `NextResponse`를 만들면 서로의 쿠키를 덮어써서 합쳐야 했음). 로그인 수단은 Google OAuth + 이메일/비밀번호 회원가입(매직링크 아님 — 사용자가 "회원가입으로 고객이 가입"하는 방식을 명시적으로 원함)만 우선 구현.
+**카카오 로그인은 보류**: Supabase가 카카오를 기본 제공자로 지원하긴 하지만, 요청 scope(`account_email profile_image profile_nickname`) 중 "카카오계정(이메일)" 동의항목이 **일반 앱에서는 아예 활성화가 안 되고(비즈니스 앱 전환 + 카카오 심사 필요)** "권한 없음"으로 표시됨을 실제로 확인(`KOE205` 에러로 재현). 사용자가 이메일 없이 닉네임만으로 우선 붙이는 대신, 카카오 자체를 일단 빼고 Google+이메일만으로 진행하기로 함 — 나중에 비즈니스 인증을 마치면 다시 추가 가능.
+**검증**: 로컬 dev 서버 + 실제 프로덕션 Supabase 프로젝트를 대상으로 브라우저로 직접 확인 — (1) Google 로그인: 실제 계정으로 로그인 → 헤더에 이메일 표시 → 로그아웃까지 전체 왕복 성공. (2) 이메일 회원가입: 가입 → 확인 메일 발송 상태 확인, 미확인 계정으로 로그인 시도 시 "Email not confirmed" 에러가 정확히 표시되는 것까지 확인(실제 메일함 링크 클릭까지는 검증 범위 밖). (3) 카카오: 위 KOE205 재현 후 코드에서 제거. 테스트로 만든 회원가입 계정은 `supabase.auth.admin.deleteUser()`로 정리.
+**영향**: `src/lib/supabase/server.ts`(신규), `src/proxy.ts`, `src/app/login/`(신규), `src/app/auth/callback/`(신규), `src/components/header-auth-slot.tsx`(신규), `src/components/page-header.tsx`, `src/app/page.tsx`, `.env.example`(`NEXT_PUBLIC_SUPABASE_ANON_KEY` 추가).
+**다음 단계(미착수)**: 읽음/즐겨찾기(`read_status`/`favorites`)를 `visitor_id` 대신 로그인 계정(`user_id`) 기준으로 전환 + 기존 쿠키 데이터 마이그레이션, `/sources` 관리자 게이트를 `ADMIN_PASSWORD` 대신 로그인+관리자 이메일 허용목록으로 교체, `profiles` 테이블 신설.

@@ -5,6 +5,7 @@ import { listSources } from "@/lib/data/sources";
 import { ArticleList } from "@/components/article-list";
 import { ArticleListSkeleton } from "@/components/article-list-skeleton";
 import { PageHeader } from "@/components/page-header";
+import { HeaderAuthSlot } from "@/components/header-auth-slot";
 import { VISITOR_COOKIE_NAME } from "@/lib/visitor";
 
 export const dynamic = "force-dynamic";
@@ -74,7 +75,7 @@ export default async function Home({
   return (
     <main>
       {/* 소스 관리(/sources)는 관리자 전용이라 눈에 띄는 링크를 두지 않는다 — 주소를 직접 아는 사람만 접근 (docs/decisions.md 참고) */}
-      <PageHeader />
+      <PageHeader authSlot={<HeaderAuthSlot />} />
 
       <Suspense fallback={<ArticleListSkeleton />}>
         <ArticleListSection

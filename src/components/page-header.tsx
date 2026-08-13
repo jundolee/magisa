@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { Text } from "@seed-design/react";
 
-export function PageHeader({ navHref, navLabel }: { navHref?: string; navLabel?: string }) {
+export function PageHeader({
+  navHref,
+  navLabel,
+  authSlot,
+}: {
+  navHref?: string;
+  navLabel?: string;
+  authSlot?: React.ReactNode;
+}) {
   return (
     <header
       style={{
@@ -18,13 +26,16 @@ export function PageHeader({ navHref, navLabel }: { navHref?: string; navLabel?:
           Magisa
         </Text>
       </Link>
-      {navHref && navLabel && (
-        <Link href={navHref}>
-          <Text as="span" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">
-            {navLabel} →
-          </Text>
-        </Link>
-      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        {navHref && navLabel && (
+          <Link href={navHref}>
+            <Text as="span" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">
+              {navLabel} →
+            </Text>
+          </Link>
+        )}
+        {authSlot}
+      </div>
     </header>
   );
 }
