@@ -49,6 +49,15 @@ export const metadata: Metadata = {
   },
 };
 
+// 검색결과에 사이트명이 정확히 나오도록 하는 최소한의 구조화 데이터 (docs/growth-strategy.md 참고).
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Magisa",
+  url: SITE_URL,
+  description: SITE_DESCRIPTION,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -58,6 +67,7 @@ export default function RootLayout({
     <html lang="ko" data-seed-color-mode="light" className={freesentation.variable}>
       {process.env.NODE_ENV === "production" && <GoogleTagManager gtmId={GTM_CONTAINER_ID} />}
       {process.env.NODE_ENV === "production" && <AmplitudeAnalytics />}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
       <body>
         {process.env.NODE_ENV === "production" && (
           <noscript>

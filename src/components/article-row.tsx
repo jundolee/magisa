@@ -2,6 +2,7 @@ import { AspectRatio, Badge, Text } from "@seed-design/react";
 import { ArticleLink } from "./article-link";
 import { UnreadToggleForm } from "./unread-toggle-form";
 import { FavoriteToggleForm } from "./favorite-toggle-form";
+import { ShareButton } from "./share-button";
 import type { ArticleListItem } from "@/lib/data/articles";
 
 const MUTED = "var(--seed-color-fg-neutral-muted)";
@@ -90,6 +91,7 @@ export function ArticleRow({
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <FavoriteToggleForm articleId={article.id} isFavorite={article.is_favorite} />
           {article.is_read && <UnreadToggleForm articleId={article.id} />}
+          <ShareButton title={article.title} url={article.url} />
         </div>
       </div>
 
