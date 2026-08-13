@@ -392,3 +392,9 @@
 **결정**: `request.cookies`에 Supabase 세션 쿠키(`sb-*-auth-token*` 패턴)가 있을 때만 `getUser()`를 호출하도록 가드 추가. 로그인 안 한 방문자는 이 검사 자체를 건너뛰어 미들웨어가 즉시 통과되고, 로그인한 사용자만 기존대로 세션 갱신 왕복을 거침.
 **검증**: 로컬에서 curl로 TTFB(Time To First Byte) 측정 — 수정 전엔 익명 요청도 매번 Auth 서버 왕복을 기다렸는데, 수정 후 워밍업 이후 익명 요청 TTFB가 약 100~150ms로 확인됨(수정 전에는 이 안에 Supabase Auth 왕복이 추가로 포함됐었음). 브라우저로 로그인/비로그인 양쪽 모두 정상 렌더링되는 것도 재확인.
 **영향**: `src/proxy.ts`.
+
+### 2026-08-13 — 헤더에서 로그인 이메일 노출 제거, 개인정보처리방침 페이지 신설(Google OAuth 브랜딩 확인 대응)
+**배경**: (1) 헤더의 "로그아웃" 옆에 이메일 주소가 그대로 노출되고 있어 사용자가 비노출로 변경 요청. (2) Google Cloud "인증 플랫폼"에서 브랜딩 확인이 "미확인" 상태로 표시됨 — 앱 이름/홈페이지/개인정보처리방침 링크가 구성되어 있어야 통과되는데, 이 프로젝트엔 개인정보처리방침 페이지 자체가 없었음.
+**결정**: `src/components/header-auth-slot.tsx`에서 이메일 표시(`{user.email}`)를 제거하고 로그아웃 버튼만 남김. `/privacy`에 개인정보처리방침 페이지를 신설 — 수집 항목(이메일/이름/프로필 사진, 읽음·즐겨찾기 이용기록), 이용 목적, 보유기간, 제3자 처리위탁(Supabase, Google), 분석도구(Google Analytics, Amplitude) 고지, 문의처를 담음. 문의처 이메일은 사용자 확인 후 `yijunsuc@gmail.com`으로 지정(실제 접근 가능한 페이지여야 Google이 검증 가능).
+**영향**: `src/components/header-auth-slot.tsx`, `src/app/privacy/page.tsx`(신규).
+**다음 단계**: Google Cloud Console → OAuth 동의 화면에 앱 이름/홈페이지(`https://magisa.vercel.app`)/개인정보처리방침(`https://magisa.vercel.app/privacy`) 링크를 등록해 브랜딩 확인을 완료해야 함(사용자가 직접 진행).

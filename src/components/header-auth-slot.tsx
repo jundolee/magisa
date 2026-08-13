@@ -22,10 +22,7 @@ async function AuthSlotContent() {
   }
 
   return (
-    <form action={signOutAction} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <Text as="span" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)">
-        {user.email}
-      </Text>
+    <form action={signOutAction}>
       <button type="submit" style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
         <Text as="span" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">
           로그아웃
