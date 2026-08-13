@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { Text } from "@seed-design/react";
 import { ActionButton } from "seed-design/ui/action-button";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
+import { GoogleIcon } from "@/components/google-icon";
 import { createClient } from "@/lib/supabase/server";
-import { signInWithPasswordAction, signInWithProviderAction, signUpAction } from "./actions";
+import { signInWithPasswordAction, signInWithProviderAction } from "./actions";
+import { SignUpSection } from "./signup-section";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -32,7 +34,12 @@ export default async function LoginPage({
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <form action={signInWithProviderAction.bind(null, "google", redirectTo)}>
-          <ActionButton type="submit" variant="neutralOutline" style={{ width: "100%" }}>
+          <ActionButton
+            type="submit"
+            variant="neutralOutline"
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+          >
+            <GoogleIcon />
             Google로 계속하기
           </ActionButton>
         </form>
@@ -62,22 +69,9 @@ export default async function LoginPage({
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <Text as="h2" textStyle="t4Bold" color="fg.neutral">
-          처음이신가요? 회원가입
+          처음이신가요?
         </Text>
-        <form action={signUpAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <TextField name="email" label="이메일">
-            <TextFieldInput type="email" placeholder="you@example.com" required />
-          </TextField>
-          <TextField name="password" label="비밀번호 (6자 이상)">
-            <TextFieldInput type="password" required minLength={6} />
-          </TextField>
-          <TextField name="passwordConfirm" label="비밀번호 확인">
-            <TextFieldInput type="password" required minLength={6} />
-          </TextField>
-          <ActionButton type="submit" variant="neutralOutline" size="small">
-            회원가입
-          </ActionButton>
-        </form>
+        <SignUpSection />
       </div>
 
       {signedUp && (
