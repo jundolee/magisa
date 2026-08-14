@@ -30,6 +30,11 @@ interface SourceIngestSummary {
 // docs/decisions.md 참고). 너무 크게 잡으면 외부 사이트에 순간적으로 많은 요청이 몰릴 수 있어
 // 적당한 수로 제한한다.
 const CONCURRENCY = 6;
+// 소스 하나가 오랫동안 확인 안 돼 새 글이 잔뜩 쌓여있으면(예: 첫 등록, 오랜 장애 복구 후) 병렬화해도
+// 그 소스 혼자서 배치 전체의 60초 예산을 넘길 수 있다(docs/decisions.md 2026-08-14 참고). 소스별로
+// 상한을 둬서, 넘기면 이번 홉은 포기하고(last_checked_at은 갱신해 다음 차례로 넘김 — 같은 소스가
+// 계속 앞자리를 차지해 배치를 막는 걸 방지) 나머지 소스와 다음 홉은 정상 진행되게 한다.
+const SOURCE_TIMEOUT_MS = 40_000;
 
 async function ingestOne(
   supabase: ReturnType<typeof createServiceClient>,
@@ -37,7 +42,12 @@ async function ingestOne(
 ): Promise<SourceIngestSummary> {
   const checkedAt = new Date().toISOString();
   try {
-    const result = await ingestSource(supabase, source);
+    const result = await Promise.race([
+      ingestSource(supabase, source),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`시간 초과(${SOURCE_TIMEOUT_MS / 1000}초)`)), SOURCE_TIMEOUT_MS)
+      ),
+    ]);
     await supabase
       .from("sources")
       .update({ last_checked_at: checkedAt, last_success_at: checkedAt, last_error: null })
