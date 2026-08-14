@@ -18,7 +18,12 @@ export const metadata: Metadata = {
 };
 
 export default async function SourcesPage() {
-  const [sources, suggestions] = await Promise.all([listSources(), listPendingSourceSuggestions()]);
+  const [sources, suggestions] = await Promise.all([
+    listSources(),
+    // 추천 목록 조회가 실패해도(예: 마이그레이션 미적용) 소스 관리 자체는 계속 동작해야 한다 —
+    // 관리자의 핵심 기능(등록/삭제/일시중지)을 부가 기능 하나 때문에 통째로 막으면 안 됨.
+    listPendingSourceSuggestions().catch(() => []),
+  ]);
 
   return (
     <main style={{ display: "flex", flexDirection: "column", gap: 40 }}>
