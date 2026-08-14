@@ -421,3 +421,14 @@
 "이 블로그도 넣어달라"고 제안할 수 있는 `/suggest` 폼을 추가해 관리자가 `/sources`에서 검토하도록 함,
 (3) 처음 오는 방문자가 이게 뭐 하는 사이트인지 바로 알 수 있게 홈에 한 줄 소개를 추가함.
 **영향**: `src/app/feed.xml/route.ts`(신규), `src/app/suggest/*`(신규), `src/lib/data/source-suggestions.ts`(신규), `supabase/migrations/0010_source_suggestions.sql`(신규 — 아직 원격에 미적용, 사용자가 `supabase db push` 필요), `src/app/sources/page.tsx`/`actions.ts`(추천 검토 UI), `src/app/page.tsx`(소개 문구), `src/components/page-header.tsx`(RSS 링크), `src/app/layout.tsx`(RSS alternate 메타), `src/app/sitemap.ts`.
+
+### 2026-08-14 — `/sources` 게이트를 비밀번호 대신 관리자 이메일 허용목록으로 교체
+**배경**: 사용자가 `/sources`에 접속이 안 된다고 보고함 — 확인해보니 `/sources`는 이번 세션에 도입한 Supabase Auth(Google/이메일) 로그인과 완전히 별개로, `ADMIN_PASSWORD` 하나로 `/admin-login`에서 쿠키를 발급받는 옛 방식 그대로였음(2026-07-30 결정 당시 "OAuth 로그인이 자리 잡으면 이메일 허용목록으로 교체 예정"이라고 이미 적어뒀던 항목). 사용자가 평소 로그인 계정과 무관한 별도 비밀번호를 몰라서 못 들어간 것.
+**결정**: `ADMIN_EMAILS`(쉼표 구분 이메일 목록) 환경변수를 추가. 설정돼 있으면 `/sources` 접근 시 Supabase Auth 로그인 계정의 이메일이 이 목록에 있는지로 판단(없으면 `/login`으로 리다이렉트) — 별도 비밀번호 없이 평소 로그인 계정으로 접근 가능. `ADMIN_EMAILS`가 비어 있으면(전환 전/로컬 개발) 기존 `ADMIN_PASSWORD` 게이트로 폴백해 하위 호환을 유지.
+**영향**: `src/proxy.ts`(`getAllowedAdminEmail`, `guardSourcesAdmin`), `.env.example`, `.env.local`(`ADMIN_EMAILS=yijunsuc@gmail.com` 추가).
+**다음 단계 (사용자가 Vercel에서 직접 진행)**: 프로덕션 환경변수에 `ADMIN_EMAILS=yijunsuc@gmail.com`을 추가하고 재배포해야 실제로 적용됨. 추가 전까지는 기존 `ADMIN_PASSWORD` 방식이 그대로 유지되므로 당장 접근이 막히지는 않음.
+
+### 2026-08-14 — `/sources` 접속 불가 원인 조사 중 발견: 추천 목록 조회 실패가 페이지 전체를 막을 수 있었음
+**배경**: 위 이메일 허용목록 작업 전, `/sources` 접속 불가를 조사하며 전날 추가한 "블로그 추천 검토" 섹션이 `Promise.all([listSources(), listPendingSourceSuggestions()])`로 묶여 있어 추천 목록 조회 하나가 실패하면(예: 마이그레이션 미적용) 소스 관리 자체를 통째로 막을 수 있는 구조였음을 발견함. 실제 프로덕션 DB에는 테이블이 이미 있어서(service role 키로 직접 조회해 확인) 이번 접속 불가의 직접 원인은 아니었던 것으로 보이지만, 그 자체로 위험한 결합이라 별도로 고쳐둠.
+**결정**: `listPendingSourceSuggestions()` 실패를 `.catch(() => [])`로 격리 — 부가 기능(추천 검토) 실패가 핵심 기능(소스 등록/삭제/일시중지)을 막지 못하게 함.
+**영향**: `src/app/sources/page.tsx`.
