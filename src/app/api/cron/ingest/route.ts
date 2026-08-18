@@ -6,12 +6,20 @@ import { ingestSource, type SourceRow } from "@/lib/ingestion/ingest-source";
 export const runtime = "nodejs";
 // 크론에서만 호출되므로 캐시하지 않는다.
 export const dynamic = "force-dynamic";
-// 배치 6개(CONCURRENCY)를 동시 처리해도 소스당 fetch+AI 호출+썸네일 업로드로 배치 하나에
-// 40~50초가 걸릴 수 있어(docs/decisions.md 2026-08-13 참고), 소스 수가 늘어나면 여전히 한 번의
-// 실행(maxDuration=60, Hobby 플랜 허용 최대치) 안에서는 1~2배치밖에 못 끝낸다. 그래서 이 라우트는
-// 매 실행마다 딱 한 배치만 처리하고, 남은 소스가 있으면 아래 after()로 스스로를 다시 호출해
-// 다음 배치를 잇는 방식(self-chaining)으로 전체 소스를 여러 번의 60초 이내 실행에 나눠 끝낸다.
 export const maxDuration = 60;
+// 원래는 배치 하나 처리 후 매번 next/server의 after()로 자신을 다시 호출해 다음 배치를 잇는
+// self-chaining 구조였는데, 실제 운영 크론(Vercel Cron이 직접 트리거하는 실행)에서 반복적으로
+// 첫 배치만 처리하고 체인이 조용히 끊기는 문제가 재발했다(docs/decisions.md 2026-08-18 참고).
+// 같은 코드를 curl로 수동 호출하면 매번 끝까지 정상적으로 이어졌던 것으로 보아 after()/waitUntil
+// 자체가 문제라기보다, Vercel Cron이 트리거한 실행에서 응답 전송 후 백그라운드 연산(after())이
+// 이어지는 것을 신뢰할 수 없다는 뜻으로 판단(Vercel 커뮤니티에도 waitUntil이 재시도 없이 프로덕션에서
+// 간헐적으로 끊긴다는 알려진 한계로 언급됨). 그래서 "한 번의 실행이 배치 하나만 처리하고 다음 배치는
+// 별도 백그라운드 호출에 맡긴다"는 구조를 버리고, 이 실행 하나가 시간 예산(TIME_BUDGET_MS) 안에서
+// while 루프로 여러 배치를 순차적으로(await) 전부 처리한다 — 소스 수가 지금 규모(30여 개)면 보통
+// 하루치 수집은 이 안에서 전부 끝난다. 그래도 밀린 소스가 아주 많아 시간 예산을 넘기면, 그때만
+// after()로 다음 실행을 잇는다(완전히 없애지는 않되 일상적 경로에서 의존하지 않도록 예외 상황 전용
+// 폴백으로 격하).
+const TIME_BUDGET_MS = 50_000;
 // 체이닝이 무한 반복되지 않도록 하는 안전장치 — 현재 소스 수(30여개)면 5~6홉이면 충분하지만,
 // last_checked_at 갱신이 어떤 이유로든 안 되는 버그가 생겨도 여기서 반드시 멈추도록 여유 있게 잡음.
 const MAX_CHAIN_HOPS = 15;
@@ -72,35 +80,44 @@ export async function GET(request: NextRequest) {
   const processedBeforeThisHop = Number(url.searchParams.get("processed") ?? "0");
 
   const supabase = createServiceClient();
-  // ORDER BY 없이 조회하면 Postgres가 매번 다른 순서로 행을 돌려줄 수 있어, 실행시간 제한에 걸려
-  // 일부만 처리하고 끝나는 회차마다 "이번엔 어느 소스가 밀렸는지"가 무작위로 바뀌는 문제가 있었다
-  // (docs/decisions.md 참고). 가장 오래 확인 안 된 소스부터 한 배치(CONCURRENCY개)만 가져온다 —
-  // 처리한 소스는 last_checked_at이 갱신돼 뒤로 밀려나므로, 다음 홉이 다시 같은 조건으로 조회하면
-  // 자연히 그다음 배치가 나온다.
-  const { data: sources, error } = await supabase
-    .from("sources")
-    .select("id, site_url, feed_url, feed_type, scrape_config")
-    .eq("is_active", true)
-    .order("last_checked_at", { ascending: true, nullsFirst: true })
-    .limit(CONCURRENCY);
+  const startedAt = Date.now();
+  const allSummaries: SourceIngestSummary[] = [];
+  // 마지막으로 가져온 배치 크기 — CONCURRENCY와 같으면 "더 남아있을 가능성 있음", 그보다 작으면
+  // "전부 처리 완료"를 뜻한다. 시작 전이므로 CONCURRENCY로 초기화해 최소 한 번은 루프를 돈다.
+  let lastBatchSize = CONCURRENCY;
 
-  if (error) {
-    return Response.json({ ok: false, error: error.message }, { status: 500 });
+  while (lastBatchSize === CONCURRENCY && Date.now() - startedAt < TIME_BUDGET_MS) {
+    // ORDER BY 없이 조회하면 Postgres가 매번 다른 순서로 행을 돌려줄 수 있어, 실행시간 제한에 걸려
+    // 일부만 처리하고 끝나는 회차마다 "이번엔 어느 소스가 밀렸는지"가 무작위로 바뀌는 문제가 있었다
+    // (docs/decisions.md 참고). 가장 오래 확인 안 된 소스부터 한 배치(CONCURRENCY개)만 가져온다 —
+    // 처리한 소스는 last_checked_at이 갱신돼 뒤로 밀려나므로, 다음 루프가 다시 같은 조건으로
+    // 조회하면 자연히 그다음 배치가 나온다.
+    const { data: sources, error } = await supabase
+      .from("sources")
+      .select("id, site_url, feed_url, feed_type, scrape_config")
+      .eq("is_active", true)
+      .order("last_checked_at", { ascending: true, nullsFirst: true })
+      .limit(CONCURRENCY);
+
+    if (error) {
+      return Response.json({ ok: false, error: error.message }, { status: 500 });
+    }
+
+    const batch = (sources ?? []) as SourceRow[];
+    lastBatchSize = batch.length;
+    if (batch.length === 0) break;
+
+    const summaries = await Promise.all(batch.map((source) => ingestOne(supabase, source)));
+    allSummaries.push(...summaries);
   }
 
-  const batch = (sources ?? []) as SourceRow[];
-  const summaries = await Promise.all(batch.map((source) => ingestOne(supabase, source)));
-  const processedSoFar = processedBeforeThisHop + summaries.length;
-
-  // 배치가 CONCURRENCY만큼 꽉 찼다면 아직 처리 안 된 소스가 남아있을 가능성이 있다는 뜻이라 다음
-  // 홉을 이어서 트리거한다. after()로 응답을 먼저 클라이언트에 반환한 뒤 백그라운드에서 다음 홉을
-  // 호출한다 — 이 fetch를 짧은 타임아웃으로 강제 중단하면 안 된다: 로컬 검증 중 5초 abort를 걸었더니
-  // 다음 홉의 처리 시간이 5초 근처(또는 초과)일 때 응답 전송이 중간에 끊겨, 그 홉 자신의 after()(=
-  // 그다음다음 홉을 잇는 코드)가 아예 실행되지 않고 체인이 조용히 끊기는 현상이 실제로 재현됨. 그냥
-  // 끝까지 await하면 다음 홉이 응답을 정상적으로 마칠 때까지 기다리게 되는데, 그동안 이 실행(부모)
-  // 자체는 maxDuration을 넘기면 플랫폼이 강제 종료하지만, 이미 전송된 다음 홉 요청은 Vercel에서
-  // 완전히 독립된 새 실행이라 부모가 죽어도 계속 자기 몫의 60초 안에서 처리가 이어진다.
-  if (batch.length === CONCURRENCY && hop + 1 < MAX_CHAIN_HOPS) {
+  const processedSoFar = processedBeforeThisHop + allSummaries.length;
+  // 루프가 시간 예산을 넘겨서(그리고 마지막 배치가 꽉 차서, 즉 아직 남았을 가능성이 있어서) 중간에
+  // 끊겼다면 다음 실행에 나머지를 넘긴다. 정상적인 하루치 규모(소스 30여 개)에서는 이 루프 안에서
+  // 전부 끝나 이 분기를 타지 않는다 — after() 기반 체이닝은 밀린 소스가 아주 많을 때만 쓰이는
+  // 예외 상황 폴백으로 남겨둔 것.
+  const chained = lastBatchSize === CONCURRENCY && hop + 1 < MAX_CHAIN_HOPS;
+  if (chained) {
     const nextUrl = new URL(request.url);
     nextUrl.searchParams.set("hop", String(hop + 1));
     nextUrl.searchParams.set("processed", String(processedSoFar));
@@ -114,10 +131,10 @@ export async function GET(request: NextRequest) {
   return Response.json({
     ok: true,
     hop,
-    processedThisHop: summaries.length,
+    processedThisHop: allSummaries.length,
     processedSoFar,
-    chained: batch.length === CONCURRENCY && hop + 1 < MAX_CHAIN_HOPS,
-    succeeded: summaries.filter((s) => s.ok).length,
-    summaries,
+    chained,
+    succeeded: allSummaries.filter((s) => s.ok).length,
+    summaries: allSummaries,
   });
 }
