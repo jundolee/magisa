@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "backfill:categories": "node --no-warnings=ExperimentalWarning --loader ts-node/esm scripts/backfill-categories.ts"
+    "backfill:categories": "npx tsx scripts/backfill-categories.ts"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "^2.45.5",
