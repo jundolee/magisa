@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { Text } from "@seed-design/react";
-import { listArticles, searchArticles, type ArticleFilter } from "@/lib/data/articles";
+import { attachUserState, getCachedArticleFeed, searchArticles, type ArticleFilter } from "@/lib/data/articles";
 import { listSources } from "@/lib/data/sources";
 import { ArticleList } from "@/components/article-list";
 import { ArticleListSkeleton } from "@/components/article-list-skeleton";
@@ -8,17 +8,10 @@ import { PageHeader } from "@/components/page-header";
 import { HeaderAuthSlot } from "@/components/header-auth-slot";
 import { getCurrentUser } from "@/lib/supabase/current-user";
 
-export const dynamic = "force-dynamic";
-// Node 서버리스 함수는 고정 리전(iad1, 버지니아)에서만 실행돼 한국 방문자 기준 매 요청
-// 태평양을 왕복한다 — Edge Runtime + preferredRegion="global"로 방문자와 가장 가까운 엣지에서
-// 직접 실행되게 한다. 2026-08-19에 "이 글 목록이 의존하는 unstable_cache(60초)가 여러 edge
-// 인스턴스 사이에 공유되지 않고 인스턴스별로 따로 캐시돼(진단 라우트로 확인) 사실상 매 요청
-// Supabase 쿼리가 실행되고 있다"는 걸 발견하고 한 번 Node로 되돌려봤지만, 실제 배포 사이트를
-// 다시 측정해보니 Node(iad1)가 평균 TTFB ~0.84s로 Edge(캐시 미스 상태 그대로)의 ~0.57s보다도
-// 더 느렸다 — 캐시가 아쉬운 대로 붙어있어도 리전 거리 자체의 비용이 더 크다는 뜻. 그래서 다시
-// Edge로 되돌림(docs/decisions.md 2026-08-19 참고). "캐시가 인스턴스별로 쪼개져 매번 쿼리가
-// 도는" 문제 자체는 남아있으니, 나중에 더 손볼 여지가 있으면 unstable_cache 대신 Next.js
-// fetch() 캐시(Vercel Data Cache와 edge에서도 확실히 연동됨)로 옮기는 걸 검토할 것.
+// dynamic="force-dynamic"을 쓰면 모든 fetch()가 cache: "no-store"로 강제되어 PostgREST 캐시가 무력화된다.
+// fetchCache = "default-cache"를 지정해 searchParams로 인한 동적 렌더링을 유지하면서도
+// fetchCachedFromSupabase의 force-cache(60초 Vercel Data Cache)가 정상 작동하게 한다.
+export const fetchCache = "default-cache";
 export const runtime = "edge";
 export const preferredRegion = "global";
 
@@ -43,19 +36,19 @@ async function ArticleListSection({
   initialSourceId: string;
   initialQuery: string;
 }) {
-  // 읽음/즐겨찾기 여부는 로그인 계정별로 구분된다 — 로그인 안 한 사람은 전부 false로 내려온다
-  // (열람 자체는 자유, docs/decisions.md 참고).
-  const user = await getCurrentUser();
-  const userId = user?.id ?? null;
-
-  // 탭/소스 필터 전환마다 서버를 다시 왕복하지 않도록, 전체 글/소스를 한 번만 불러와
-  // 클라이언트(ArticleList)에서 즉시 필터링한다 (docs/decisions.md 참고).
-  // 검색어(q)가 있을 때만 예외 — 검색은 최근 200개 캐시가 아니라 전체 아카이브를 대상으로 해야 하므로
-  // searchArticles()로 DB에서 직접 검색해온다.
-  const [articles, sources] = await Promise.all([
-    initialQuery ? searchArticles(initialQuery, userId) : listArticles(userId),
+  // 세션 확인, 글 목록 캐시 조회, 소스 목록 조회를 모두 병렬로 시작해 첫 응답 지연을 최소화한다.
+  const [user, rawArticles, sources] = await Promise.all([
+    getCurrentUser(),
+    initialQuery ? null : getCachedArticleFeed(),
     listSources(),
   ]);
+  const userId = user?.id ?? null;
+
+  // 검색어(q)가 있을 때만 예외 — 검색은 최근 200개 캐시가 아니라 전체 아카이브를 대상으로 해야 하므로
+  // searchArticles()로 DB에서 직접 검색해온다.
+  const articles = initialQuery
+    ? await searchArticles(initialQuery, userId)
+    : await attachUserState(rawArticles!, userId);
 
   const sourceOptions = sources
     .map((s) => ({ id: s.id, label: s.title ?? s.site_url }))

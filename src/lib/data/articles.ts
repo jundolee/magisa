@@ -29,7 +29,7 @@ export type ArticleFilter = "all" | "unread" | "read" | "favorite";
  * supabase-js 대신 PostgREST에 직접 fetch()하는 이유는 `fetchCachedFromSupabase` 주석 참고
  * (2026-08-19 결정 — edge 런타임에서 unstable_cache가 인스턴스별로 따로 캐시되던 문제).
  */
-async function getCachedArticleFeed(): Promise<Omit<ArticleListItem, "is_read" | "is_favorite">[]> {
+export async function getCachedArticleFeed(): Promise<Omit<ArticleListItem, "is_read" | "is_favorite">[]> {
   return fetchCachedFromSupabase<Omit<ArticleListItem, "is_read" | "is_favorite">[]>(
     "articles",
     {
@@ -57,7 +57,7 @@ async function getCachedArticleFeed(): Promise<Omit<ArticleListItem, "is_read" |
  * 로그인 안 한 사람(userId === null)은 애초에 읽음/즐겨찾기 기능을 못 쓰므로 전부 false로 내려준다
  * (열람 자체는 자유 — docs/decisions.md 참고).
  */
-async function attachUserState(
+export async function attachUserState(
   articles: Omit<ArticleListItem, "is_read" | "is_favorite">[],
   userId: string | null
 ): Promise<ArticleListItem[]> {

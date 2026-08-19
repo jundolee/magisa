@@ -463,3 +463,18 @@
 **결정**: 위 "다음 단계"를 바로 진행. `getCachedArticleFeed`(articles.ts)/`getCachedSources`(sources.ts)를 `unstable_cache`+supabase-js 대신, PostgREST REST 엔드포인트에 직접 `fetch(url, { cache: "force-cache", next: { revalidate: 60, tags: [...] } })`를 쏘는 방식으로 재작성(`src/lib/supabase/cached-rest.ts` 신설, `fetchCachedFromSupabase`). Next.js의 fetch 캐시는 Vercel Data Cache와 연동되도록 설계된 1차 캐싱 수단이라 edge의 여러 인스턴스에서도 공유될 것으로 기대하고 시도함. `sources`의 `updateTag("sources")` 무효화 경로는 태그 이름을 그대로 유지해 그대로 재사용됨.
 **검증**: 배포 전 로컬에서 동일한 PostgREST 쿼리(select 임베딩 `source:sources(...)`, `order=published_at.desc.nullslast` 등)를 실제 프로덕션 Supabase에 직접 fetch로 호출해 supabase-js와 동일한 JSON 모양이 나오는 것 확인. 배포 후 실제 사이트를 15회 연속 curl로 재측정 — 캐시가 갓 갱신된 처음 3번(0.66~0.68초)을 제외한 12회가 **평균 ~0.41초**(0.34~0.49초 분포)로, 캐시가 깨져있던 이전 Edge 상태(~0.57초)와 Node로 되돌렸던 상태(~0.84초) 둘 다보다 뚜렷하게 빨라짐. `/sources`가 여전히 정상적으로 로그인 리다이렉트(307)되는 것도 확인해 회귀 없음.
 **영향**: `src/lib/supabase/cached-rest.ts`(신규), `src/lib/data/articles.ts`, `src/lib/data/sources.ts`. `src/app/page.tsx`의 edge+global 설정은 그대로 유지.
+
+### 2026-08-19 — 첫 접속 로딩 지연 해결 (proxy.ts 불필요한 미들웨어 경유 제거 + dynamic force-dynamic의 fetchCache 무력화 수정 + getCurrentUser 단축)
+**배경**: 사용자가 "magisa 최초 접속 시에 로딩이 계속 걸린다"고 보고.
+**원인 3가지 발견**:
+1. **`proxy.ts`가 `/`를 포함한 모든 주요 경로에 매칭됨**: Next.js 16의 `proxy.ts`는 Node.js 런타임(`iad1`, 미국 버지니아)에서 실행되므로, 한국 방문자가 홈(`/`)에 접근할 때마다 Edge에 도달하기 전 미국 Node.js 미들웨어 컨테이너를 먼저 경유(콜드스타트 포함 수 초 지연)하고 있었음. 방문자 쿠키 부여 및 미들웨어 세션 갱신은 계정 기반 전환 이후 홈 접속에 더 이상 필수적이지 않음.
+2. **`export const dynamic = "force-dynamic"`이 Next.js의 `fetch()` 캐시를 `no-store`로 강제하고 있었음**: Next.js 공식 문서에 따르면 `dynamic = 'force-dynamic'`은 페이지 내 모든 `fetch()` 요청을 `cache: 'no-store', next: { revalidate: 0 }`로 강제 덮어쓰기함. 이로 인해 앞서 전환한 `fetchCachedFromSupabase`의 60초 Vercel Data Cache가 무력화되어 매 요청 Supabase REST API를 직접 왕복하고 있었음.
+3. **`getCurrentUser()` 순차 대기 및 비로그인 시 불필요한 클라이언트 초기화**: `ArticleListSection`이 `getCurrentUser()` 완료 후 `listArticles`와 `listSources`를 순차 실행했고, 비로그인 방문자도 매번 `@supabase/ssr` 클라이언트를 생성하고 있었음.
+**해결**:
+1. `src/proxy.ts`: `matcher`를 관리자 전용인 `["/sources", "/sources/:path*"]`로 축소. 홈(`/`) 요청은 Node.js 미들웨어를 거치지 않고 서울 Edge(`icn1`)에서 즉시 실행됨.
+2. `src/app/page.tsx`: `dynamic = "force-dynamic"` 대신 `export const fetchCache = "default-cache"`를 지정해 `searchParams` 동적 렌더링을 유지하면서 `force-cache`가 Vercel Data Cache에 정상 캐시되도록 수정.
+3. `src/app/page.tsx`: `getCurrentUser()`, `getCachedArticleFeed()`, `listSources()`를 `Promise.all`로 병렬 로드.
+4. `src/lib/supabase/current-user.ts`: `sb-*-auth-token` 세션 쿠키가 없으면 Supabase 클라이언트 초기화 없이 동기적으로 즉시 `null`을 반환하는 fast-path 추가.
+**검증**: `npm run lint` 통과 (0 errors), `npm run build` 프로덕션 빌드 성공.
+**영향**: `src/proxy.ts`, `src/app/page.tsx`, `src/lib/data/articles.ts`, `src/lib/supabase/current-user.ts`.
+
