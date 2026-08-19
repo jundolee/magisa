@@ -9,16 +9,18 @@ import { HeaderAuthSlot } from "@/components/header-auth-slot";
 import { getCurrentUser } from "@/lib/supabase/current-user";
 
 export const dynamic = "force-dynamic";
-// 2026-08-10엔 Node 서버리스 함수의 고정 리전(iad1, 버지니아)이 한국 방문자 기준 매 요청
-// 태평양을 왕복하게 만드는 게 느림의 원인이라 보고 Edge Runtime + preferredRegion="global"로
-// 바꿨었다. 그런데 2026-08-19에 다시 "느리다"는 문의를 받아 재진단해보니, 이 글 목록(getCachedArticleFeed)이
-// 의존하는 `unstable_cache`(60초)가 전역으로 흩어지는 edge 인스턴스 사이에서 공유되지 않고 인스턴스별로
-// 따로 캐시된다는 걸 확인함(진단용 라우트로 같은 60초 안에 연속 요청해보면 nodejs 런타임은 5번 다
-// 같은 값을 돌려주는데, edge는 몇 초 안에도 다른 값이 섞여 나옴 — docs/decisions.md 참고). 그 결과
-// 캐시가 사실상 매번 미스돼 무거운 Supabase 조인 쿼리(200건, ~250~650ms)가 모든 요청마다 실행되고
-// 있었고, 이게 리전 거리 왕복(~100~200ms)보다 훨씬 커서 오히려 전보다 느려졌었다. Node 런타임으로
-// 되돌려 `unstable_cache`가 신뢰할 수 있게(요청 대부분이 캐시 히트) 동작하도록 함 — 캐시가 만료되는
-// 60초에 한 번만 리전 왕복+쿼리 비용을 물고, 나머지는 캐시로 빠르게 응답한다.
+// Node 서버리스 함수는 고정 리전(iad1, 버지니아)에서만 실행돼 한국 방문자 기준 매 요청
+// 태평양을 왕복한다 — Edge Runtime + preferredRegion="global"로 방문자와 가장 가까운 엣지에서
+// 직접 실행되게 한다. 2026-08-19에 "이 글 목록이 의존하는 unstable_cache(60초)가 여러 edge
+// 인스턴스 사이에 공유되지 않고 인스턴스별로 따로 캐시돼(진단 라우트로 확인) 사실상 매 요청
+// Supabase 쿼리가 실행되고 있다"는 걸 발견하고 한 번 Node로 되돌려봤지만, 실제 배포 사이트를
+// 다시 측정해보니 Node(iad1)가 평균 TTFB ~0.84s로 Edge(캐시 미스 상태 그대로)의 ~0.57s보다도
+// 더 느렸다 — 캐시가 아쉬운 대로 붙어있어도 리전 거리 자체의 비용이 더 크다는 뜻. 그래서 다시
+// Edge로 되돌림(docs/decisions.md 2026-08-19 참고). "캐시가 인스턴스별로 쪼개져 매번 쿼리가
+// 도는" 문제 자체는 남아있으니, 나중에 더 손볼 여지가 있으면 unstable_cache 대신 Next.js
+// fetch() 캐시(Vercel Data Cache와 edge에서도 확실히 연동됨)로 옮기는 걸 검토할 것.
+export const runtime = "edge";
+export const preferredRegion = "global";
 
 
 // 필터 탭을 명시적으로 고르지 않았을 때의 기본값 — 검색 중이 아니면 "안읽음"이 자연스럽지만,
