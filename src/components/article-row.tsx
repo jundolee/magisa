@@ -4,6 +4,7 @@ import { UnreadToggleForm } from "./unread-toggle-form";
 import { FavoriteToggleForm } from "./favorite-toggle-form";
 import { ShareButton } from "./share-button";
 import type { ArticleListItem } from "@/lib/data/articles";
+import { getCategoryMeta, type CategoryId } from "@/lib/categories";
 
 const MUTED = "var(--seed-color-fg-neutral-muted)";
 
@@ -15,15 +16,19 @@ function formatDate(iso: string | null): string {
 export function ArticleRow({
   article,
   onRead,
+  onSelectCategory,
   priority = false,
 }: {
   article: ArticleListItem;
   onRead?: (articleId: string) => void;
+  onSelectCategory?: (categoryId: CategoryId) => void;
   // 화면에 처음부터 보이는 상단 몇 개는 lazy 대신 즉시 fetch — loading="lazy"는 브라우저가
   // 뷰포트 안인지 확인할 때까지 fetch 시작 자체를 늦추므로, 이미 보이는 이미지에 걸면
   // 오히려 첫 화면 체감 로딩(LCP)이 늦어진다.
   priority?: boolean;
 }) {
+  const categoryMeta = article.category && article.category !== "general" ? getCategoryMeta(article.category) : null;
+
   return (
     <li
       style={{
@@ -35,30 +40,56 @@ export function ArticleRow({
       }}
     >
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-        <Badge size="medium" variant="weak" tone="neutral">
-          {/* SEED Badge는 라벨을 고정 px 너비로 재고 overflow:hidden + ellipsis를 적용하는데,
-              그 계산은 순수 텍스트를 가정한다 — 파비콘까지 담은 inline-flex를 통째로 넣으면
-              래퍼가 그 너비를 무시하고 원래 크기로 그려져 ellipsis 없이 글자가 중간에서 잘린다.
-              래퍼에 maxWidth:100%로 라벨 너비를 따르게 하고, 텍스트 쪽에만 별도로
-              ellipsis를 줘서 잘리는 지점에 실제로 "…"가 보이게 한다. */}
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, maxWidth: "100%", minWidth: 0 }}>
-            {article.source?.favicon_url && (
-              // eslint-disable-next-line @next/next/no-img-element -- 임의의 외부 도메인 파비콘
-              <img
-                src={article.source.favicon_url}
-                alt=""
-                width={14}
-                height={14}
-                loading="lazy"
-                decoding="async"
-                style={{ borderRadius: 3, flexShrink: 0 }}
-              />
-            )}
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
-              {article.source?.title ?? article.source?.site_url}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <Badge size="medium" variant="weak" tone="neutral">
+            {/* SEED Badge는 라벨을 고정 px 너비로 재고 overflow:hidden + ellipsis를 적용하는데,
+                그 계산은 순수 텍스트를 가정한다 — 파비콘까지 담은 inline-flex를 통째로 넣으면
+                래퍼가 그 너비를 무시하고 원래 크기로 그려져 ellipsis 없이 글자가 중간에서 잘린다.
+                래퍼에 maxWidth:100%로 라벨 너비를 따르게 하고, 텍스트 쪽에만 별도로
+                ellipsis를 줘서 잘리는 지점에 실제로 "…"가 보이게 한다. */}
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, maxWidth: "100%", minWidth: 0 }}>
+              {article.source?.favicon_url && (
+                // eslint-disable-next-line @next/next/no-img-element -- 임의의 외부 도메인 파비콘
+                <img
+                  src={article.source.favicon_url}
+                  alt=""
+                  width={14}
+                  height={14}
+                  loading="lazy"
+                  decoding="async"
+                  style={{ borderRadius: 3, flexShrink: 0 }}
+                />
+              )}
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
+                {article.source?.title ?? article.source?.site_url}
+              </span>
             </span>
-          </span>
-        </Badge>
+          </Badge>
+
+          {categoryMeta && (
+            <button
+              type="button"
+              onClick={
+                onSelectCategory
+                  ? (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onSelectCategory(categoryMeta.id);
+                    }
+                  : undefined
+              }
+              style={{
+                all: "unset",
+                cursor: onSelectCategory ? "pointer" : "default",
+                display: "inline-flex",
+              }}
+            >
+              <Badge size="medium" variant="outline" tone={categoryMeta.badgeTone}>
+                {categoryMeta.label}
+              </Badge>
+            </button>
+          )}
+        </div>
 
         {/* 썸네일뿐 아니라 제목/요약/날짜 전부 클릭 가능해야 해서 하나의 링크로 묶는다 */}
         <ArticleLink

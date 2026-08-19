@@ -7,6 +7,7 @@ import { ArticleListSkeleton } from "@/components/article-list-skeleton";
 import { PageHeader } from "@/components/page-header";
 import { HeaderAuthSlot } from "@/components/header-auth-slot";
 import { getCurrentUser } from "@/lib/supabase/current-user";
+import { CATEGORY_MAP, type CategoryId } from "@/lib/categories";
 
 // dynamic="force-dynamic"을 쓰면 모든 fetch()가 cache: "no-store"로 강제되어 PostgREST 캐시가 무력화된다.
 // fetchCache = "default-cache"를 지정해 searchParams로 인한 동적 렌더링을 유지하면서도
@@ -15,12 +16,16 @@ export const fetchCache = "default-cache";
 export const runtime = "edge";
 export const preferredRegion = "global";
 
-
 // 필터 탭을 명시적으로 고르지 않았을 때의 기본값 — 검색 중이 아니면 "안읽음"이 자연스럽지만,
 // 검색은 이미 읽은 글을 다시 찾으려는 경우가 흔해서 검색어가 있을 땐 기본을 "전체"로 바꾼다.
 function parseFilter(raw: string | undefined, hasQuery: boolean): ArticleFilter {
   if (raw === "read" || raw === "all" || raw === "favorite" || raw === "unread") return raw;
   return hasQuery ? "all" : "unread";
+}
+
+function parseCategory(raw: string | undefined): CategoryId {
+  if (raw && CATEGORY_MAP.has(raw as CategoryId)) return raw as CategoryId;
+  return "all";
 }
 
 /**
@@ -30,10 +35,12 @@ function parseFilter(raw: string | undefined, hasQuery: boolean): ArticleFilter 
 async function ArticleListSection({
   initialFilter,
   initialSourceId,
+  initialCategory,
   initialQuery,
 }: {
   initialFilter: ArticleFilter;
   initialSourceId: string;
+  initialCategory: CategoryId;
   initialQuery: string;
 }) {
   // 세션 확인, 글 목록 캐시 조회, 소스 목록 조회를 모두 병렬로 시작해 첫 응답 지연을 최소화한다.
@@ -60,6 +67,7 @@ async function ArticleListSection({
       sources={sourceOptions}
       initialFilter={initialFilter}
       initialSourceId={initialSourceId}
+      initialCategory={initialCategory}
       initialQuery={initialQuery}
     />
   );
@@ -68,11 +76,12 @@ async function ArticleListSection({
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; source?: string; q?: string }>;
+  searchParams: Promise<{ filter?: string; source?: string; category?: string; q?: string }>;
 }) {
-  const { filter: rawFilter, source: sourceId, q } = await searchParams;
+  const { filter: rawFilter, source: sourceId, category: rawCategory, q } = await searchParams;
   const initialQuery = (q ?? "").trim();
   const initialFilter = parseFilter(rawFilter, initialQuery.length > 0);
+  const initialCategory = parseCategory(rawCategory);
 
   return (
     <main>
@@ -93,6 +102,7 @@ export default async function Home({
         <ArticleListSection
           initialFilter={initialFilter}
           initialSourceId={sourceId ?? "all"}
+          initialCategory={initialCategory}
           initialQuery={initialQuery}
         />
       </Suspense>

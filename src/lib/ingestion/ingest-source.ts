@@ -4,6 +4,7 @@ import { scrapeSource } from "./scrape-source";
 import { canonicalizeUrl } from "./dedup";
 import { fetchOgImage } from "./fetch-og-image";
 import { mirrorThumbnail } from "@/lib/storage/thumbnails";
+import { classifyArticlesBatch } from "./category-classifier";
 import type { FeedType, NormalizedArticle, ScrapeConfig } from "./types";
 
 const POSTGRES_UNIQUE_VIOLATION = "23505";
@@ -49,8 +50,13 @@ export async function ingestSource(
     return { found: 0, inserted: 0, duplicates: 0 };
   }
 
+  // 소스에서 가져온 글 전체를 한 번에 AI(또는 규칙 기반)로 카테고리/태그 분류한다
+  const classifications = await classifyArticlesBatch(
+    articles.map((a) => ({ title: a.title, excerpt: a.excerpt }))
+  );
+
   const insertResults = await Promise.all(
-    articles.map(async (a) => {
+    articles.map(async (a, index) => {
       let canonicalUrl: string;
       try {
         canonicalUrl = canonicalizeUrl(a.url);
@@ -61,6 +67,7 @@ export async function ingestSource(
       // RSS 필드/thumbnailSelector로 못 찾았을 때만 원문 페이지의 og:image를 한 번 더 시도한다 —
       // 소스마다 thumbnailSelector를 신경 쓰지 않아도 대부분의 사이트가 공유하는 메타 태그로 커버된다.
       const thumbnailUrl = a.thumbnailUrl ?? (await fetchOgImage(a.url));
+      const classification = classifications[index] ?? { category: "general" as const, tags: [] };
 
       const { data: insertedRow, error } = await supabase
         .from("articles")
@@ -73,6 +80,8 @@ export async function ingestSource(
           thumbnail_url: thumbnailUrl,
           published_at: a.publishedAt,
           dedup_key: a.dedupKey,
+          category: classification.category,
+          tags: classification.tags,
         })
         .select("id")
         .single();
