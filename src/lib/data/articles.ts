@@ -1,6 +1,6 @@
 import "server-only";
-import { unstable_cache } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
+import { fetchCachedFromSupabase } from "@/lib/supabase/cached-rest";
 
 export interface ArticleListItem {
   id: string;
@@ -26,25 +26,22 @@ export type ArticleFilter = "all" | "unread" | "read" | "favorite";
  * 글 목록(articles + source 조인)은 방문자와 무관하게 모두에게 동일하다 — 크론 수집 주기에 맞춰
  * 60초 정도 캐시해도 체감 지연이 없고, 매 요청마다 Supabase를 왕복하지 않아 초기 로딩이 빨라진다
  * (docs/decisions.md 참고). 방문자별 읽음 여부(read_status)만 이 캐시 밖에서 매번 가볍게 조회해 합친다.
+ * supabase-js 대신 PostgREST에 직접 fetch()하는 이유는 `fetchCachedFromSupabase` 주석 참고
+ * (2026-08-19 결정 — edge 런타임에서 unstable_cache가 인스턴스별로 따로 캐시되던 문제).
  */
-const getCachedArticleFeed = unstable_cache(
-  async (): Promise<Omit<ArticleListItem, "is_read" | "is_favorite">[]> => {
-    const supabase = createServiceClient();
-    const { data, error } = await supabase
-      .from("articles")
-      .select(
-        "id, title, url, excerpt, thumbnail_url, published_at, click_count, source:sources(id, title, site_url, favicon_url)"
-      )
+async function getCachedArticleFeed(): Promise<Omit<ArticleListItem, "is_read" | "is_favorite">[]> {
+  return fetchCachedFromSupabase<Omit<ArticleListItem, "is_read" | "is_favorite">[]>(
+    "articles",
+    {
+      select: "id,title,url,excerpt,thumbnail_url,published_at,click_count,source:sources(id,title,site_url,favicon_url)",
       // 카드에 보이는 날짜(published_at) 기준 내림차순 — 화면에 표시되는 값과 정렬 순서가 어긋나지 않도록 한다.
       // published_at이 없는 경우만 맨 뒤로 보낸다.
-      .order("published_at", { ascending: false, nullsFirst: false })
-      .limit(200);
-    if (error) throw error;
-    return (data as unknown as Omit<ArticleListItem, "is_read" | "is_favorite">[]) ?? [];
-  },
-  ["article-feed"],
-  { revalidate: 60 }
-);
+      order: "published_at.desc.nullslast",
+      limit: "200",
+    },
+    { revalidate: 60, tags: ["articles"] }
+  );
+}
 
 /**
  * 항상 전체를 한 번에 불러온다 — 읽음/소스 필터는 클라이언트(ArticleList)에서 즉시 적용한다.

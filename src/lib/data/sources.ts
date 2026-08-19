@@ -1,6 +1,6 @@
 import "server-only";
-import { unstable_cache } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
+import { fetchCachedFromSupabase } from "@/lib/supabase/cached-rest";
 import { discoverFeed } from "@/lib/ingestion/discover-feed";
 import type { FeedType, ScrapeConfig } from "@/lib/ingestion/types";
 
@@ -23,25 +23,17 @@ export interface Source {
  * 소스 목록은 홈 화면(소스 필터 드롭다운)에서 글 목록과 나란히 Promise.all로 조회되는데,
  * 글 목록(getCachedArticleFeed)과 달리 캐시가 없어서 매 방문마다 이 조회가 전체 대기시간의
  * 하한선이 됐다. 소스는 등록/삭제/일시중지처럼 드문 관리 작업 때만 바뀌므로 글 목록과 같은
- * 60초 캐시를 적용한다. 태그를 걸어 sources/actions.ts의 변경 액션에서 revalidateTag("sources")로
- * 즉시 무효화할 수 있게 한다 (60초를 기다리지 않고 바로 반영).
+ * 60초 캐시를 적용한다. 태그를 걸어 sources/actions.ts의 변경 액션에서 updateTag("sources")로
+ * 즉시 무효화할 수 있게 한다 (60초를 기다리지 않고 바로 반영). supabase-js 대신 PostgREST에
+ * 직접 fetch()하는 이유는 `fetchCachedFromSupabase` 주석 참고(2026-08-19 결정 — edge 런타임에서
+ * unstable_cache가 인스턴스별로 따로 캐시되던 문제).
  */
-const getCachedSources = unstable_cache(
-  async (): Promise<Source[]> => {
-    const supabase = createServiceClient();
-    const { data, error } = await supabase
-      .from("sources")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    return data as Source[];
-  },
-  ["sources-list"],
-  { revalidate: 60, tags: ["sources"] }
-);
-
 export async function listSources(): Promise<Source[]> {
-  return getCachedSources();
+  return fetchCachedFromSupabase<Source[]>(
+    "sources",
+    { select: "*", order: "created_at.desc" },
+    { revalidate: 60, tags: ["sources"] }
+  );
 }
 
 export interface AddSourceResult {
