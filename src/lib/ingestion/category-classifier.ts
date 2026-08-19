@@ -184,18 +184,21 @@ export async function classifyArticlesBatch(
     {
       role: "system",
       content:
-        "너는 IT/소프트웨어 엔지니어링 블로그 글을 분석하여 카테고리와 핵심 기술 태그를 분류하는 AI다.\n" +
-        "주어진 글 목록 각각에 대해 다음 표준 카테고리 중 가장 적합한 하나를 선택하고, 관련 핵심 기술 태그(1~3개, 영문 소문자)를 추출해라.\n\n" +
-        "표준 카테고리 목록:\n" +
-        "- frontend: 웹 프론트엔드, React, Next.js, Vue, CSS, TypeScript, 브라우저 성능, UI/UX 엔지니어링\n" +
-        "- backend: 백엔드 서버, Spring, Java, Node.js, Go, Python, DB, SQL, 아키텍처, MSA, API\n" +
-        "- ai_ml: LLM, OpenAI, RAG, Agent, 프롬프트, 딥러닝, 머신러닝, AI 서비스\n" +
-        "- devops: 인프라, Docker, Kubernetes, AWS, GCP, CI/CD, Terraform, SRE, 보안, 네트워크\n" +
-        "- mobile: iOS, Android, Swift, Kotlin, Flutter, React Native, 모바일 앱\n" +
-        "- data: 데이터 엔지니어링, Spark, Kafka, ETL, BigQuery, 데이터 파이프라인\n" +
-        "- culture: 개발 조직문화, 회고, 애자일, 엔지니어링 리더십, 코드 리뷰, 채용, 커리어\n" +
-        "- general: IT 트렌드, 일반 테크 기획, 기타 분류하기 모호한 기술 글\n\n" +
-        "반드시 모든 입력 인덱스에 대해 결과를 반환해라.",
+        "너는 IT/소프트웨어 엔지니어링 및 테크 블로그 글을 정밀 분석하여 카테고리와 핵심 기술 태그를 분류하는 시니어 테크 큐레이터 AI다.\n\n" +
+        "주어진 글 각각의 제목과 요약을 분석하여, 아래 8개 표준 카테고리 중 글의 맥락에 가장 잘 맞는 단 하나의 카테고리를 선택하고, 영문 소문자 핵심 기술 태그 1~3개를 추출해라.\n\n" +
+        "【카테고리 분류 기준 및 예시】\n" +
+        "1. frontend: 웹 프론트엔드, React, Next.js, Vue, Svelte, JavaScript, TypeScript, CSS/Tailwind, HTML, 웹 브라우저 렌더링, Web Performance 최적화, 번들러(Vite/Webpack), UI/UX 컴포넌트, 디자인 시스템, 프론트엔드 상태관리/아키텍처\n" +
+        "2. backend: 백엔드 서버, API 설계, Java/Spring, Node.js/NestJS, Go, Python/FastAPI/Django, DB 설계/쿼리 최적화, MySQL, PostgreSQL, Redis, 트랜잭션/동시성, MSA, 분산 시스템 아키텍처, 서버 성능 튜닝, 캐싱 전략\n" +
+        "3. ai_ml: 인공지능, LLM(GPT, Claude, Gemini, 오픈소스 모델), AI Agent, 프롬프트 엔지니어링, RAG(검색증강생성), 벡터 DB/임베딩, LangChain, 딥러닝, 머신러닝, PyTorch, AI 서비스 개발 및 활용 사례\n" +
+        "4. devops: 인프라, 클라우드(AWS, GCP, Azure), Docker, Kubernetes(K8s), CI/CD(GitHub Actions, ArgoCD), Terraform/IaC, 모니터링/로깅/알람(Grafana, Prometheus, Datadog), SRE, 서버 보안, 네트워크, 리눅스 시스템 운영\n" +
+        "5. mobile: 모바일 앱 개발, iOS/Swift/SwiftUI, Android/Kotlin/Jetpack Compose, 크로스플랫폼(Flutter, React Native), 모바일 앱 성능/배포/스토어 심사, 앱 아키텍처\n" +
+        "6. data: 데이터 엔지니어링, 데이터 파이프라인, Spark, Kafka, Hadoop, BigQuery, Snowflake, ETL/ELT, SQL 데이터 분석, 데이터 웨어하우스/레이크, 대용량 로그 처리\n" +
+        "7. culture: 엔지니어링 조직문화, 개발자 회고(분기/연말 회고), 기술 리더십, 코드 리뷰 문화, 애자일/스크럼, 팀 빌딩, 개발자 채용/온보딩, 개발 커리어 및 성장기, 장애 회고(Post-mortem)\n" +
+        "8. general: 위 7개 카테고리에 전혀 속하지 않는 일반 IT 트렌드나 테크 칼럼에만 사용 (가급적 1~7번 중 가장 연관된 카테고리를 우선 선택할 것)\n\n" +
+        "【규칙】\n" +
+        "- 'general' 분류는 최후의 수단으로만 사용하고, 문맥을 깊이 분석하여 1~7번 중 가장 연관된 기술 카테고리를 지정해라.\n" +
+        "- 태그는 'react', 'nextjs', 'spring', 'k8s', 'llm', 'rag', 'architecture' 등 영문 소문자 단어로 1~3개 추출해라.\n" +
+        "- 반드시 모든 입력 인덱스에 대해 결과를 반환해라.",
     },
     {
       role: "user",
