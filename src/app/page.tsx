@@ -9,12 +9,17 @@ import { HeaderAuthSlot } from "@/components/header-auth-slot";
 import { getCurrentUser } from "@/lib/supabase/current-user";
 
 export const dynamic = "force-dynamic";
-// Vercel Node 서버리스 함수는 고정 리전(iad1, 버지니아)에서만 실행돼 한국 사용자 기준
-// 왕복이 매번 태평양을 건너감 — Edge Runtime + preferredRegion="global"로 바꿔 방문자와
-// 가장 가까운 엣지에서 직접 실행되게 한다. Vercel에서 이 옵션은 runtime="edge"일 때만 적용됨
-// (docs/decisions.md 참고).
-export const runtime = "edge";
-export const preferredRegion = "global";
+// 2026-08-10엔 Node 서버리스 함수의 고정 리전(iad1, 버지니아)이 한국 방문자 기준 매 요청
+// 태평양을 왕복하게 만드는 게 느림의 원인이라 보고 Edge Runtime + preferredRegion="global"로
+// 바꿨었다. 그런데 2026-08-19에 다시 "느리다"는 문의를 받아 재진단해보니, 이 글 목록(getCachedArticleFeed)이
+// 의존하는 `unstable_cache`(60초)가 전역으로 흩어지는 edge 인스턴스 사이에서 공유되지 않고 인스턴스별로
+// 따로 캐시된다는 걸 확인함(진단용 라우트로 같은 60초 안에 연속 요청해보면 nodejs 런타임은 5번 다
+// 같은 값을 돌려주는데, edge는 몇 초 안에도 다른 값이 섞여 나옴 — docs/decisions.md 참고). 그 결과
+// 캐시가 사실상 매번 미스돼 무거운 Supabase 조인 쿼리(200건, ~250~650ms)가 모든 요청마다 실행되고
+// 있었고, 이게 리전 거리 왕복(~100~200ms)보다 훨씬 커서 오히려 전보다 느려졌었다. Node 런타임으로
+// 되돌려 `unstable_cache`가 신뢰할 수 있게(요청 대부분이 캐시 히트) 동작하도록 함 — 캐시가 만료되는
+// 60초에 한 번만 리전 왕복+쿼리 비용을 물고, 나머지는 캐시로 빠르게 응답한다.
+
 
 // 필터 탭을 명시적으로 고르지 않았을 때의 기본값 — 검색 중이 아니면 "안읽음"이 자연스럽지만,
 // 검색은 이미 읽은 글을 다시 찾으려는 경우가 흔해서 검색어가 있을 땐 기본을 "전체"로 바꾼다.
