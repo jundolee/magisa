@@ -478,3 +478,14 @@
 **검증**: `npm run lint` 통과 (0 errors), `npm run build` 프로덕션 빌드 성공.
 **영향**: `src/proxy.ts`, `src/app/page.tsx`, `src/lib/data/articles.ts`, `src/lib/supabase/current-user.ts`.
 
+### 2026-08-19 — AI 자동 카테고리 및 태깅 기능 도입
+**배경**: 수집되는 테크 블로그 글이 많아짐에 따라 관심 분야(Frontend, Backend, AI/ML 등)의 글만 빠르게 골라보고자 하는 요구 발생.
+**결정**:
+1. **카테고리 체계**: 8대 표준 카테고리(`frontend`, `backend`, `ai_ml`, `devops`, `mobile`, `data`, `culture`, `general`)와 1~3개의 세부 기술 태그(`tags text[]`) 도입.
+2. **AI 배치 추론 + 규칙 기반 무중단 폴백**: 수집 시(`ingestSource`) OpenAI `gpt-5-nano`(또는 `gpt-4o-mini`)에 Structured Outputs(JSON Schema Strict Mode)로 1회 일괄 요청. 키 미설정 또는 장애 시 정규식 기반 키워드 매칭(`classifyArticleWithRules`)으로 자동 폴백하여 무중단 보장.
+3. **UI/UX**: `CategoryFilterChips` 컴포넌트로 상단에 터치 친화적 가로 스크롤 칩 필터 바 제공(카테고리별 실시간 개수 카운트 포함), `ArticleRow`에 카테고리 배지 표시(클릭 시 해당 카테고리로 즉시 필터 전환), URL 쿼리 파라미터(`?category=...`) 동기화.
+4. **마이그레이션 & 백필**: `supabase/migrations/0011_article_categories.sql` 작성, 기존 데이터 일괄 업데이트용 백필 스크립트(`scripts/backfill-categories.ts`) 작성.
+**검증**: `npm run lint` 통과, `npx tsc --noEmit` 통과, `npm run build` 프로덕션 빌드 성공 (Turbopack + Edge 런타임 호환).
+**영향**: `supabase/migrations/0011_article_categories.sql`(신규), `src/lib/categories.ts`(신규), `src/lib/ingestion/category-classifier.ts`(신규), `src/components/category-filter-chips.tsx`(신규), `scripts/backfill-categories.ts`(신규), `src/lib/ingestion/ingest-source.ts`, `src/lib/data/articles.ts`, `src/components/article-row.tsx`, `src/components/article-list.tsx`, `src/app/page.tsx`, `package.json`.
+**다음 단계 (사용자가 직접 진행)**: `supabase/migrations/0011_article_categories.sql`을 Supabase 원격 DB(SQL Editor 또는 `supabase db push`)에 적용해야 원격 DB 컬럼이 생성됩니다. 적용 후 필요 시 `npx tsx scripts/backfill-categories.ts`로 기존 글들을 일괄 분류할 수 있습니다.
+

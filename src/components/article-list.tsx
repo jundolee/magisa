@@ -9,8 +9,10 @@ import { ExpandableSearch } from "./expandable-search";
 import { ReadAllControls } from "./read-all-controls";
 import { ScrollToTopButton } from "./scroll-to-top-button";
 import { PaginationControls } from "./pagination-controls";
+import { CategoryFilterChips } from "./category-filter-chips";
 import { loadArticlesAction } from "@/app/articles/actions";
 import type { ArticleFilter, ArticleListItem } from "@/lib/data/articles";
+import type { CategoryId } from "@/lib/categories";
 
 const SEARCH_DEBOUNCE_MS = 400;
 
@@ -21,7 +23,7 @@ const MIN_AUTO_SEARCH_LENGTH = 2;
 const PAGE_SIZE = 30;
 
 /**
- * 탭/소스 필터를 바꿀 때마다 서버에 새로 요청하면 Supabase 왕복 시간이 매번 그대로 드는 게 느려서,
+ * 탭/소스/카테고리 필터를 바꿀 때마다 서버에 새로 요청하면 Supabase 왕복 시간이 매번 그대로 드는 게 느려서,
  * 글 목록은 한 번만 받아오고 필터링은 브라우저 안에서 즉시 처리한다 (docs/decisions.md 참고).
  * 읽음 처리 등 실제 데이터 변경은 여전히 서버 액션 + revalidatePath로 이 컴포넌트의 articles prop을 갱신한다.
  */
@@ -30,16 +32,19 @@ export function ArticleList({
   sources,
   initialFilter,
   initialSourceId,
+  initialCategory = "all",
   initialQuery,
 }: {
   articles: ArticleListItem[];
   sources: SourceOption[];
   initialFilter: ArticleFilter;
   initialSourceId: string;
+  initialCategory?: CategoryId;
   initialQuery: string;
 }) {
   const [filter, setFilter] = useState<ArticleFilter>(initialFilter);
   const [sourceId, setSourceId] = useState(initialSourceId);
+  const [category, setCategory] = useState<CategoryId>(initialCategory);
   const [query, setQuery] = useState(initialQuery);
   const [page, setPage] = useState(1);
 
@@ -69,10 +74,12 @@ export function ArticleList({
   // 대입할 수 없어 effect에서 동기화해둔다.
   const filterRef = useRef(filter);
   const sourceIdRef = useRef(sourceId);
+  const categoryRef = useRef(category);
   useEffect(() => {
     filterRef.current = filter;
     sourceIdRef.current = sourceId;
-  }, [filter, sourceId]);
+    categoryRef.current = category;
+  }, [filter, sourceId, category]);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 검색어별 결과 캐시 — 지웠다 다시 같은 단어를 치거나 오타를 지우는 흔한 패턴에서 서버 왕복 없이
   // 즉시 이전 결과를 보여준다.
@@ -104,15 +111,34 @@ export function ArticleList({
 
   const unreadCount = useMemo(() => optimisticArticles.filter((a) => !a.is_read).length, [optimisticArticles]);
 
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: 0 };
+    for (const a of optimisticArticles) {
+      if (filter === "unread" && a.is_read) continue;
+      if (filter === "read" && !a.is_read) continue;
+      if (filter === "favorite" && !a.is_favorite) continue;
+      if (sourceId !== "all" && a.source?.id !== sourceId) continue;
+
+      counts.all = (counts.all ?? 0) + 1;
+      const cat = a.category ?? "general";
+      counts[cat] = (counts[cat] ?? 0) + 1;
+    }
+    return counts;
+  }, [optimisticArticles, filter, sourceId]);
+
   const visibleArticles = useMemo(() => {
     return optimisticArticles.filter((a) => {
       if (filter === "unread" && a.is_read) return false;
       if (filter === "read" && !a.is_read) return false;
       if (filter === "favorite" && !a.is_favorite) return false;
       if (sourceId !== "all" && a.source?.id !== sourceId) return false;
+      if (category !== "all") {
+        const itemCategory = a.category ?? "general";
+        if (itemCategory !== category) return false;
+      }
       return true;
     });
-  }, [optimisticArticles, filter, sourceId]);
+  }, [optimisticArticles, filter, sourceId, category]);
 
   const totalPages = Math.max(1, Math.ceil(visibleArticles.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -123,22 +149,29 @@ export function ArticleList({
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function buildUrl(nextFilter: ArticleFilter, nextSourceId: string, nextQuery: string) {
+  function buildUrl(nextFilter: ArticleFilter, nextSourceId: string, nextCategory: CategoryId, nextQuery: string) {
     const params = new URLSearchParams();
     if (nextFilter !== "unread") params.set("filter", nextFilter);
     if (nextSourceId !== "all") params.set("source", nextSourceId);
+    if (nextCategory !== "all") params.set("category", nextCategory);
     if (nextQuery.trim()) params.set("q", nextQuery.trim());
     const qs = params.toString();
     return qs ? `/?${qs}` : "/";
   }
 
-  function updateUrl(nextFilter: ArticleFilter, nextSourceId: string) {
+  function updateUrl(nextFilter: ArticleFilter, nextSourceId: string, nextCategory: CategoryId) {
     // history API를 직접 써서 Next.js 서버 재요청 없이 주소창만 맞춘다.
-    window.history.replaceState(null, "", buildUrl(nextFilter, nextSourceId, query));
+    window.history.replaceState(null, "", buildUrl(nextFilter, nextSourceId, nextCategory, query));
+  }
+
+  function handleCategoryChange(nextCategory: CategoryId) {
+    setCategory(nextCategory);
+    setPage(1);
+    updateUrl(filter, sourceId, nextCategory);
   }
 
   function runSearch(rawValue: string) {
-    window.history.replaceState(null, "", buildUrl(filterRef.current, sourceIdRef.current, rawValue));
+    window.history.replaceState(null, "", buildUrl(filterRef.current, sourceIdRef.current, categoryRef.current, rawValue));
 
     const trimmed = rawValue.trim();
     const seq = ++requestSeqRef.current;
@@ -252,7 +285,7 @@ export function ArticleList({
 
       <div
         style={{
-          marginBottom: 24,
+          marginBottom: 16,
           display: "flex",
           justifyContent: "space-between",
           gap: 12,
@@ -270,7 +303,7 @@ export function ArticleList({
             onChange={(value) => {
               setFilter(value);
               setPage(1);
-              updateUrl(value, sourceId);
+              updateUrl(value, sourceId, category);
             }}
           />
         </div>
@@ -280,15 +313,29 @@ export function ArticleList({
           onChange={(value) => {
             setSourceId(value);
             setPage(1);
-            updateUrl(filter, value);
+            updateUrl(filter, value, category);
           }}
+        />
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <CategoryFilterChips
+          selectedCategory={category}
+          onSelectCategory={handleCategoryChange}
+          categoryCounts={categoryCounts}
         />
       </div>
 
       <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0 }}>
         {pagedArticles.map((article, index) => (
           // 페이지 첫 3개는 스크롤 전에 바로 보이는 썸네일이라 lazy 대신 우선 로드 (ArticleRow 참고).
-          <ArticleRow key={article.id} article={article} onRead={handleRead} priority={index < 3} />
+          <ArticleRow
+            key={article.id}
+            article={article}
+            onRead={handleRead}
+            onSelectCategory={handleCategoryChange}
+            priority={index < 3}
+          />
         ))}
       </ul>
       {visibleArticles.length === 0 && (

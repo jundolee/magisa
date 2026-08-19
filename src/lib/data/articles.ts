@@ -10,6 +10,8 @@ export interface ArticleListItem {
   thumbnail_url: string | null;
   published_at: string | null;
   click_count: number;
+  category: string;
+  tags: string[];
   is_read: boolean;
   is_favorite: boolean;
   source: {
@@ -33,7 +35,7 @@ export async function getCachedArticleFeed(): Promise<Omit<ArticleListItem, "is_
   return fetchCachedFromSupabase<Omit<ArticleListItem, "is_read" | "is_favorite">[]>(
     "articles",
     {
-      select: "id,title,url,excerpt,thumbnail_url,published_at,click_count,source:sources(id,title,site_url,favicon_url)",
+      select: "id,title,url,excerpt,thumbnail_url,published_at,click_count,category,tags,source:sources(id,title,site_url,favicon_url)",
       // 카드에 보이는 날짜(published_at) 기준 내림차순 — 화면에 표시되는 값과 정렬 순서가 어긋나지 않도록 한다.
       // published_at이 없는 경우만 맨 뒤로 보낸다.
       order: "published_at.desc.nullslast",
@@ -109,6 +111,8 @@ interface SearchArticleRow {
   thumbnail_url: string | null;
   published_at: string | null;
   click_count: number;
+  category: string;
+  tags: string[];
   source_id: string;
   source_title: string | null;
   source_site_url: string;
@@ -135,6 +139,8 @@ export async function searchArticles(query: string, userId: string | null): Prom
     thumbnail_url: r.thumbnail_url,
     published_at: r.published_at,
     click_count: r.click_count,
+    category: r.category ?? "general",
+    tags: r.tags ?? [],
     source: { id: r.source_id, title: r.source_title, site_url: r.source_site_url, favicon_url: r.source_favicon_url },
   }));
 

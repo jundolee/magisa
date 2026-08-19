@@ -23,6 +23,7 @@ MVP 완료 이후 추가로 들어온 요청:
 - [x] 글 목록 정렬을 discovered_at(수집 시각) 기준으로 변경
 - [x] 썸네일 영구 저장 (Supabase Storage로 다운로드/재호스팅, presigned URL 만료 문제 해결)
 - [x] 자체 RSS 피드(`/feed.xml`) 공개 + "블로그 추천하기" 공개 제안 폼 (`docs/growth-strategy.md` 참고)
+- [x] AI 자동 카테고리 및 태깅 (Frontend, Backend, AI/ML 등 8대 표준 카테고리 분류 + 필터 칩 + 배지)
 
 ## Phase 2+ 후보 (제안 — 우선순위는 MVP 완료 후 논의)
 
