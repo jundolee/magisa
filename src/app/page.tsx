@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { Text } from "@seed-design/react";
 import { attachUserState, getCachedArticleFeed, searchArticles, type ArticleFilter } from "@/lib/data/articles";
 import { listSources } from "@/lib/data/sources";
@@ -97,6 +98,12 @@ export default async function Home({
       >
         구독한 테크 블로그의 새 글을 매일 모아 보는 아카이버예요. 로그인하면 읽음/즐겨찾기가 계정에 저장돼요.
       </Text>
+
+      <nav aria-label="콘텐츠 탐색" style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
+        <Link href="/topics"><Text as="span" textStyle="t3Medium" color="var(--seed-color-fg-brand)">주제별 글</Text></Link>
+        <Link href="/blogs"><Text as="span" textStyle="t3Medium" color="var(--seed-color-fg-brand)">블로그 목록</Text></Link>
+        <Link href="/digest"><Text as="span" textStyle="t3Medium" color="var(--seed-color-fg-brand)">주간 큐레이션</Text></Link>
+      </nav>
 
       <Suspense fallback={<ArticleListSkeleton />}>
         <ArticleListSection

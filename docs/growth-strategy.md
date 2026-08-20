@@ -34,8 +34,12 @@
 | 관리자가 추천 목록을 `/sources`에서 검토/처리 | 완료 | `src/app/sources/page.tsx`, `src/app/sources/actions.ts` |
 | `/suggest`를 sitemap에 포함 | 완료 | `src/app/sitemap.ts` |
 | 이메일 일일 다이제스트 (로드맵에 이미 있던 항목 — 재방문·공유를 유도하는 가장 강한 레버) | 보류 | 발신 인프라(Resend 등) 결정 필요, 별도 작업으로 진행 권장 |
-| 랜딩/소개 페이지를 홈과 분리해 SEO 타이틀·구조화 데이터 보강 | 제안 | — |
-| OG 이미지(사이트 대표 이미지) 생성 — 카톡/슬랙 공유 시 미리보기 품질 | 제안 | — |
+| 검색 메타데이터·canonical·WebSite/Organization 구조화 데이터 보강, `/suggest` noindex | 완료 | `src/app/layout.tsx`, `src/app/suggest/page.tsx` |
+| OG 이미지(사이트 대표 이미지) 생성 — 카톡/슬랙 공유 시 미리보기 품질 | 완료 | `src/app/opengraph-image.tsx` |
+| 카테고리 탐색 페이지와 카테고리별 검색 랜딩 | 완료 | `src/app/topics/*`, `src/lib/data/public-hubs.ts` |
+| 공개 블로그 목록과 블로그별 최신 글 허브 | 완료 | `src/app/blogs/*`, `src/lib/data/public-hubs.ts` |
+| 주간 테크 큐레이션 아카이브 | 완료 | `src/app/digest/*`, `src/lib/data/weekly-digests.ts` |
+| 주제·블로그·주간 아카이브를 포함하는 동적 sitemap | 완료 | `src/app/sitemap.ts` |
 
 ## 적용/배포 필요 사항 (사용자가 직접 진행)
 

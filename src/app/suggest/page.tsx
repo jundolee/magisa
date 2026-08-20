@@ -6,8 +6,10 @@ import { PageHeader } from "@/components/page-header";
 import { suggestSourceAction } from "./actions";
 
 export const metadata: Metadata = {
-  title: "블로그 추천하기 — Magisa",
+  title: "블로그 추천하기",
   description: "매기사가 모았으면 하는 테크 블로그를 추천해주세요.",
+  robots: { index: false, follow: true },
+  alternates: { canonical: "/suggest" },
 };
 
 export default async function SuggestPage({

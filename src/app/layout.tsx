@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { GoogleTagManager } from "@next/third-parties/google";
 import { AmplitudeAnalytics } from "@/components/amplitude-analytics";
+import { DEFAULT_OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "./seo";
 import "@seed-design/css/all.css";
 import "./globals.css";
 
@@ -18,44 +19,70 @@ const freesentation = localFont({
   ],
 });
 
-const SITE_URL = "https://magisa.vercel.app";
-const SITE_TITLE = "Magisa — 테크 블로그 아카이버";
-const SITE_DESCRIPTION = "구독한 테크 블로그의 새 글을 모아 보는 아카이버";
-
-// 홈 화면은 검색엔진에 노출돼도 괜찮다 — 관리자 전용 화면(/sources, /admin-login)은
-// 각 페이지에서 robots: noindex로 따로 덮어쓴다 (docs/decisions.md 참고).
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: SITE_TITLE,
+  title: {
+    default: SITE_TITLE,
+    template: "%s | Magisa",
+  },
   description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: ["테크 블로그", "개발 블로그", "기술 아티클", "AI 블로그", "개발 뉴스"],
+  alternates: {
+    canonical: "/",
+    types: { "application/rss+xml": `${SITE_URL}/feed.xml` },
+  },
   openGraph: {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     url: SITE_URL,
-    siteName: "Magisa",
+    siteName: SITE_NAME,
     locale: "ko_KR",
     type: "website",
+    images: [
+      {
+        url: DEFAULT_OG_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: "Magisa 테크 블로그 아카이버",
+      },
+    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
+    images: [{ url: DEFAULT_OG_IMAGE, alt: "Magisa 테크 블로그 아카이버" }],
   },
   verification: {
     google: "lhOSAHwCAKIdiUFUj-lftkkbb8fIjsD21lB_uEAvuYg",
   },
-  alternates: {
-    types: { "application/rss+xml": `${SITE_URL}/feed.xml` },
-  },
 };
 
-// 검색결과에 사이트명이 정확히 나오도록 하는 최소한의 구조화 데이터 (docs/growth-strategy.md 참고).
 const websiteJsonLd = {
   "@context": "https://schema.org",
-  "@type": "WebSite",
-  name: "Magisa",
-  url: SITE_URL,
-  description: SITE_DESCRIPTION,
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      name: SITE_NAME,
+      url: SITE_URL,
+      description: SITE_DESCRIPTION,
+      inLanguage: "ko-KR",
+      potentialAction: {
+        "@type": "SearchAction",
+        target: `${SITE_URL}/?q={search_term_string}`,
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: SITE_NAME,
+      url: SITE_URL,
+      logo: DEFAULT_OG_IMAGE,
+    },
+  ],
 };
 
 export default function RootLayout({
@@ -68,7 +95,10 @@ export default function RootLayout({
       {process.env.NODE_ENV === "production" && <GoogleTagManager gtmId={GTM_CONTAINER_ID} />}
       {process.env.NODE_ENV === "production" && <AmplitudeAnalytics />}
       <body>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd).replace(/</g, "\\u003c") }}
+        />
         {process.env.NODE_ENV === "production" && (
           <noscript>
             <iframe
