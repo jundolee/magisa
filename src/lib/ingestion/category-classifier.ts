@@ -9,7 +9,11 @@ export interface ArticleClassificationResult {
 }
 
 const MODEL = "gpt-5-nano";
-const AI_TIMEOUT_MS = 20_000;
+// 크론의 소스별 시간 상한(SOURCE_TIMEOUT_MS, src/app/api/cron/ingest/route.ts)과 여유를 두기 위해
+// 20초에서 낮춤 — 2026-08-20에 이 호출이 소스당 최대 20초까지 걸려 크론 타임아웃의 원인이 됐던
+// 것을 고친 김에(이제 새로 삽입된 글에만 호출되어 평소엔 거의 항상 몇 건 이내), 실패 시 폴백도
+// 빠르게 하도록 함께 낮춤 (docs/decisions.md 참고).
+const AI_TIMEOUT_MS = 12_000;
 
 const VALID_CATEGORIES: ArticleCategory[] = [
   "frontend",

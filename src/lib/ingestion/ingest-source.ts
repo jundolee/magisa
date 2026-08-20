@@ -50,11 +50,6 @@ export async function ingestSource(
     return { found: 0, inserted: 0, duplicates: 0 };
   }
 
-  // 소스에서 가져온 글 전체를 한 번에 AI(또는 규칙 기반)로 카테고리/태그 분류한다
-  const classifications = await classifyArticlesBatch(
-    articles.map((a) => ({ title: a.title, excerpt: a.excerpt }))
-  );
-
   const insertResults = await Promise.all(
     articles.map(async (a, index) => {
       let canonicalUrl: string;
@@ -67,8 +62,8 @@ export async function ingestSource(
       // RSS 필드/thumbnailSelector로 못 찾았을 때만 원문 페이지의 og:image를 한 번 더 시도한다 —
       // 소스마다 thumbnailSelector를 신경 쓰지 않아도 대부분의 사이트가 공유하는 메타 태그로 커버된다.
       const thumbnailUrl = a.thumbnailUrl ?? (await fetchOgImage(a.url));
-      const classification = classifications[index] ?? { category: "general" as const, tags: [] };
 
+      // category/tags는 DB 기본값('general'/'{}')으로 두고, 새로 삽입된 글만 아래에서 분류해 채운다.
       const { data: insertedRow, error } = await supabase
         .from("articles")
         .insert({
@@ -80,8 +75,6 @@ export async function ingestSource(
           thumbnail_url: thumbnailUrl,
           published_at: a.publishedAt,
           dedup_key: a.dedupKey,
-          category: classification.category,
-          tags: classification.tags,
         })
         .select("id")
         .single();
@@ -92,25 +85,50 @@ export async function ingestSource(
         }
         throw error;
       }
-      return { duplicate: false as const, articleId: insertedRow.id, thumbnailUrl };
+      return { duplicate: false as const, articleId: insertedRow.id, thumbnailUrl, index };
     })
   );
 
-  const newlyInserted = insertResults.filter((r): r is { duplicate: false; articleId: string; thumbnailUrl: string | null } => !r.duplicate);
+  const newlyInserted = insertResults.filter(
+    (r): r is { duplicate: false; articleId: string; thumbnailUrl: string | null; index: number } => !r.duplicate
+  );
   const duplicates = insertResults.length - newlyInserted.length;
 
-  // 새로 들어온 글만(중복 제외) 썸네일을 우리 스토리지로 미러링한다 —
-  // presigned URL처럼 만료되는 원본 이미지를 영구 URL로 바꿔둔다 (docs/decisions.md 참고).
-  await Promise.all(
-    newlyInserted
-      .filter((r) => r.thumbnailUrl)
-      .map(async (r) => {
-        const mirroredUrl = await mirrorThumbnail(supabase, r.thumbnailUrl!, r.articleId);
-        if (mirroredUrl) {
-          await supabase.from("articles").update({ thumbnail_url: mirroredUrl }).eq("id", r.articleId);
-        }
-      })
-  );
+  // 새로 들어온 글만(중복 제외) (1) 썸네일을 우리 스토리지로 미러링하고 (2) AI로 카테고리/태그를
+  // 분류한다 — 둘 다 새 글에만 필요한 후처리이고 서로 독립적이라 병렬로 진행한다.
+  // 2026-08-20 결정: 원래는 매 실행마다 feed 전체(대부분 이미 저장된 중복)를 다시 분류해서 소스당
+  // 최대 AI_TIMEOUT_MS(20초)가 삽입 전에 그대로 더해졌음 — 중복 글의 분류 결과는 애초에 insert가
+  // 23505로 버려지면서 한 번도 저장되지 않는 완전한 낭비였고, 이 지연이 크론의 소스별 시간 상한과
+  // 겹쳐 타임아웃의 실제 원인 중 하나였다(docs/decisions.md 참고). 새 글만 대상으로 하면 평소(중복만
+  // 있는 날)엔 이 블록이 API 호출 없이 즉시 끝난다.
+  await Promise.all([
+    Promise.all(
+      newlyInserted
+        .filter((r) => r.thumbnailUrl)
+        .map(async (r) => {
+          const mirroredUrl = await mirrorThumbnail(supabase, r.thumbnailUrl!, r.articleId);
+          if (mirroredUrl) {
+            await supabase.from("articles").update({ thumbnail_url: mirroredUrl }).eq("id", r.articleId);
+          }
+        })
+    ),
+    (async () => {
+      if (newlyInserted.length === 0) return;
+      const classifications = await classifyArticlesBatch(
+        newlyInserted.map((r) => ({ title: articles[r.index].title, excerpt: articles[r.index].excerpt }))
+      );
+      await Promise.all(
+        newlyInserted.map((r, i) => {
+          const classification = classifications[i];
+          if (!classification) return null;
+          return supabase
+            .from("articles")
+            .update({ category: classification.category, tags: classification.tags })
+            .eq("id", r.articleId);
+        })
+      );
+    })(),
+  ]);
 
   return { found: articles.length, inserted: newlyInserted.length, duplicates };
 }
