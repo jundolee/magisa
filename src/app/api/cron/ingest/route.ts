@@ -19,7 +19,16 @@ export const maxDuration = 60;
 // 하루치 수집은 이 안에서 전부 끝난다. 그래도 밀린 소스가 아주 많아 시간 예산을 넘기면, 그때만
 // after()로 다음 실행을 잇는다(완전히 없애지는 않되 일상적 경로에서 의존하지 않도록 예외 상황 전용
 // 폴백으로 격하).
-const TIME_BUDGET_MS = 50_000;
+//
+// 2026-08-20 버그 수정: 위 while 루프가 "다음 배치를 시작하기 전" 시간만 확인해서, 배치 하나가
+// 최악의 경우(소스별 SOURCE_TIMEOUT_MS 상한 전부 소진) 얼마나 걸릴 수 있는지를 반영하지 않고
+// 있었다. 예를 들어 (당시) TIME_BUDGET_MS=50_000/SOURCE_TIMEOUT_MS=40_000일 때 경과시간이 45초여도
+// 루프 조건을 통과해 배치를 하나 더 시작하는데, 그 배치가 40초를 다 쓰면 총 85초로 maxDuration(60초)을
+// 훌쩍 넘겨 플랫폼이 함수를 강제 종료(FUNCTION_INVOCATION_TIMEOUT, 504)한다 — 응답도 못 보내고
+// after() 폴백조차 실행되지 못한 채 그 실행이 통째로 사라진다(실제로 수동 curl 호출에서 62초 만에
+// 504로 재현됨). "다음 배치를 시작해도 되는 기준"을 `maxDuration - SOURCE_TIMEOUT_MS - 안전 여유`로
+// 낮추고 SOURCE_TIMEOUT_MS 자체도 줄여서, 최악의 경우에도 절대 maxDuration을 넘기지 않도록 함.
+const TIME_BUDGET_MS = 35_000;
 // 체이닝이 무한 반복되지 않도록 하는 안전장치 — 현재 소스 수(30여개)면 5~6홉이면 충분하지만,
 // last_checked_at 갱신이 어떤 이유로든 안 되는 버그가 생겨도 여기서 반드시 멈추도록 여유 있게 잡음.
 const MAX_CHAIN_HOPS = 15;
@@ -42,7 +51,11 @@ const CONCURRENCY = 6;
 // 그 소스 혼자서 배치 전체의 60초 예산을 넘길 수 있다(docs/decisions.md 2026-08-14 참고). 소스별로
 // 상한을 둬서, 넘기면 이번 홉은 포기하고(last_checked_at은 갱신해 다음 차례로 넘김 — 같은 소스가
 // 계속 앞자리를 차지해 배치를 막는 걸 방지) 나머지 소스와 다음 홉은 정상 진행되게 한다.
-const SOURCE_TIMEOUT_MS = 40_000;
+// 2026-08-20에 40초에서 20초로 낮춤 — 위 TIME_BUDGET_MS 버그 수정과 짝을 이루는 변경. 이 값이
+// 크면 클수록 "다음 배치를 안전하게 시작해도 되는 경과시간 상한"(TIME_BUDGET_MS)을 그만큼 낮춰야
+// 해서, 정작 한 실행 안에서 처리할 수 있는 배치 수가 줄어든다. 20초면 대부분의 정상적인 배치를
+// 커버하면서도(평소엔 배치당 수 초 수준) 안전 여유를 더 크게 잡을 수 있어 전체적으로 유리하다고 판단.
+const SOURCE_TIMEOUT_MS = 20_000;
 
 async function ingestOne(
   supabase: ReturnType<typeof createServiceClient>,
