@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { Text } from "@seed-design/react";
 import { PageHeader } from "@/components/page-header";
 import { PUBLIC_CATEGORY_META, SITE_URL, getPublicBlogHub, type PublicHubArticle } from "@/lib/data/public-hubs";
 
-export const runtime = "edge";
-export const preferredRegion = "global";
+// 공개 허브는 Supabase 읽기 모듈을 함께 번들링한다. Vercel Hobby의 Edge 함수 1MB 제한을
+// 넘지 않도록 기본 Node.js 런타임에서 렌더링한다.
+export const runtime = "nodejs";
 // /sources 관리자 화면과 별도 공개 경로이며, 데이터는 캐시된 공개 읽기 모델을 재사용한다.
 export const fetchCache = "default-cache";
 
@@ -49,6 +51,7 @@ function ArticleList({ articles }: { articles: PublicHubArticle[] }) {
 }
 
 export async function generateMetadata({ params }: BlogPageProps): Promise<Metadata> {
+  await connection();
   const { slug } = await params;
   const hub = await getPublicBlogHub(slug);
   if (!hub) return { robots: { index: false, follow: false } };
@@ -66,6 +69,7 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
 }
 
 export default async function BlogPage({ params }: BlogPageProps) {
+  await connection();
   const { slug } = await params;
   const hub = await getPublicBlogHub(slug);
   if (!hub) notFound();

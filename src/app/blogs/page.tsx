@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import { Text } from "@seed-design/react";
 import { PageHeader } from "@/components/page-header";
 import { SITE_URL, getPublicBlogIndex } from "@/lib/data/public-hubs";
 
-export const runtime = "edge";
-export const preferredRegion = "global";
+// 공개 허브는 Supabase 읽기 모듈을 함께 번들링하므로 기본 Node.js 런타임을 사용한다.
+export const runtime = "nodejs";
 // 공개 소스와 글은 public-hubs 내부의 force-cache 조회를 통해 제공한다.
 export const fetchCache = "default-cache";
 
@@ -22,6 +23,8 @@ export const metadata: Metadata = {
 };
 
 export default async function BlogsPage() {
+  // 빌드 환경에 데이터베이스 자격 증명이 없어도, 배포 요청 시점의 캐시된 공개 데이터를 렌더링한다.
+  await connection();
   const blogs = await getPublicBlogIndex();
   const jsonLd = {
     "@context": "https://schema.org",

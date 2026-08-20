@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { Text } from "@seed-design/react";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -12,8 +13,8 @@ import {
   type PublicHubArticle,
 } from "@/lib/data/public-hubs";
 
-export const runtime = "edge";
-export const preferredRegion = "global";
+// 공개 허브는 Supabase 읽기 모듈을 함께 번들링하므로 기본 Node.js 런타임을 사용한다.
+export const runtime = "nodejs";
 // params로 동적 렌더링돼도 공개 데이터의 fetch 캐시는 유지한다.
 export const fetchCache = "default-cache";
 
@@ -74,6 +75,7 @@ function ArticleList({ articles }: { articles: PublicHubArticle[] }) {
 }
 
 export async function generateMetadata({ params }: TopicPageProps): Promise<Metadata> {
+  await connection();
   const { category } = await params;
   if (!isPublicCategory(category)) return { robots: { index: false, follow: false } };
 
@@ -92,6 +94,7 @@ export async function generateMetadata({ params }: TopicPageProps): Promise<Meta
 }
 
 export default async function TopicPage({ params }: TopicPageProps) {
+  await connection();
   const { category } = await params;
   const hub = await getPublicCategoryHub(category);
   if (!hub) notFound();
