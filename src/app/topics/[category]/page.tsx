@@ -82,14 +82,15 @@ export async function generateMetadata({ params }: TopicPageProps): Promise<Meta
   const hub = await getPublicCategoryHub(category);
   if (!hub) return { robots: { index: false, follow: false } };
 
-  const title = `${hub.meta.title} | Magisa`;
+  const title = hub.meta.title;
+  const socialTitle = `${title} | Magisa`;
   const canonical = topicUrl(category);
   return {
     title,
     description: hub.meta.description,
     alternates: { canonical },
-    openGraph: { title, description: hub.meta.description, url: canonical, type: "website", locale: "ko_KR" },
-    twitter: { card: "summary", title, description: hub.meta.description },
+    openGraph: { title: socialTitle, description: hub.meta.description, url: canonical, type: "website", locale: "ko_KR" },
+    twitter: { card: "summary", title: socialTitle, description: hub.meta.description },
   };
 }
 

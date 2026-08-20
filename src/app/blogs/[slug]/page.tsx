@@ -56,15 +56,16 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
   const hub = await getPublicBlogHub(slug);
   if (!hub) return { robots: { index: false, follow: false } };
 
-  const title = `${hub.displayName} 최신 글 | Magisa`;
+  const title = `${hub.displayName} 최신 글`;
+  const socialTitle = `${title} | Magisa`;
   const description = `${hub.displayName}(${hub.host})의 최신 기술 글을 Magisa에서 모아 봅니다.`;
   const canonical = blogUrl(hub.slug);
   return {
     title,
     description,
     alternates: { canonical },
-    openGraph: { title, description, url: canonical, type: "website", locale: "ko_KR" },
-    twitter: { card: "summary", title, description },
+    openGraph: { title: socialTitle, description, url: canonical, type: "website", locale: "ko_KR" },
+    twitter: { card: "summary", title: socialTitle, description },
   };
 }
 

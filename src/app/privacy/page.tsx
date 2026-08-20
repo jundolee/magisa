@@ -6,7 +6,7 @@ const CONTACT_EMAIL = "yijunsuc@gmail.com";
 const EFFECTIVE_DATE = "2026년 8월 13일";
 
 export const metadata: Metadata = {
-  title: "개인정보처리방침 — Magisa",
+  title: "개인정보처리방침",
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

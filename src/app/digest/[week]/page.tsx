@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const description = getPageDescription(digest.label, digest.dateRangeLabel, digest.articleCount);
 
   return {
-    title: `${title} — Magisa`,
+    title,
     description,
     alternates: { canonical: `/digest/${digest.week}` },
     openGraph: {

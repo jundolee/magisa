@@ -11,15 +11,15 @@ export const runtime = "nodejs";
 export const fetchCache = "default-cache";
 
 const CANONICAL_URL = `${SITE_URL}/blogs`;
-const TITLE = "구독 테크 블로그 | Magisa";
+const TITLE = "구독 테크 블로그";
 const DESCRIPTION = "Magisa가 수집하는 활성 테크 블로그를 한곳에서 둘러보세요.";
 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: CANONICAL_URL },
-  openGraph: { title: TITLE, description: DESCRIPTION, url: CANONICAL_URL, type: "website", locale: "ko_KR" },
-  twitter: { card: "summary", title: TITLE, description: DESCRIPTION },
+  openGraph: { title: `${TITLE} | Magisa`, description: DESCRIPTION, url: CANONICAL_URL, type: "website", locale: "ko_KR" },
+  twitter: { card: "summary", title: `${TITLE} | Magisa`, description: DESCRIPTION },
 };
 
 export default async function BlogsPage() {
