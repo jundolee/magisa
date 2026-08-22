@@ -83,7 +83,7 @@ export async function generateMetadata({ params }: TopicPageProps): Promise<Meta
   if (!hub) return { robots: { index: false, follow: false } };
 
   const title = hub.meta.title;
-  const socialTitle = `${title} | Magisa`;
+  const socialTitle = `${title} | 매일 읽는 테크 기사`;
   const canonical = topicUrl(category);
   return {
     title,
@@ -105,16 +105,16 @@ export default async function TopicPage({ params }: TopicPageProps) {
     {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      name: `${hub.meta.title} | Magisa`,
+      name: `${hub.meta.title} | 매일 읽는 테크 기사`,
       description: hub.meta.description,
       url: canonical,
-      isPartOf: { "@type": "WebSite", name: "Magisa", url: SITE_URL },
+      isPartOf: { "@type": "WebSite", name: "매일 읽는 테크 기사", url: SITE_URL },
     },
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Magisa", item: SITE_URL },
+        { "@type": "ListItem", position: 1, name: "매일 읽는 테크 기사", item: SITE_URL },
         { "@type": "ListItem", position: 2, name: "주제", item: `${SITE_URL}/topics/${hub.category}` },
         { "@type": "ListItem", position: 3, name: hub.meta.label, item: canonical },
       ],
@@ -131,7 +131,7 @@ export default async function TopicPage({ params }: TopicPageProps) {
 
       <nav aria-label="breadcrumb">
         <ol style={{ display: "flex", gap: 8, listStyle: "none", flexWrap: "wrap" }}>
-          <li><Link href="/">Magisa</Link></li>
+          <li><Link href="/">매일 읽는 테크 기사</Link></li>
           <li aria-hidden="true">/</li>
           <li><span>주제</span></li>
           <li aria-hidden="true">/</li>

@@ -9,7 +9,7 @@ export function ShareButton({ title, url }: { title: string; url: string }) {
   const [copied, setCopied] = useState(false);
 
   async function handleShare() {
-    const shareText = `${title} (via 매기사)`;
+    const shareText = `${title} (via 매일 읽는 테크 기사)`;
 
     if (typeof navigator !== "undefined" && navigator.share) {
       try {

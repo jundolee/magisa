@@ -1,7 +1,7 @@
 /** 공개 메타데이터와 구조화 데이터에서 함께 쓰는 사이트 기준값. */
 export const SITE_URL = "https://magisa.vercel.app";
-export const SITE_NAME = "Magisa";
-export const SITE_TITLE = "테크 블로그 새 글 모아보기 | Magisa";
+export const SITE_NAME = "매일 읽는 테크 기사";
+export const SITE_TITLE = "테크 블로그 새 글 모아보기 | 매일 읽는 테크 기사";
 export const SITE_DESCRIPTION =
   "개발·AI·데이터·제품 분야 테크 블로그의 새 글을 한곳에서 찾아보고, 읽음과 즐겨찾기로 내 목록을 관리하세요.";
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/opengraph-image`;

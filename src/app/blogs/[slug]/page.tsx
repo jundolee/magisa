@@ -57,8 +57,8 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
   if (!hub) return { robots: { index: false, follow: false } };
 
   const title = `${hub.displayName} 최신 글`;
-  const socialTitle = `${title} | Magisa`;
-  const description = `${hub.displayName}(${hub.host})의 최신 기술 글을 Magisa에서 모아 봅니다.`;
+  const socialTitle = `${title} | 매일 읽는 테크 기사`;
+  const description = `${hub.displayName}(${hub.host})의 최신 기술 글을 매일 읽는 테크 기사에서 모아 봅니다.`;
   const canonical = blogUrl(hub.slug);
   return {
     title,
@@ -76,22 +76,22 @@ export default async function BlogPage({ params }: BlogPageProps) {
   if (!hub) notFound();
 
   const canonical = blogUrl(hub.slug);
-  const description = `${hub.displayName}(${hub.host})의 최신 기술 글을 Magisa에서 모아 봅니다.`;
+  const description = `${hub.displayName}(${hub.host})의 최신 기술 글을 매일 읽는 테크 기사에서 모아 봅니다.`;
   const jsonLd = [
     {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      name: `${hub.displayName} 최신 글 | Magisa`,
+      name: `${hub.displayName} 최신 글 | 매일 읽는 테크 기사`,
       description,
       url: canonical,
-      isPartOf: { "@type": "WebSite", name: "Magisa", url: SITE_URL },
+      isPartOf: { "@type": "WebSite", name: "매일 읽는 테크 기사", url: SITE_URL },
       mainEntity: { "@type": "Organization", name: hub.displayName, url: hub.source.site_url },
     },
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Magisa", item: SITE_URL },
+        { "@type": "ListItem", position: 1, name: "매일 읽는 테크 기사", item: SITE_URL },
         { "@type": "ListItem", position: 2, name: "블로그", item: `${SITE_URL}/blogs` },
         { "@type": "ListItem", position: 3, name: hub.displayName, item: canonical },
       ],
@@ -108,7 +108,7 @@ export default async function BlogPage({ params }: BlogPageProps) {
 
       <nav aria-label="breadcrumb">
         <ol style={{ display: "flex", gap: 8, listStyle: "none", flexWrap: "wrap" }}>
-          <li><Link href="/">Magisa</Link></li>
+          <li><Link href="/">매일 읽는 테크 기사</Link></li>
           <li aria-hidden="true">/</li>
           <li><Link href="/blogs">블로그</Link></li>
           <li aria-hidden="true">/</li>
@@ -119,7 +119,7 @@ export default async function BlogPage({ params }: BlogPageProps) {
       <header style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <Text as="h1" textStyle="t8Bold" color="fg.neutral">{hub.displayName} 최신 글</Text>
         <Text as="p" textStyle="t4Regular" color="var(--seed-color-fg-neutral-muted)">
-          {hub.host}에서 발행한 기술 글을 Magisa가 수집해 최신순으로 보여드립니다.
+          {hub.host}에서 발행한 기술 글을 매일 읽는 테크 기사가 수집해 최신순으로 보여드립니다.
         </Text>
         <a href={hub.source.site_url} target="_blank" rel="noopener noreferrer">
           <Text as="span" textStyle="t3Medium" color="var(--seed-color-fg-brand)">원문 블로그 방문하기 →</Text>

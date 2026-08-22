@@ -8,14 +8,14 @@ import { listRecentDigestWeeks } from "@/lib/data/weekly-digests";
 
 const SITE_URL = "https://magisa.vercel.app";
 const TITLE = "주간 테크 큐레이션 아카이브";
-const DESCRIPTION = "매주 Magisa가 모은 테크 블로그 새 글을 주차별로 다시 찾아볼 수 있는 아카이브입니다.";
+const DESCRIPTION = "매일 읽는 테크 기사가 모은 테크 블로그 새 글을 주차별로 다시 찾아볼 수 있는 아카이브입니다.";
 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: "/digest" },
   openGraph: {
-    title: `${TITLE} | Magisa`,
+    title: `${TITLE} | 매일 읽는 테크 기사`,
     description: DESCRIPTION,
     url: `${SITE_URL}/digest`,
     locale: "ko_KR",

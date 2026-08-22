@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description,
     alternates: { canonical: `/digest/${digest.week}` },
     openGraph: {
-      title: `${title} | Magisa`,
+      title: `${title} | 매일 읽는 테크 기사`,
       description,
       url: `${SITE_URL}/digest/${digest.week}`,
       locale: "ko_KR",
@@ -76,7 +76,7 @@ export default async function WeeklyDigestPage({ params }: PageProps) {
           description,
           url: canonicalUrl,
           inLanguage: "ko-KR",
-          isPartOf: { "@type": "WebSite", name: "Magisa", url: SITE_URL },
+          isPartOf: { "@type": "WebSite", name: "매일 읽는 테크 기사", url: SITE_URL },
         }}
       />
       <DigestHeader />

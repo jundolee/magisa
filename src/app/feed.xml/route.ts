@@ -6,7 +6,7 @@ export const preferredRegion = "global";
 export const revalidate = 60;
 
 const SITE_URL = "https://magisa.vercel.app";
-const SITE_TITLE = "Magisa — 테크 블로그 아카이버";
+const SITE_TITLE = "매일 읽는 테크 기사 — 테크 블로그 아카이버";
 const SITE_DESCRIPTION = "구독한 테크 블로그의 새 글을 모아 보는 아카이버";
 
 function escapeXml(value: string): string {

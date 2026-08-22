@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: `${SITE_URL}/topics` },
-  openGraph: { title: `${TITLE} | Magisa`, description: DESCRIPTION, url: `${SITE_URL}/topics`, locale: "ko_KR", type: "website" },
+  openGraph: { title: `${TITLE} | 매일 읽는 테크 기사`, description: DESCRIPTION, url: `${SITE_URL}/topics`, locale: "ko_KR", type: "website" },
 };
 
 export default function TopicsPage() {
@@ -21,7 +21,7 @@ export default function TopicsPage() {
     name: TITLE,
     description: DESCRIPTION,
     url: `${SITE_URL}/topics`,
-    isPartOf: { "@type": "WebSite", name: "Magisa", url: SITE_URL },
+    isPartOf: { "@type": "WebSite", name: "매일 읽는 테크 기사", url: SITE_URL },
   };
 
   return (

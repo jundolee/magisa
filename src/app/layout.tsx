@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: SITE_TITLE,
-    template: "%s | Magisa",
+    template: "%s | 매일 읽는 테크 기사",
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
         url: DEFAULT_OG_IMAGE,
         width: 1200,
         height: 630,
-        alt: "Magisa 테크 블로그 아카이버",
+        alt: "매일 읽는 테크 기사",
       },
     ],
   },
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: [{ url: DEFAULT_OG_IMAGE, alt: "Magisa 테크 블로그 아카이버" }],
+    images: [{ url: DEFAULT_OG_IMAGE, alt: "매일 읽는 테크 기사" }],
   },
   verification: {
     google: "lhOSAHwCAKIdiUFUj-lftkkbb8fIjsD21lB_uEAvuYg",

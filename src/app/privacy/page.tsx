@@ -36,7 +36,7 @@ export default function PrivacyPolicyPage() {
         </div>
 
         <Section title="1. 수집하는 개인정보 항목">
-          Magisa(이하 &ldquo;서비스&rdquo;)는 회원가입 및 로그인 과정에서 아래 정보를 수집합니다.
+          매일 읽는 테크 기사(이하 &ldquo;서비스&rdquo;)는 회원가입 및 로그인 과정에서 아래 정보를 수집합니다.
           <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
             <li>이메일/비밀번호로 가입 시: 이메일 주소</li>
             <li>Google 계정으로 로그인 시: 이메일 주소, 이름, 프로필 사진(Google이 제공하는 범위 내)</li>
