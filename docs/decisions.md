@@ -498,3 +498,24 @@
 **검증**: `tsc --noEmit`/`eslint` 통과. 배포 후 밀려있던 15개 소스를 수동 curl로 완주(504 재발 없음, 아래 참고).
 **영향**: `src/app/api/cron/ingest/route.ts`, `src/lib/ingestion/ingest-source.ts`, `src/lib/ingestion/category-classifier.ts`.
 
+### 2026-09-04 — 우아한형제들 기술블로그(techblog.woowahan.com) 추가 실패 해결
+**배경**: 사용자가 `https://techblog.woowahan.com/`을 소스로 추가하려 했으나 피드 탐지 및 수집에 실패함.
+**원인 3가지 규명**:
+1. **User-Agent 불일치로 인한 Cloudflare WAF 차단 (핵심 원인)**:
+   - `INGESTION_USER_AGENT`가 `... Chrome/124.0.0.0 Safari/537.36` 형태의 구체적 브라우저 버전을 포함하고 있었음.
+   - 우아한형제들 블로그(Cloudflare WAF)는 Chrome 버전이 명시된 UA를 수신할 때 실제 브라우저의 HTTP/2 지문, TLS Client Hello 지문(JA3/JA4), `Sec-Ch-Ua` 헤더 등을 대조 검증함.
+   - Node.js의 `fetch` 및 `rss-parser`는 브라우저 TLS 핑거프린트와 일치하지 않아 "브라우저 위장 봇"으로 판단되어 **HTTP 403 Forbidden**("보안 위배 접근 제한 페이지")으로 차단됨.
+   - 특정 브라우저 빌드를 자칭하지 않는 일반 WebKit UA(`Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)`)는 위장 검사를 트리거하지 않고 **200 OK**로 통과함 (기존 Medium, Toss, Naver D2 등 다른 소스들도 200 정상 확인).
+2. **워드프레스 사내 프라이빗 도메인 이미지 주소 (`techblog.woowa.in`)**:
+   - 우아한형제들 WordPress RSS 피드의 본문 이미지 URL이 사내 집필용 도메인인 `https://techblog.woowa.in/wp-content/uploads/...`로 생성되어 있음.
+   - `techblog.woowa.in`은 외부에서 접근할 수 없는 사설 IP(`10.147.x.x`)로 DNS가 바인딩되어 있어, 썸네일 수집 및 Supabase Storage 미러링 시 15초 타임아웃(`UND_ERR_CONNECT_TIMEOUT`)으로 실패함.
+   - 동일한 리소스가 공개 도메인인 `https://techblog.woowahan.com/wp-content/uploads/...`에서는 정상 서빙됨. `resolveUrl()`에서 `techblog.woowa.in` 호스트를 `techblog.woowahan.com`으로 치환하도록 수정.
+3. **워드프레스 이모지 스마일리(`s.w.org`) 썸네일 오인식**:
+   - 글 본문 첫 머리에 이모지(🎉, ✅ 등)가 있으면 워드프레스가 `<img class="wp-smiley" src="https://s.w.org/...">`를 삽입해 실제 본문 대표 이미지 대신 이모지 아이콘이 썸네일로 추출되던 문제 발견. `img:not(.wp-smiley)` 및 `s.w.org` 필터링 추가.
+**검증**:
+- `discoverFeed('https://techblog.woowahan.com/')` 호출 시 RSS 피드(`https://techblog.woowahan.com/feed/`), 채널 제목("우아한형제들 기술블로그"), 파비콘 자동 탐지 성공.
+- `parseFeed()`로 10개 최신 글 목록 정상 추출 및 썸네일 URL 10건 모두 유효한 공개 URL(`techblog.woowahan.com`)로 변환 확인.
+- `npm run lint` 통과 (0 errors), `npm run build` 통과.
+**영향**: `src/lib/ingestion/user-agent.ts`, `src/lib/ingestion/parse-feed.ts`, `docs/decisions.md`.
+
+

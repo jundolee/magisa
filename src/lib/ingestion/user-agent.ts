@@ -5,7 +5,7 @@
  * (docs/decisions.md 참고)
  */
 export const INGESTION_USER_AGENT =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)";
 
 /**
  * 완전 클라이언트 렌더링(SPA) 사이트 중 일부는 SEO를 위해 알려진 검색엔진 크롤러 UA에는

@@ -17,7 +17,14 @@ const parser = new Parser({
 
 function resolveUrl(raw: string, base: string): string | null {
   try {
-    return new URL(raw, base).toString();
+    const url = new URL(raw, base);
+    // 우아한형제들 기술블로그(techblog.woowahan.com)의 WordPress 피드에서
+    // 업로드 이미지 주소가 사내 전용 도메인(techblog.woowa.in, 사설 IP 10.x 바인딩)으로 들어있는 문제 대응.
+    // 공개 도메인인 techblog.woowahan.com으로 치환해야 썸네일 수집 및 미러링이 성공한다.
+    if (url.hostname === "techblog.woowa.in") {
+      url.hostname = "techblog.woowahan.com";
+    }
+    return url.toString();
   } catch {
     return null;
   }
@@ -45,7 +52,11 @@ function extractThumbnail(item: Record<string, unknown>, articleUrl: string): st
   const content = (item["content:encoded"] as string | undefined) ?? (item.content as string | undefined);
   if (content) {
     const $ = cheerio.load(content);
-    const imgSrc = $("img").first().attr("src");
+    // 워드프레스 이모지(<img class="wp-smiley" src=".../s.w.org/...">) 등 아이콘을 제외하고 실제 본문 이미지를 선택
+    const imgSrc = $("img:not(.wp-smiley)")
+      .toArray()
+      .map((el) => $(el).attr("src"))
+      .find((src) => src && !src.includes("s.w.org"));
     if (imgSrc) return resolveUrl(imgSrc, articleUrl);
     const preloadHref = $('link[rel="preload"][as="image"]').first().attr("href");
     if (preloadHref) return resolveUrl(preloadHref, articleUrl);
