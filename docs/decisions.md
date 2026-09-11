@@ -518,4 +518,12 @@
 - `npm run lint` 통과 (0 errors), `npm run build` 통과.
 **영향**: `src/lib/ingestion/user-agent.ts`, `src/lib/ingestion/parse-feed.ts`, `docs/decisions.md`.
 
-
+### 2026-09-11 — 우아한형제들 기술블로그 배포 환경(Vercel) 403 차단 원인 분석 및 대안
+**배경**: 사용자가 프로덕션 배포 사이트(`https://magisa.vercel.app/sources`)에서 "지금 수집"을 실행했을 때 `Status code 403` 오류로 수집이 실패함.
+**원인 진단 (배포 환경 실측)**:
+1. 로컬 환경(국내 일반 IP 대역)에서는 피드 수집이 200 OK로 성공하지만, **Vercel 프로덕션 환경(Node.js iad1 및 Edge icn1 모두)**에서는 `https://techblog.woowahan.com/feed/` 요청 시 항상 **HTTP 403 Forbidden**("보안 위배 접근 제한 페이지 1")이 반환됨.
+2. Vercel Edge 런타임(서울 `icn1`, `43.201.41.216`)에서 주요 RSS 리더/검색 봇 UA 9종(`feedly`, `inoreader`, `googlebot`, `yeti`, `kakaotalk`, `slackbot`, `applebot`, `newsblur`, default)을 전수 테스트했으나 모두 403으로 동일하게 차단됨.
+3. 원인은 우아한형제들 기술블로그 전면의 Cloudflare WAF가 **AWS 데이터센터 ASN(AS16509, Vercel 인프라 기반)** 대역에서의 아웃바운드 접근을 전면 차단하도록 보안 정책을 적용하고 있기 때문임.
+**결론 및 현황**:
+- 현재 로컬 수집을 통해 DB(`sources`, `articles`)에 우아한형제들 최신 글 10건이 정상 등록되어 홈 화면에 서비스 중임.
+- 그러나 Vercel 서버에서 직접 `techblog.woowahan.com`으로 나가는 HTTP 요청은 WAF 정책상 403으로 막히므로, 자동 크론 또는 즉시 수집을 위해서는 AWS 외부 프록시(예: Cloudflare Worker, GitHub Actions 주기적 동기화 등) 경유가 필요함.
