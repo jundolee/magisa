@@ -527,3 +527,20 @@
 **결론 및 현황**:
 - 현재 로컬 수집을 통해 DB(`sources`, `articles`)에 우아한형제들 최신 글 10건이 정상 등록되어 홈 화면에 서비스 중임.
 - 그러나 Vercel 서버에서 직접 `techblog.woowahan.com`으로 나가는 HTTP 요청은 WAF 정책상 403으로 막히므로, 자동 크론 또는 즉시 수집을 위해서는 AWS 외부 프록시(예: Cloudflare Worker, GitHub Actions 주기적 동기화 등) 경유가 필요함.
+
+### 2026-09-11 — WAF 차단 블로그 수집을 위한 Cloudflare Worker 프록시(RSS_PROXY_URL) 지원
+**결정**: 우아한형제들 등 AWS/Vercel 데이터센터 IP를 차단하는 블로그 피드 수집을 위해 Cloudflare Worker 기반 RSS 프록시(`RSS_PROXY_URL`) 연동 지원 추가.
+**구현**:
+1. `src/lib/ingestion/feed-proxy.ts` 신설: `isBlockedDomain`(우아한형제들 등 알려진 차단 도메인) 및 `getProxiedUrl` 유틸리티 제공.
+2. `parseFeed` / `fetchText`(피드 탐지) / `mirrorThumbnail`(썸네일 미러링)에 양방향 폴백 적용:
+   - 알려진 차단 도메인은 Worker 프록시 URL(`RSS_PROXY_URL/?url=...`)로 즉시 요청.
+   - 프록시 요청 실패 시(로컬 사내망의 `workers.dev` 차단 환경 등) 원본 URL로 직접 폴백 시도.
+   - 반대로 직접 요청 시 403 Forbidden이 발생하면 자동으로 프록시 경유 재시도.
+3. `.env.example`에 `RSS_PROXY_URL` 항목 추가.
+**검증**:
+- `npm run lint` 통과 (0 errors).
+- `npx tsc --noEmit` 타입 검사 통과.
+- `npm run build` Next.js 16 프로덕션 빌드 성공.
+- 로컬 환경에서 우아한형제들 피드(`https://techblog.woowahan.com/feed/`) 10건 파싱 및 양방향 폴백 정상 동작 확인.
+**영향**: `src/lib/ingestion/feed-proxy.ts`(신규), `src/lib/ingestion/parse-feed.ts`, `src/lib/ingestion/discover-feed.ts`, `src/lib/storage/thumbnails.ts`, `.env.example`, `docs/decisions.md`.
+

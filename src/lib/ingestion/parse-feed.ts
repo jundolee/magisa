@@ -3,6 +3,7 @@ import * as cheerio from "cheerio";
 import type { NormalizedArticle } from "./types";
 import { computeDedupKey } from "./dedup";
 import { INGESTION_USER_AGENT } from "./user-agent";
+import { getProxiedUrl, isBlockedDomain } from "./feed-proxy";
 
 // d2.naver.com/d2.atom처럼 Accept 헤더가 없으면 406(Not Acceptable)으로 거부하는 서버가 있어
 // (discoverFeed의 fetchText는 Accept:*/*를 이미 보내 문제없이 통과했지만, rss-parser 기본값에는
@@ -75,7 +76,32 @@ export interface ParsedFeed {
  * RSS/Atom 피드 URL을 받아 목록 메타데이터로 정규화한다. architecture.md 3절 "RSS/Atom 파싱" 참고.
  */
 export async function parseFeed(feedUrl: string): Promise<ParsedFeed> {
-  const feed = await parser.parseURL(feedUrl);
+  const shouldUseProxy = isBlockedDomain(feedUrl);
+  const targetUrl = shouldUseProxy ? getProxiedUrl(feedUrl) : feedUrl;
+
+  let feed;
+  try {
+    feed = await parser.parseURL(targetUrl);
+  } catch (err) {
+    if (targetUrl !== feedUrl) {
+      // 프록시 호출이 실패한 경우(예: 사내망 방화벽의 workers.dev 차단 등) 원본 URL로 폴백 시도
+      try {
+        feed = await parser.parseURL(feedUrl);
+      } catch {
+        throw err;
+      }
+    } else if (String(err).includes("403")) {
+      // 직접 호출에서 403 차단이 발생한 경우 프록시로 폴백 시도
+      const fallbackUrl = getProxiedUrl(feedUrl);
+      if (fallbackUrl !== feedUrl) {
+        feed = await parser.parseURL(fallbackUrl);
+      } else {
+        throw err;
+      }
+    } else {
+      throw err;
+    }
+  }
 
   const articles = (feed.items ?? [])
     .filter((item) => item.link && item.title)

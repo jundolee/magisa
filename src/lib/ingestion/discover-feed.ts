@@ -1,6 +1,7 @@
 import * as cheerio from "cheerio";
 import type { FeedDiscoveryResult, FeedType } from "./types";
 import { INGESTION_USER_AGENT } from "./user-agent";
+import { getProxiedUrl, isBlockedDomain } from "./feed-proxy";
 
 const USER_AGENT = INGESTION_USER_AGENT;
 const FETCH_TIMEOUT_MS = 10_000;
@@ -15,13 +16,47 @@ const CANDIDATE_PATHS = [
 ];
 
 async function fetchText(url: string): Promise<{ contentType: string; text: string } | null> {
+  const targetUrl = isBlockedDomain(url) ? getProxiedUrl(url) : url;
+  let res: Response | null = null;
   try {
-    const res = await fetch(url, {
+    res = await fetch(targetUrl, {
       headers: { "User-Agent": USER_AGENT, Accept: "*/*" },
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       redirect: "follow",
     });
-    if (!res.ok) return null;
+  } catch {
+    if (targetUrl !== url) {
+      try {
+        res = await fetch(url, {
+          headers: { "User-Agent": USER_AGENT, Accept: "*/*" },
+          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+          redirect: "follow",
+        });
+      } catch {
+        res = null;
+      }
+    }
+  }
+
+  if (!res || !res.ok) {
+    if (res?.status === 403 && targetUrl === url) {
+      const fallbackUrl = getProxiedUrl(url);
+      if (fallbackUrl !== url) {
+        try {
+          res = await fetch(fallbackUrl, {
+            headers: { "User-Agent": USER_AGENT, Accept: "*/*" },
+            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+            redirect: "follow",
+          });
+        } catch {
+          res = null;
+        }
+      }
+    }
+  }
+
+  if (!res || !res.ok) return null;
+  try {
     return { contentType: res.headers.get("content-type") ?? "", text: await res.text() };
   } catch {
     return null;
