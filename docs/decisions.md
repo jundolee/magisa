@@ -542,5 +542,7 @@
 - `npx tsc --noEmit` 타입 검사 통과.
 - `npm run build` Next.js 16 프로덕션 빌드 성공.
 - 로컬 환경에서 우아한형제들 피드(`https://techblog.woowahan.com/feed/`) 10건 파싱 및 양방향 폴백 정상 동작 확인.
+- Cloudflare 신규 생성 Worker 서브도메인의 SSL 발급 지연으로 인한 `SSL alert number 40` (handshake failure) 대응으로 `toHttpUrl` 및 `isSslError` 기반 HTTP 자동 폴백 추가.
 **영향**: `src/lib/ingestion/feed-proxy.ts`(신규), `src/lib/ingestion/parse-feed.ts`, `src/lib/ingestion/discover-feed.ts`, `src/lib/storage/thumbnails.ts`, `.env.example`, `docs/decisions.md`.
+
 

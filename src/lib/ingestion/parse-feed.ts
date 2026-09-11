@@ -3,7 +3,7 @@ import * as cheerio from "cheerio";
 import type { NormalizedArticle } from "./types";
 import { computeDedupKey } from "./dedup";
 import { INGESTION_USER_AGENT } from "./user-agent";
-import { getProxiedUrl, isBlockedDomain } from "./feed-proxy";
+import { getProxiedUrl, isBlockedDomain, toHttpUrl, isSslError } from "./feed-proxy";
 
 // d2.naver.com/d2.atom처럼 Accept 헤더가 없으면 406(Not Acceptable)으로 거부하는 서버가 있어
 // (discoverFeed의 fetchText는 Accept:*/*를 이미 보내 문제없이 통과했지만, rss-parser 기본값에는
@@ -83,23 +83,46 @@ export async function parseFeed(feedUrl: string): Promise<ParsedFeed> {
   try {
     feed = await parser.parseURL(targetUrl);
   } catch (err) {
-    if (targetUrl !== feedUrl) {
-      // 프록시 호출이 실패한 경우(예: 사내망 방화벽의 workers.dev 차단 등) 원본 URL로 폴백 시도
-      try {
-        feed = await parser.parseURL(feedUrl);
-      } catch {
-        throw err;
+    // 1. 프록시 HTTPS 접속 시 SSL 핸드셰이크 오류(Cloudflare 서브도메인 인증서 발급 지연 등) 발생 시 HTTP로 즉시 재시도
+    if (targetUrl !== feedUrl && isSslError(err)) {
+      const httpUrl = toHttpUrl(targetUrl);
+      if (httpUrl) {
+        try {
+          feed = await parser.parseURL(httpUrl);
+        } catch {
+          // HTTP 시도도 실패하면 다음 폴백 진행
+        }
       }
-    } else if (String(err).includes("403")) {
-      // 직접 호출에서 403 차단이 발생한 경우 프록시로 폴백 시도
-      const fallbackUrl = getProxiedUrl(feedUrl);
-      if (fallbackUrl !== feedUrl) {
-        feed = await parser.parseURL(fallbackUrl);
+    }
+
+    if (!feed) {
+      if (targetUrl !== feedUrl) {
+        // 프록시 호출이 실패한 경우(예: 사내망 방화벽의 workers.dev 차단 등) 원본 URL로 폴백 시도
+        try {
+          feed = await parser.parseURL(feedUrl);
+        } catch {
+          throw err;
+        }
+      } else if (String(err).includes("403")) {
+        // 직접 호출에서 403 차단이 발생한 경우 프록시로 폴백 시도
+        const fallbackUrl = getProxiedUrl(feedUrl);
+        if (fallbackUrl !== feedUrl) {
+          try {
+            feed = await parser.parseURL(fallbackUrl);
+          } catch (proxyErr) {
+            const httpUrl = toHttpUrl(fallbackUrl);
+            if (httpUrl) {
+              feed = await parser.parseURL(httpUrl);
+            } else {
+              throw proxyErr;
+            }
+          }
+        } else {
+          throw err;
+        }
       } else {
         throw err;
       }
-    } else {
-      throw err;
     }
   }
 

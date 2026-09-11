@@ -28,3 +28,29 @@ export function getProxiedUrl(targetUrl: string): string {
   if (targetUrl.startsWith(proxyBase)) return targetUrl;
   return `${proxyBase}/?url=${encodeURIComponent(targetUrl)}`;
 }
+
+/**
+ * https:// URL을 http:// URL로 변환한다 (SSL 인증서 발급 지연 시 폴백용).
+ */
+export function toHttpUrl(url: string): string | null {
+  if (url.startsWith("https://")) {
+    return url.replace(/^https:\/\//, "http://");
+  }
+  return null;
+}
+
+/**
+ * SSL/TLS 핸드셰이크 관련 오류인지 판별한다.
+ */
+export function isSslError(err: unknown): boolean {
+  const msg = String(err);
+  return (
+    msg.includes("SSL") ||
+    msg.includes("EPROTO") ||
+    msg.includes("handshake failure") ||
+    msg.includes("CERT") ||
+    msg.includes("UND_ERR_SOCKET") ||
+    msg.includes("other side closed")
+  );
+}
+

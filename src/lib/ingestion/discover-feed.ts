@@ -1,7 +1,7 @@
 import * as cheerio from "cheerio";
 import type { FeedDiscoveryResult, FeedType } from "./types";
 import { INGESTION_USER_AGENT } from "./user-agent";
-import { getProxiedUrl, isBlockedDomain } from "./feed-proxy";
+import { getProxiedUrl, isBlockedDomain, toHttpUrl, isSslError } from "./feed-proxy";
 
 const USER_AGENT = INGESTION_USER_AGENT;
 const FETCH_TIMEOUT_MS = 10_000;
@@ -24,8 +24,22 @@ async function fetchText(url: string): Promise<{ contentType: string; text: stri
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       redirect: "follow",
     });
-  } catch {
-    if (targetUrl !== url) {
+  } catch (err) {
+    if (targetUrl !== url && isSslError(err)) {
+      const httpUrl = toHttpUrl(targetUrl);
+      if (httpUrl) {
+        try {
+          res = await fetch(httpUrl, {
+            headers: { "User-Agent": USER_AGENT, Accept: "*/*" },
+            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+            redirect: "follow",
+          });
+        } catch {
+          res = null;
+        }
+      }
+    }
+    if (!res && targetUrl !== url) {
       try {
         res = await fetch(url, {
           headers: { "User-Agent": USER_AGENT, Accept: "*/*" },
