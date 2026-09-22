@@ -98,7 +98,7 @@ export default async function Home({
         color="var(--seed-color-fg-neutral-muted)"
         style={{ marginBottom: 20 }}
       >
-        구독한 테크 블로그의 새 글을 매일 모아 보는 아카이버예요. 로그인하면 읽음/즐겨찾기가 계정에 저장돼요.
+                여러 테크 블로그의 새 테크 기사를 매일 모아 보여드리는 테크 기사 모음 서비스예요. 로그인하면 읽음/즐겨찾기가 계정에 저장돼요.
       </Text>
 
       <nav aria-label="콘텐츠 탐색" style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
