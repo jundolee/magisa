@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
-  keywords: ["테크 블로그", "개발 블로그", "기술 아티클", "AI 블로그", "개발 뉴스"],
+    keywords: ["테크 기사", "매일 읽는 테크 기사", "테크 블로그", "개발 기사", "IT 기사", "AI 기사"],
   alternates: {
     canonical: "/",
     types: { "application/rss+xml": `${SITE_URL}/feed.xml` },
