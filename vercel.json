@@ -1,7 +1,131 @@
 {
   "crons": [
     {
-      "path": "/api/cron/ingest",
+      "path": "/api/cron/ingest/first/0",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/first/1",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/first/2",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/first/3",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/first/4",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/first/5",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/first/6",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/first/7",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/first/8",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/first/9",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/first/10",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/first/11",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/first/12",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/first/13",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/first/14",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/first/15",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/retry/0",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/retry/1",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/retry/2",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/retry/3",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/retry/4",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/retry/5",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/retry/6",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/retry/7",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/retry/8",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/retry/9",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/retry/10",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/retry/11",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/retry/12",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/retry/13",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/retry/14",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest/retry/15",
       "schedule": "0 23 * * *"
     }
   ]
