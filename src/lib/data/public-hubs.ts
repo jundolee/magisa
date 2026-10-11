@@ -127,6 +127,21 @@ export function getPublicSourceSlug(source: Pick<Source, "title" | "site_url">):
   return titlePart === hostPart ? hostPart : `${titlePart}-${hostPart}`;
 }
 
+function matchesPublicSourceSlug(source: Source, requestedSlug: string): boolean {
+  const publicSlug = getPublicSourceSlug(source);
+  if (publicSlug === requestedSlug) return true;
+
+  // Vercel may pass a percent-encoded dynamic path parameter through to the page.
+  // Compare its decoded form too so non-ASCII slugs (for example Korean blog names)
+  // resolve consistently with the URLs emitted by the sitemap and blog index.
+  if (!/%[\da-f]{2}/i.test(requestedSlug)) return false;
+  try {
+    return publicSlug === decodeURIComponent(requestedSlug);
+  } catch {
+    return false;
+  }
+}
+
 export function isPublicCategory(value: string): value is ArticleCategory {
   return PUBLIC_CATEGORY_IDS.includes(value as ArticleCategory);
 }
@@ -209,7 +224,7 @@ export async function getPublicCategoryHub(category: string): Promise<PublicCate
 
 export async function getPublicBlogHub(slug: string): Promise<PublicBlogHub | null> {
   const { sources, articles, sourceSlugs } = await getCachedPublicHubData();
-  const source = sources.find((item) => getPublicSourceSlug(item) === slug);
+  const source = sources.find((item) => matchesPublicSourceSlug(item, slug));
   if (!source) return null;
 
   const sourceArticles = articles.filter((article) => article.source?.id === source.id);
