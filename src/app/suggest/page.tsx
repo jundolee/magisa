@@ -53,7 +53,7 @@ export default async function SuggestPage({
       )}
       {error && (
         <Text as="p" textStyle="t3Regular" color="fg.critical">
-          {decodeURIComponent(error)}
+          {error}
         </Text>
       )}
     </main>

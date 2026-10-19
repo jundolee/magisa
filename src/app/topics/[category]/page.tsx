@@ -118,7 +118,7 @@ export default async function TopicPage({ params }: TopicPageProps) {
       "@type": "BreadcrumbList",
       itemListElement: [
         { "@type": "ListItem", position: 1, name: SITE_NAME, item: SITE_URL },
-        { "@type": "ListItem", position: 2, name: "주제", item: `${SITE_URL}/topics/${hub.category}` },
+        { "@type": "ListItem", position: 2, name: "주제", item: `${SITE_URL}/topics` },
         { "@type": "ListItem", position: 3, name: hub.meta.label, item: canonical },
       ],
     },

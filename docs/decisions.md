@@ -593,7 +593,13 @@
 ### 2026-10-19 — Google OAuth에서 계정 선택 창 표시
 **배경**: 앱에서 로그아웃해도 브라우저의 Google 세션은 유지되므로 다음 Google OAuth 진입이 같은 계정으로 바로 이어질 수 있다. 사용자가 다른 계정을 선택하려 해도 계정 선택 화면이 나오지 않는 문제를 보고했다.
 **결정**: `signInWithOAuth` 요청에 `prompt=select_account`를 넣어 로그인 시마다 Google 계정 선택 창을 표시한다. 이 설정은 앱 세션을 종료하거나 Google 세션을 지우지 않으며, 사용자가 브라우저에 로그인된 계정 중 하나를 선택하도록 한다.
-**검증**: Supabase Auth JS의 `queryParams` 옵션과 Google OAuth의 `select_account` prompt를 사용한다. `npx tsc --noEmit` 및 프로덕션 빌드 통과. 배포 후 OAuth redirect URL에 `prompt=select_account`가 포함되는지 확인한다.
+**검증**: Supabase Auth JS의 `queryParams` 옵션과 Google OAuth의 `select_account` prompt를 사용한다. PR #6 배포 후 프로덕션 OAuth redirect URL에 `prompt=select_account`가 포함되고 Google 계정 선택 화면이 표시되는 것을 확인했다. `npx tsc --noEmit` 및 프로덕션 빌드도 통과했다.
 **영향**: `src/app/login/actions.ts`.
+
+### 2026-10-19 — 인증 후 이동 경로를 같은 사이트 내부로 제한
+**배경**: 로그인·회원가입의 `next` 값은 브라우저 입력인데 로그인 페이지, 서버 액션, OAuth callback에서 그대로 redirect에 사용됐다. 예를 들어 `next=@attacker.example/`는 origin이 외부 도메인인 URL로 이어져 로그인 완료 뒤 사용자를 공격자 사이트로 보낼 수 있었다.
+**결정**: 모든 로그인 흐름에서 `next`를 검증해 root-relative 내부 경로만 허용하고, 잘못된 값은 `/`로 보낸다. OAuth callback도 검증된 경로를 현재 origin에 `new URL`로 결합한다.
+**검증**: 실행 경로 `/sources?tab=active`는 유지하고 `@attacker.example/`, `//attacker.example/`, absolute external URL, backslash 경로는 모두 `/`로 대체되는지 확인했다. TypeScript 검사와 프로덕션 빌드는 통과했다.
+**영향**: `src/lib/safe-next-path.ts`, `src/app/login/page.tsx`, `src/app/login/actions.ts`, `src/app/auth/callback/route.ts`, `src/app/admin-login/page.tsx`, `src/app/admin-login/actions.ts`, `src/app/topics/[category]/page.tsx`.
 
 
