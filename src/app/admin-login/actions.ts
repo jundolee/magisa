@@ -3,10 +3,11 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ADMIN_COOKIE_NAME, sha256Hex } from "@/lib/admin-auth";
+import { safeNextPath } from "@/lib/safe-next-path";
 
 export async function adminLoginAction(formData: FormData): Promise<void> {
   const password = String(formData.get("password") ?? "");
-  const next = String(formData.get("next") ?? "/sources");
+  const next = safeNextPath(formData.get("next") ?? "/sources");
   const expectedPassword = process.env.ADMIN_PASSWORD;
 
   if (!expectedPassword || password !== expectedPassword) {

@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { migrateVisitorDataToUser } from "@/lib/data/articles";
+import { safeNextPath } from "@/lib/safe-next-path";
 import { LEGACY_VISITOR_COOKIE_NAME, VISITOR_COOKIE_NAME } from "@/lib/visitor";
 
 // rss-parser/cheerio는 아니지만 next/headers의 cookies()를 통해 세션 쿠키를 직접 써야 해서
@@ -10,7 +11,7 @@ import { LEGACY_VISITOR_COOKIE_NAME, VISITOR_COOKIE_NAME } from "@/lib/visitor";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
+  const next = safeNextPath(searchParams.get("next"));
 
   if (code) {
     const supabase = await createClient();
@@ -24,7 +25,9 @@ export async function GET(request: NextRequest) {
           cookieStore.get(VISITOR_COOKIE_NAME)?.value ?? cookieStore.get(LEGACY_VISITOR_COOKIE_NAME)?.value;
         if (visitorId) await migrateVisitorDataToUser(visitorId, data.user.id);
       }
-      return NextResponse.redirect(`${origin}${next}`);
+      const redirectUrl = new URL(next, origin);
+      if (redirectUrl.origin !== origin) return NextResponse.redirect(new URL("/", origin));
+      return NextResponse.redirect(redirectUrl);
     }
   }
 

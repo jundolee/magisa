@@ -4,6 +4,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { migrateVisitorDataToUser } from "@/lib/data/articles";
+import { safeNextPath } from "@/lib/safe-next-path";
 import { LEGACY_VISITOR_COOKIE_NAME, VISITOR_COOKIE_NAME } from "@/lib/visitor";
 
 type OAuthProvider = "google";
@@ -30,7 +31,7 @@ async function getOrigin(): Promise<string> {
 export async function signInWithProviderAction(provider: OAuthProvider, next: string, _formData: FormData) {
   const origin = await getOrigin();
   const callbackUrl = new URL("/auth/callback", origin);
-  if (next) callbackUrl.searchParams.set("next", next);
+  callbackUrl.searchParams.set("next", safeNextPath(next));
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -53,7 +54,7 @@ export async function signUpAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const passwordConfirm = String(formData.get("passwordConfirm") ?? "");
-  const next = String(formData.get("next") ?? "/");
+  const next = safeNextPath(formData.get("next"));
 
   if (!nickname || !email || !password) {
     redirect("/login?error=닉네임, 이메일, 비밀번호를 입력해주세요");
@@ -77,7 +78,7 @@ export async function signUpAction(formData: FormData) {
 export async function signInWithPasswordAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const next = String(formData.get("next") ?? "/");
+  const next = safeNextPath(formData.get("next"));
 
   if (!email || !password) {
     redirect("/login?error=이메일과 비밀번호를 입력해주세요");

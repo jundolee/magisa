@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Text } from "@seed-design/react";
 import { ActionButton } from "seed-design/ui/action-button";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
+import { safeNextPath } from "@/lib/safe-next-path";
 import { adminLoginAction } from "./actions";
 
 export const metadata: Metadata = {
@@ -14,6 +15,7 @@ export default async function AdminLoginPage({
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
   const { next, error } = await searchParams;
+  const redirectTo = safeNextPath(next ?? "/sources");
 
   return (
     <main style={{ maxWidth: 360, margin: "120px auto", display: "flex", flexDirection: "column", gap: 20 }}>
@@ -22,7 +24,7 @@ export default async function AdminLoginPage({
       </Text>
 
       <form action={adminLoginAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <input type="hidden" name="next" value={next ?? "/sources"} />
+        <input type="hidden" name="next" value={redirectTo} />
         <TextField name="password" label="비밀번호">
           <TextFieldInput type="password" required autoFocus />
         </TextField>

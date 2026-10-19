@@ -4,6 +4,7 @@ import { Text } from "@seed-design/react";
 import { ActionButton } from "seed-design/ui/action-button";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import { GoogleIcon } from "@/components/google-icon";
+import { safeNextPath } from "@/lib/safe-next-path";
 import { getCurrentUser } from "@/lib/supabase/current-user";
 import { signInWithPasswordAction, signInWithProviderAction } from "./actions";
 import { SignUpSection } from "./signup-section";
@@ -18,7 +19,7 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
   const { next, error } = await searchParams;
-  const redirectTo = next ?? "/";
+  const redirectTo = safeNextPath(next);
 
   const user = await getCurrentUser();
   if (user) redirect(redirectTo);
@@ -73,7 +74,7 @@ export default async function LoginPage({
 
       {error && (
         <Text as="p" textStyle="t3Regular" color="fg.critical">
-          {decodeURIComponent(error)}
+          {error}
         </Text>
       )}
     </main>
