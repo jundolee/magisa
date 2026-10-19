@@ -24,6 +24,12 @@ MVP 완료 이후 추가로 들어온 요청:
 - [x] 썸네일 영구 저장 (Supabase Storage로 다운로드/재호스팅, presigned URL 만료 문제 해결)
 - [x] 자체 RSS 피드(`/feed.xml`) 공개 + "블로그 추천하기" 공개 제안 폼 (`docs/growth-strategy.md` 참고)
 - [x] AI 자동 카테고리 및 태깅 (Frontend, Backend, AI/ML 등 8대 표준 카테고리 분류 + 필터 칩 + 배지)
+- [x] 제목·요약·태그 단어 검색 (다중 단어와 주요 한영 기술 용어 별칭 지원)
+- [x] 공개 블로그 허브 소스별 최신 글 조회, 빈 허브 noindex 및 sitemap 제외
+- [x] 콘텐츠 발견 시각에 기반한 sitemap `lastmod`
+- [x] 공개 브랜드를 테크곳간으로 정렬하고 첫 화면에 실제 검색·이어 읽기 기능 설명
+- [x] 한글/영문 약어·다중 단어 검색과 두 글자 자동 검색
+- [x] 전체 수집 아카이브 기반 주제 허브, 빈 허브 `noindex` 및 sitemap 제외
 
 ## Phase 2+ 후보 (제안 — 우선순위는 MVP 완료 후 논의)
 
@@ -32,9 +38,20 @@ MVP 완료 이후 추가로 들어온 요청:
 | Supabase Auth 로그인 게이팅 (매직링크 추천) | MVP에서 의도적으로 제외한 항목, 이후 최우선 후보 |
 | 다크모드 토글 | `data-seed-color-mode` 인라인 스크립트 패턴 필요 |
 | 소스 태그/카테고리 | 소스 수가 20~30개 넘어가면 유용 |
-| 제목/요약 전문검색 | Postgres `tsvector`/`pg_trgm`, 외부 검색 서비스 불필요 |
 | 읽음 나중에 보기(저장/스타) 큐 | `is_saved` 컬럼 하나로 저비용 구현 가능 |
 | 이메일 일일 다이제스트 | 크론 작업 재사용, Resend 등 연동 |
 | 목록 키보드 단축키 (j/k/enter/u) | 다독자를 위한 편의 기능 |
 
 이 목록은 확정된 계획이 아니라 후보 제안이다. 진행 중 새로운 아이디어가 생기면 이 표에 계속 추가한다.
+
+## 배포·측정 후속 작업
+
+- [x] `0013_tokenized_article_search.sql`, `0014_public_hub_queries.sql` 적용; 검색 10건, 블로그 36개, 색인 주제 8개와 서비스 역할 권한 확인
+- [ ] 코드 변경을 배포한 뒤 sitemap `lastmod`가 새 글 발견 시각을 반영하는지 확인
+- [ ] Search Console에서 브랜드/비브랜드 노출·클릭 기준선을 기록
+- [ ] Amplitude 키와 `page_viewed`, `article_search_completed` 수집 여부 확인
+- [ ] GTM/GA 컨테이너가 페이지 URL의 `q` 검색어를 전송하는지 점검
+- [ ] 새 소스 빌드를 `techgotgan.vercel.app`에 배포하고 canonical·Open Graph·robots·sitemap이 새 호스트를 쓰는지 확인
+- [x] Supabase Auth Site URL·redirect allowlist 갱신, 새 Google Search Console 속성 소유권 확인; sitemap 제출은 배포 후 진행
+- [ ] 이전 `magisa.vercel.app` 주소를 Vercel에서 다시 alias로 연결해 301할 수 있는지 확인; 현재는 `DEPLOYMENT_NOT_FOUND`
+- [ ] `techgotgan.kr` 등록기관·상표 검색은 별도 맞춤 도메인을 도입할 때 재확인

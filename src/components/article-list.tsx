@@ -10,14 +10,14 @@ import { ReadAllControls } from "./read-all-controls";
 import { ScrollToTopButton } from "./scroll-to-top-button";
 import { PaginationControls } from "./pagination-controls";
 import { CategoryFilterChips } from "./category-filter-chips";
+import { trackArticleSearchCompleted } from "@/lib/analytics";
 import { loadArticlesAction } from "@/app/articles/actions";
 import type { ArticleFilter, ArticleListItem } from "@/lib/data/articles";
 import type { CategoryId } from "@/lib/categories";
 
 const SEARCH_DEBOUNCE_MS = 400;
 
-// 한 글자짜리 검색어는 pg_trgm 인덱스가 트라이그램을 못 뽑아내 테이블 전체 스캔으로 떨어진다
-// (search_articles RPC 참고) — 타이핑 중 자동검색은 보류하고, Enter로 명시적으로 요청할 때만 허용한다.
+// 두 글자 검색은 AI, DB, ML처럼 테크 글에서 자주 쓰는 약어에 필요하다.
 const MIN_AUTO_SEARCH_LENGTH = 2;
 
 const PAGE_SIZE = 30;
@@ -46,6 +46,7 @@ export function ArticleList({
   const [sourceId, setSourceId] = useState(initialSourceId);
   const [category, setCategory] = useState<CategoryId>(initialCategory);
   const [query, setQuery] = useState(initialQuery);
+  const [shortQuerySubmitted, setShortQuerySubmitted] = useState(false);
   const [page, setPage] = useState(1);
 
   // 검색 결과로 목록을 갈아끼우는 상태 — null이면 "검색 중이 아님"을 뜻하고, 이때는 아래에서 매 렌더마다
@@ -65,6 +66,8 @@ export function ArticleList({
   const [searchExpanded, setSearchExpanded] = useState(startedWithQuery);
 
   const baseArticles = searchResults ?? articles;
+  const queryTooShort =
+    query.trim().length > 0 && Array.from(query.trim()).length < MIN_AUTO_SEARCH_LENGTH && !shortQuerySubmitted;
 
   // 필터/소스 전환과 달리 검색은 화면에 로드된 데이터(최근 200개)가 아니라 전체 아카이브를 다시 조회해야
   // 해서, 입력마다 서버를 왕복하지 않도록 디바운스 후 서버 액션(loadArticlesAction)으로 데이터를 받아와
@@ -88,6 +91,14 @@ export function ArticleList({
   // 최신 결과를 덮어쓰지 않도록 요청마다 증가하는 일련번호로 낡은 응답을 걸러낸다.
   const requestSeqRef = useRef(0);
   const [isSearching, startSearchTransition] = useTransition();
+  const trackedInitialQueryRef = useRef(false);
+
+  useEffect(() => {
+    if (!startedWithQuery || trackedInitialQueryRef.current) return;
+    if (Array.from(initialQuery.trim()).length < MIN_AUTO_SEARCH_LENGTH) return;
+    trackedInitialQueryRef.current = true;
+    trackArticleSearchCompleted(initialQuery, articles.length, initialCategory, initialSourceId !== "all");
+  }, [startedWithQuery, initialQuery, initialCategory, initialSourceId, articles.length]);
 
   useEffect(() => {
     return () => {
@@ -199,19 +210,23 @@ export function ArticleList({
     const cached = searchCacheRef.current.get(trimmed);
     if (cached) {
       setSearchResults(cached);
+      trackArticleSearchCompleted(trimmed, cached.length, categoryRef.current, sourceIdRef.current !== "all");
       return;
     }
 
+    setSearchResults([]);
     startSearchTransition(async () => {
       const result = await loadArticlesAction(trimmed);
       if (seq !== requestSeqRef.current) return; // 그사이 더 최신 검색이 시작됐으면 낡은 응답은 버린다
       searchCacheRef.current.set(trimmed, result);
       setSearchResults(result);
+      trackArticleSearchCompleted(trimmed, result.length, categoryRef.current, sourceIdRef.current !== "all");
     });
   }
 
   function handleQueryChange(value: string) {
     setQuery(value);
+    setShortQuerySubmitted(false);
     setPage(1);
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
 
@@ -221,7 +236,7 @@ export function ArticleList({
       runSearch(value);
       return;
     }
-    if (trimmed.length < MIN_AUTO_SEARCH_LENGTH) return; // Enter로 명시 요청할 때만 검색 (위 상수 설명 참고)
+    if (Array.from(trimmed).length < MIN_AUTO_SEARCH_LENGTH) return; // 한 글자 검색만 Enter로 명시 요청
 
     // 타이핑할 때마다 서버를 왕복하지 않도록 디바운스 후에만 실제 검색을 건다.
     searchDebounceRef.current = setTimeout(() => runSearch(value), SEARCH_DEBOUNCE_MS);
@@ -229,6 +244,7 @@ export function ArticleList({
 
   function handleSearchSubmit() {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    setShortQuerySubmitted(Array.from(query.trim()).length > 0 && Array.from(query.trim()).length < MIN_AUTO_SEARCH_LENGTH);
     runSearch(query);
   }
 
@@ -245,7 +261,7 @@ export function ArticleList({
         }}
       >
         <Text as="h1" textStyle="t8Bold" color="fg.neutral">
-          글 목록
+          최신 글
         </Text>
         {/* 검색창이 펼쳐지면 배지/전체읽음 버튼을 숨기고 이 그룹이 줄 전체(flexBasis:100%)를
             차지하게 한다 — 넷을 한 줄에 다 맞추려다 보니 좁은 화면에서 검색창과 버튼들이 각자
@@ -279,7 +295,7 @@ export function ArticleList({
 
       {query.trim() && (
         <Text as="p" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginBottom: 16 }}>
-          {isSearching ? "검색 중…" : `${optimisticArticles.length}개 검색됨`}
+          {queryTooShort ? "한 글자 검색은 Enter를 눌러 실행할 수 있어요." : isSearching ? "검색 중…" : `${optimisticArticles.length}개 검색됨`}
         </Text>
       )}
 
@@ -326,7 +342,7 @@ export function ArticleList({
         />
       </div>
 
-      <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0 }}>
+      {!queryTooShort && <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0 }}>
         {pagedArticles.map((article, index) => (
           // 페이지 첫 3개는 스크롤 전에 바로 보이는 썸네일이라 lazy 대신 우선 로드 (ArticleRow 참고).
           <ArticleRow
@@ -337,13 +353,17 @@ export function ArticleList({
             priority={index < 3}
           />
         ))}
-      </ul>
-      {visibleArticles.length === 0 && (
+      </ul>}
+      {!queryTooShort && !isSearching && visibleArticles.length === 0 && (
         <Text as="p" textStyle="t4Regular" color="var(--seed-color-fg-neutral-muted)">
-          표시할 글이 없습니다.
+          {query.trim() && optimisticArticles.length === 0
+            ? "검색 결과가 없어요. 다른 단어나 표현으로 다시 검색해보세요."
+            : query.trim()
+              ? "현재 필터와 일치하는 글이 없습니다. 필터를 바꿔보세요."
+              : "표시할 글이 없습니다."}
         </Text>
       )}
-      {totalPages > 1 && <PaginationControls page={safePage} totalPages={totalPages} onChange={goToPage} />}
+      {!queryTooShort && totalPages > 1 && <PaginationControls page={safePage} totalPages={totalPages} onChange={goToPage} />}
       <ScrollToTopButton />
     </>
   );

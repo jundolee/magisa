@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { Text } from "@seed-design/react";
 import { PageHeader } from "@/components/page-header";
 import { SITE_URL, getPublicBlogIndex } from "@/lib/data/public-hubs";
+import { SITE_NAME } from "@/app/seo";
 
 // 공개 허브는 Supabase 읽기 모듈을 함께 번들링하므로 기본 Node.js 런타임을 사용한다.
 export const runtime = "nodejs";
@@ -12,14 +13,14 @@ export const fetchCache = "default-cache";
 
 const CANONICAL_URL = `${SITE_URL}/blogs`;
 const TITLE = "구독 테크 블로그";
-const DESCRIPTION = "매일 읽는 테크 기사가 수집하는 활성 테크 블로그를 한곳에서 둘러보세요.";
+const DESCRIPTION = "테크곳간이 새 글을 모으는 테크 블로그를 둘러보고, 발행처별 최신 글을 찾아보세요.";
 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: CANONICAL_URL },
-  openGraph: { title: `${TITLE} | 매일 읽는 테크 기사`, description: DESCRIPTION, url: CANONICAL_URL, type: "website", locale: "ko_KR" },
-  twitter: { card: "summary", title: `${TITLE} | 매일 읽는 테크 기사`, description: DESCRIPTION },
+  openGraph: { title: `${TITLE} | ${SITE_NAME}`, description: DESCRIPTION, url: CANONICAL_URL, type: "website", locale: "ko_KR" },
+  twitter: { card: "summary", title: `${TITLE} | ${SITE_NAME}`, description: DESCRIPTION },
 };
 
 export default async function BlogsPage() {
@@ -32,10 +33,10 @@ export default async function BlogsPage() {
     name: TITLE,
     description: DESCRIPTION,
     url: CANONICAL_URL,
-    isPartOf: { "@type": "WebSite", name: "매일 읽는 테크 기사", url: SITE_URL },
+    isPartOf: { "@type": "WebSite", name: SITE_NAME, url: SITE_URL },
     mainEntity: {
       "@type": "ItemList",
-      itemListElement: blogs.map((blog, index) => ({
+      itemListElement: blogs.filter((blog) => blog.hasArticles).map((blog, index) => ({
         "@type": "ListItem",
         position: index + 1,
         name: blog.displayName,
@@ -55,7 +56,7 @@ export default async function BlogsPage() {
       <header style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <Text as="h1" textStyle="t8Bold" color="fg.neutral">구독 테크 블로그</Text>
         <Text as="p" textStyle="t4Regular" color="var(--seed-color-fg-neutral-muted)">
-          매일 읽는 테크 기사가 현재 수집 중인 블로그를 찾아보고, 블로그별 최신 글을 확인하세요.
+          테크곳간이 새 글을 모으는 블로그와 발행처별 최신 글을 확인하세요.
         </Text>
       </header>
 
@@ -71,23 +72,43 @@ export default async function BlogsPage() {
           <ul style={{ display: "flex", flexDirection: "column", gap: 12, listStyle: "none" }}>
             {blogs.map((blog) => (
               <li key={blog.slug}>
-                <Link
-                  href={`/blogs/${encodeURIComponent(blog.slug)}`}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 5,
-                    padding: 16,
-                    border: "1px solid var(--seed-color-stroke-neutral-subtle)",
-                    borderRadius: 12,
-                  }}
-                >
-                  <Text as="h3" textStyle="t5Bold" color="fg.neutral">{blog.displayName}</Text>
-                  <Text as="p" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)">{blog.host}</Text>
-                  <Text as="p" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">
-                    {blog.latestArticleTitle ? `최근 글: ${blog.latestArticleTitle}` : "수집된 글을 기다리고 있습니다."}
-                  </Text>
-                </Link>
+                {blog.hasArticles ? (
+                  <Link
+                    href={`/blogs/${encodeURIComponent(blog.slug)}`}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 5,
+                      padding: 16,
+                      border: "1px solid var(--seed-color-stroke-neutral-subtle)",
+                      borderRadius: 12,
+                    }}
+                  >
+                    <Text as="h3" textStyle="t5Bold" color="fg.neutral">{blog.displayName}</Text>
+                    <Text as="p" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)">{blog.host}</Text>
+                    <Text as="p" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">
+                      최근 글: {blog.latestArticleTitle}
+                    </Text>
+                  </Link>
+                ) : (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 5,
+                      padding: 16,
+                      border: "1px solid var(--seed-color-stroke-neutral-subtle)",
+                      borderRadius: 12,
+                      opacity: 0.7,
+                    }}
+                  >
+                    <Text as="h3" textStyle="t5Bold" color="fg.neutral">{blog.displayName}</Text>
+                    <Text as="p" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)">{blog.host}</Text>
+                    <Text as="p" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">
+                      아직 수집된 글이 없습니다.
+                    </Text>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

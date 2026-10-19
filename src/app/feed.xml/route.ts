@@ -1,13 +1,10 @@
 import { listArticles } from "@/lib/data/articles";
+import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from "@/app/seo";
 
 export const runtime = "edge";
 export const preferredRegion = "global";
 // listArticles가 내부적으로 60초 캐시(getCachedArticleFeed)를 쓰므로 여기서도 같은 주기로 맞춘다.
 export const revalidate = 60;
-
-const SITE_URL = "https://magisa.vercel.app";
-const SITE_TITLE = "매일 읽는 테크 기사 | 최신 테크 기사 모아보기";
-const SITE_DESCRIPTION = "여러 테크 블로그의 새 테크 기사를 매일 모아 보여드리는 서비스";
 
 function escapeXml(value: string): string {
   return value
@@ -19,7 +16,7 @@ function escapeXml(value: string): string {
 }
 
 /**
- * 매기사가 모은 글을 남들도 자기 RSS 리더로 구독할 수 있게 하는 공개 피드.
+ * 테크곳간이 모은 글을 남들도 자기 RSS 리더로 구독할 수 있게 하는 공개 피드.
  * 개인 열람용 read_status는 로그인/방문자별로 다르므로 여기서는 항상 비로그인(null) 기준 —
  * 전체 글 목록(최신 200개)을 그대로 노출한다.
  */

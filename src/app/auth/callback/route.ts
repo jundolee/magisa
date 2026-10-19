@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { migrateVisitorDataToUser } from "@/lib/data/articles";
-import { VISITOR_COOKIE_NAME } from "@/lib/visitor";
+import { LEGACY_VISITOR_COOKIE_NAME, VISITOR_COOKIE_NAME } from "@/lib/visitor";
 
 // rss-parser/cheerio는 아니지만 next/headers의 cookies()를 통해 세션 쿠키를 직접 써야 해서
 // Route Handler로 구현한다 (OAuth/이메일 확인 리다이렉트가 이 경로로 돌아온다).
@@ -19,7 +19,9 @@ export async function GET(request: NextRequest) {
       // 로그인 전 익명 방문자 쿠키로 쌓아둔 읽음/즐겨찾기 기록을 최초 로그인 시 이 계정으로 옮긴다
       // (docs/decisions.md 참고).
       if (data.user) {
-        const visitorId = (await cookies()).get(VISITOR_COOKIE_NAME)?.value;
+        const cookieStore = await cookies();
+        const visitorId =
+          cookieStore.get(VISITOR_COOKIE_NAME)?.value ?? cookieStore.get(LEGACY_VISITOR_COOKIE_NAME)?.value;
         if (visitorId) await migrateVisitorDataToUser(visitorId, data.user.id);
       }
       return NextResponse.redirect(`${origin}${next}`);

@@ -3,11 +3,12 @@ import { Text } from "@seed-design/react";
 import { ActionButton } from "seed-design/ui/action-button";
 import { TextField, TextFieldInput, TextFieldTextarea } from "seed-design/ui/text-field";
 import { PageHeader } from "@/components/page-header";
+import { SITE_NAME } from "@/app/seo";
 import { suggestSourceAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "블로그 추천하기",
-  description: "매기사가 모았으면 하는 테크 블로그를 추천해주세요.",
+  description: `${SITE_NAME}이 모았으면 하는 테크 블로그를 추천해주세요.`,
   robots: { index: false, follow: true },
   alternates: { canonical: "/suggest" },
 };
@@ -27,7 +28,7 @@ export default async function SuggestPage({
         블로그 추천하기
       </Text>
       <Text as="p" textStyle="t4Regular" color="var(--seed-color-fg-neutral-muted)">
-        매기사가 모았으면 하는 테크 블로그가 있나요? 주소만 남겨주시면 검토 후 추가할게요.
+        {SITE_NAME}이 모았으면 하는 테크 블로그가 있나요? 주소를 남겨주시면 검토 후 추가할게요.
       </Text>
 
       <form

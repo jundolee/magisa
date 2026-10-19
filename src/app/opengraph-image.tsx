@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { SITE_DESCRIPTION, SITE_NAME } from "./seo";
 
-export const alt = "매일 읽는 테크 기사";
+export const alt = SITE_NAME;
 export const size = {
   width: 1200,
   height: 630,

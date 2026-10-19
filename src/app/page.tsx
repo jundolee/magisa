@@ -45,17 +45,18 @@ async function ArticleListSection({
   initialCategory: CategoryId;
   initialQuery: string;
 }) {
+  const shouldSearchInitially = Array.from(initialQuery.trim()).length >= 2;
   // 세션 확인, 글 목록 캐시 조회, 소스 목록 조회를 모두 병렬로 시작해 첫 응답 지연을 최소화한다.
   const [user, rawArticles, sources] = await Promise.all([
     getCurrentUser(),
-    initialQuery ? null : getCachedArticleFeed(),
+    shouldSearchInitially ? null : getCachedArticleFeed(),
     listSources(),
   ]);
   const userId = user?.id ?? null;
 
   // 검색어(q)가 있을 때만 예외 — 검색은 최근 200개 캐시가 아니라 전체 아카이브를 대상으로 해야 하므로
   // searchArticles()로 DB에서 직접 검색해온다.
-  const articles = initialQuery
+  const articles = shouldSearchInitially
     ? await searchArticles(initialQuery, userId)
     : await attachUserState(rawArticles!, userId);
 
@@ -93,12 +94,15 @@ export default async function Home({
 
       {/* 처음 들어온 방문자가 "이게 뭐 하는 사이트인지" 바로 알 수 있게 짧게 설명 (docs/growth-strategy.md 참고) */}
       <Text
-        as="p"
-        textStyle="t3Regular"
-        color="var(--seed-color-fg-neutral-muted)"
-        style={{ marginBottom: 20 }}
+        as="h1"
+        textStyle="t8Bold"
+        color="fg.neutral"
+        style={{ marginBottom: 8 }}
       >
-                여러 테크 블로그의 새 테크 기사를 매일 모아 보여드리는 테크 기사 모음 서비스예요. 로그인하면 읽음/즐겨찾기가 계정에 저장돼요.
+        흩어진 테크 블로그 글을 한곳에서 찾아 읽어요
+      </Text>
+      <Text as="p" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginBottom: 20 }}>
+        테크곳간은 여러 기술 블로그의 새 글을 모아 제목·요약·태그로 검색할 수 있는 피드예요. 로그인하면 읽음 표시와 즐겨찾기를 저장해 다음에 이어 볼 수 있어요.
       </Text>
 
       <nav aria-label="콘텐츠 탐색" style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>

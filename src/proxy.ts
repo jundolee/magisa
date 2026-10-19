@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { ADMIN_COOKIE_NAME, sha256Hex } from "@/lib/admin-auth";
+import { ADMIN_COOKIE_NAME, LEGACY_ADMIN_COOKIE_NAME, sha256Hex } from "@/lib/admin-auth";
 
 /**
  * ADMIN_EMAILS에 등록된 이메일로 로그인된 상태인지 확인한다. Supabase 세션 쿠키가 아예 없으면
@@ -56,7 +56,8 @@ async function guardSourcesAdmin(request: NextRequest): Promise<NextResponse> {
   }
 
   const expected = await sha256Hex(password);
-  const cookie = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
+  const cookie =
+    request.cookies.get(ADMIN_COOKIE_NAME)?.value ?? request.cookies.get(LEGACY_ADMIN_COOKIE_NAME)?.value;
   if (cookie === expected) {
     return NextResponse.next();
   }

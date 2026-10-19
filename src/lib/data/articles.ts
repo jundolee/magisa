@@ -9,6 +9,7 @@ export interface ArticleListItem {
   excerpt: string | null;
   thumbnail_url: string | null;
   published_at: string | null;
+  discovered_at?: string | null;
   click_count: number;
   category: string;
   tags: string[];
@@ -35,11 +36,32 @@ export async function getCachedArticleFeed(): Promise<Omit<ArticleListItem, "is_
   return fetchCachedFromSupabase<Omit<ArticleListItem, "is_read" | "is_favorite">[]>(
     "articles",
     {
-      select: "id,title,url,excerpt,thumbnail_url,published_at,click_count,category,tags,source:sources(id,title,site_url,favicon_url)",
+      select: "id,title,url,excerpt,thumbnail_url,published_at,discovered_at,click_count,category,tags,source:sources(id,title,site_url,favicon_url)",
       // 카드에 보이는 날짜(published_at) 기준 내림차순 — 화면에 표시되는 값과 정렬 순서가 어긋나지 않도록 한다.
       // published_at이 없는 경우만 맨 뒤로 보낸다.
       order: "published_at.desc.nullslast",
       limit: "200",
+    },
+    { revalidate: 60, tags: ["articles"] }
+  );
+}
+
+/**
+ * 전체 최신 피드의 200행 제한을 넘어서 블로그별 최근 글을 찾는다.
+ * 블로그 허브에는 최신 20건을 가져온다.
+ */
+export async function getCachedArticlesForSource(
+  sourceId: string,
+  limit = 20
+): Promise<Omit<ArticleListItem, "is_read" | "is_favorite">[]> {
+  const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 50);
+  return fetchCachedFromSupabase<Omit<ArticleListItem, "is_read" | "is_favorite">[]>(
+    "articles",
+    {
+      select: "id,title,url,excerpt,thumbnail_url,published_at,discovered_at,click_count,category,tags,source:sources(id,title,site_url,favicon_url)",
+      source_id: `eq.${sourceId}`,
+      order: "published_at.desc.nullslast,discovered_at.desc",
+      limit: String(safeLimit),
     },
     { revalidate: 60, tags: ["articles"] }
   );
@@ -120,9 +142,9 @@ interface SearchArticleRow {
 }
 
 /**
- * 제목/요약 전문검색 — listArticles와 달리 최근 200개 캐시가 아니라 전체 아카이브를 대상으로
- * DB에서 직접 검색한다(supabase/migrations/0007_article_search.sql의 search_articles RPC,
- * pg_trgm 기반). 검색 중이 아닐 때 쓰는 60초 캐시(getCachedArticleFeed)는 여기서 재사용하지 않는다 —
+ * 제목/요약/태그의 단어 검색 — listArticles와 달리 최근 200개 캐시가 아니라 전체 아카이브를 대상으로
+ * DB에서 직접 검색한다(supabase/migrations/0013_tokenized_article_search.sql의 search_articles RPC,
+ * pg_trgm 인덱스와 한영 별칭 기반). 검색 중이 아닐 때 쓰는 60초 캐시(getCachedArticleFeed)는 여기서 재사용하지 않는다 —
  * 검색어마다 결과가 달라 캐시 키를 만들 실익이 없다.
  */
 export async function searchArticles(query: string, userId: string | null): Promise<ArticleListItem[]> {

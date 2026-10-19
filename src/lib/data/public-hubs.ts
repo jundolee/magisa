@@ -1,11 +1,13 @@
 import "server-only";
 import { CATEGORIES, type ArticleCategory } from "@/lib/categories";
-import { getCachedArticleFeed, type ArticleListItem } from "@/lib/data/articles";
+import { getCachedArticlesForSource, type ArticleListItem } from "@/lib/data/articles";
 import { listSources, type Source } from "@/lib/data/sources";
+import { fetchCachedRpcFromSupabase } from "@/lib/supabase/cached-rest";
+import { SITE_URL } from "@/app/seo";
 
 const MAX_HUB_ARTICLES = 20;
 
-export const SITE_URL = "https://magisa.vercel.app";
+export { SITE_URL };
 
 export const PUBLIC_CATEGORY_IDS = CATEGORIES.filter((category) => category.id !== "all").map(
   (category) => category.id
@@ -68,6 +70,7 @@ export interface PublicHubArticle {
   url: string;
   excerpt: string | null;
   publishedAt: string | null;
+  discoveredAt: string | null;
   category: ArticleCategory;
   source: {
     title: string;
@@ -79,6 +82,14 @@ export interface PublicCategoryHub {
   category: ArticleCategory;
   meta: PublicCategoryMeta;
   articles: PublicHubArticle[];
+  lastModified: string | null;
+}
+
+export interface PublicCategoryIndexItem {
+  category: ArticleCategory;
+  meta: PublicCategoryMeta;
+  articleCount: number;
+  lastModified: string | null;
 }
 
 export interface PublicBlogHub {
@@ -95,7 +106,8 @@ export interface PublicBlogIndexItem {
   displayName: string;
   host: string;
   latestArticleTitle: string | null;
-  articleCount: number;
+  hasArticles: boolean;
+  lastModified: string | null;
 }
 
 function hostFromUrl(value: string): string {
@@ -159,6 +171,7 @@ function toPublicArticle(
     url: article.url,
     excerpt: article.excerpt,
     publishedAt: article.published_at,
+    discoveredAt: article.discovered_at ?? null,
     category,
     source:
       article.source && sourceTitle
@@ -170,64 +183,127 @@ function toPublicArticle(
   };
 }
 
-async function getCachedPublicHubData() {
-  // 두 데이터 소스 모두 force-cache + revalidate/tags 기반의 읽기 전용 조회다.
-  // 이 레이어에서 service client를 새로 만들지 않아 공개 페이지도 서비스 키 요청을 캐시로 흡수한다.
-  const [allSources, allArticles] = await Promise.all([listSources(), getCachedArticleFeed()]);
-  // 일시중지한 소스는 공개 블로그 목록뿐 아니라 주제와 개별 허브의 글에서도 숨긴다.
-  // 먼저 활성 소스 ID를 확정해야 조인된 article.source만으로 비활성 글이 새는 일을 막을 수 있다.
-  const sources = allSources.filter((source) => source.is_active);
-  const sourceIds = new Set(sources.map((source) => source.id));
-  const articles = allArticles.filter((article) => article.source && sourceIds.has(article.source.id));
-  const sourceSlugs = new Map(sources.map((source) => [source.id, getPublicSourceSlug(source)]));
-  return { sources, articles, sourceSlugs };
+interface PublicBlogIndexRow {
+  source_id: string;
+  latest_article_title: string | null;
+  has_articles: boolean;
+  last_modified: string | null;
+}
+
+interface PublicCategoryIndexRow {
+  category_id: string;
+  article_count: number;
+  last_modified: string | null;
+}
+
+interface PublicCategoryArticleRow {
+  id: string;
+  title: string;
+  url: string;
+  excerpt: string | null;
+  published_at: string | null;
+  discovered_at: string | null;
+  category: string;
+  source_id: string;
+  source_title: string | null;
+  source_site_url: string;
 }
 
 export async function getPublicBlogIndex(): Promise<PublicBlogIndexItem[]> {
-  const { sources, articles } = await getCachedPublicHubData();
-  const articleGroups = new Map<string, Omit<ArticleListItem, "is_read" | "is_favorite">[]>();
-
-  for (const article of articles) {
-    if (!article.source) continue;
-    const group = articleGroups.get(article.source.id) ?? [];
-    group.push(article);
-    articleGroups.set(article.source.id, group);
-  }
+  const [allSources, articleIndex] = await Promise.all([
+    listSources(),
+    fetchCachedRpcFromSupabase<PublicBlogIndexRow[]>("get_public_blog_index", {}, {
+      revalidate: 60,
+      tags: ["articles", "sources"],
+    }),
+  ]);
+  const sources = allSources.filter((source) => source.is_active);
+  const latestBySource = new Map(articleIndex.map((row) => [row.source_id, row]));
 
   return sources
     .map((source) => {
-      const sourceArticles = articleGroups.get(source.id) ?? [];
+      const latestArticle = latestBySource.get(source.id);
       return {
         slug: getPublicSourceSlug(source),
         displayName: source.title?.trim() || hostFromUrl(source.site_url),
         host: hostFromUrl(source.site_url),
-        latestArticleTitle: sourceArticles[0]?.title ?? null,
-        articleCount: sourceArticles.length,
+        latestArticleTitle: latestArticle?.latest_article_title ?? null,
+        hasArticles: latestArticle?.has_articles ?? false,
+        lastModified: latestArticle?.last_modified ?? null,
       };
     })
     .sort((a, b) => a.displayName.localeCompare(b.displayName, "ko"));
 }
 
+export async function getPublicCategoryIndex(): Promise<PublicCategoryIndexItem[]> {
+  const rows = await fetchCachedRpcFromSupabase<PublicCategoryIndexRow[]>("get_public_category_index", {}, {
+    revalidate: 60,
+    tags: ["articles", "sources"],
+  });
+  const byCategory = new Map(rows.map((row) => [row.category_id, row]));
+
+  return PUBLIC_CATEGORY_IDS.flatMap((category) => {
+    const row = byCategory.get(category);
+    return row
+      ? [{ category, meta: PUBLIC_CATEGORY_META[category], articleCount: Number(row.article_count), lastModified: row.last_modified }]
+      : [];
+  });
+}
+
 export async function getPublicCategoryHub(category: string): Promise<PublicCategoryHub | null> {
   if (!isPublicCategory(category)) return null;
 
-  const { articles, sourceSlugs } = await getCachedPublicHubData();
+  const [rows, sources] = await Promise.all([
+    fetchCachedRpcFromSupabase<PublicCategoryArticleRow[]>("get_public_category_articles", {
+      category_id: category,
+      requested_limit: String(MAX_HUB_ARTICLES),
+    }, { revalidate: 60, tags: ["articles", "sources"] }),
+    listSources(),
+  ]);
+  const sourceSlugs = new Map(
+    sources.filter((source) => source.is_active).map((source) => [source.id, getPublicSourceSlug(source)])
+  );
+  const articles = rows.map((article) => {
+    const categoryId = isPublicCategory(article.category) ? article.category : "general";
+    const sourceTitle = article.source_title?.trim() || article.source_site_url;
+    return {
+      id: article.id,
+      title: article.title,
+      url: article.url,
+      excerpt: article.excerpt,
+      publishedAt: article.published_at,
+      discoveredAt: article.discovered_at,
+      category: categoryId,
+      source: {
+        title: sourceTitle,
+        slug: sourceSlugs.get(article.source_id) ?? getPublicSourceSlug({
+          title: article.source_title,
+          site_url: article.source_site_url,
+        }),
+      },
+    } satisfies PublicHubArticle;
+  });
+
+  const lastModified = articles.reduce<string | null>((latest, article) => {
+    const candidate = article.discoveredAt ?? article.publishedAt;
+    return candidate && (!latest || Date.parse(candidate) > Date.parse(latest)) ? candidate : latest;
+  }, null);
+
   return {
     category,
     meta: PUBLIC_CATEGORY_META[category],
-    articles: articles
-      .filter((article) => article.category === category)
-      .slice(0, MAX_HUB_ARTICLES)
-      .map((article) => toPublicArticle(article, sourceSlugs)),
+    articles,
+    lastModified,
   };
 }
 
 export async function getPublicBlogHub(slug: string): Promise<PublicBlogHub | null> {
-  const { sources, articles, sourceSlugs } = await getCachedPublicHubData();
+  const sources = (await listSources()).filter((source) => source.is_active);
   const source = sources.find((item) => matchesPublicSourceSlug(item, slug));
   if (!source) return null;
 
-  const sourceArticles = articles.filter((article) => article.source?.id === source.id);
+  const sourceArticles = await getCachedArticlesForSource(source.id, MAX_HUB_ARTICLES);
+  const sourceSlugs = new Map(sources.map((item) => [item.id, getPublicSourceSlug(item)]));
   const categories = Array.from(
     new Set(sourceArticles.map((article) => (isPublicCategory(article.category) ? article.category : "general")))
   );

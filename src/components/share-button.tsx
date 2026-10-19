@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { ActionButton } from "seed-design/ui/action-button";
+import { SITE_NAME } from "@/app/seo";
 
-// 매기사 자체엔 글 본문 페이지가 없어(원문으로 바로 링크) 공유는 "원문 링크 + 매기사에서 봤다는 표시"로
-// 구성한다 — 공유를 타고 들어온 사람이 매기사를 알게 되는 게 목적 (docs/growth-strategy.md 참고).
+// 원문 링크와 서비스 이름을 함께 공유해 원문을 통해 들어온 사람도 서비스를 알 수 있게 한다.
 export function ShareButton({ title, url }: { title: string; url: string }) {
   const [copied, setCopied] = useState(false);
 
   async function handleShare() {
-    const shareText = `${title} (via 매일 읽는 테크 기사)`;
+    const shareText = `${title} (via ${SITE_NAME})`;
 
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
