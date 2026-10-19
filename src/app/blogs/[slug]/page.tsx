@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Text } from "@seed-design/react";
+import { ArticleLink } from "@/components/article-link";
 import { PageHeader } from "@/components/page-header";
 import { PUBLIC_CATEGORY_META, SITE_URL, getPublicBlogHub, type PublicHubArticle } from "@/lib/data/public-hubs";
 import { SITE_NAME } from "@/app/seo";
@@ -32,14 +33,14 @@ function ArticleList({ articles }: { articles: PublicHubArticle[] }) {
     <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 16 }}>
       {articles.map((article) => (
         <li key={article.id} style={{ borderBottom: "1px solid var(--seed-color-stroke-neutral-subtle)", paddingBottom: 16 }}>
-          <a href={article.url} target="_blank" rel="noopener noreferrer" style={{ display: "block" }}>
+          <ArticleLink articleId={article.id} articleTitle={article.title} href={article.url} style={{ display: "block" }}>
             <Text as="h3" textStyle="t5Bold" color="fg.neutral">{article.title}</Text>
             {article.excerpt && (
               <Text as="p" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginTop: 6 }}>
                 {article.excerpt}
               </Text>
             )}
-          </a>
+          </ArticleLink>
           {formatDate(article.publishedAt) && (
             <Text as="p" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginTop: 8 }}>
               {formatDate(article.publishedAt)}

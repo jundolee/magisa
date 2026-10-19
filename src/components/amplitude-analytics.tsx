@@ -16,8 +16,12 @@ export function AmplitudeAnalytics() {
   useEffect(() => {
     if (!analyticsEnabled || !apiKey) return;
     // Autocapture includes full page URLs, which would also collect ?q= search text.
-    // Explicit events below send only the pathname and search quality counts.
-    amplitude.init(apiKey, { autocapture: false });
+    // Keep the opt-out local and authoritative; remote config can otherwise override it.
+    amplitude.init(apiKey, {
+      autocapture: false,
+      remoteConfig: { fetchRemoteConfig: false },
+      trackingOptions: { ipAddress: false, language: false, platform: false },
+    });
   }, [analyticsEnabled, apiKey]);
 
   useEffect(() => {

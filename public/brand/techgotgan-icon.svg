@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>테크곳간</title>
+  <rect width="512" height="512" rx="116" fill="#FF6600" />
+  <path d="M241 118c8.5-6.5 21.5-6.5 30 0l117 88c8 6 4 18-7 18H131c-11 0-15-12-7-18l117-88Z" fill="#fff" />
+  <circle cx="256" cy="180" r="16" fill="#CC5200" />
+  <rect x="131" y="248" width="250" height="34" rx="17" fill="#fff" />
+  <rect x="131" y="302" width="166" height="34" rx="17" fill="#fff" />
+  <rect x="315" y="302" width="66" height="34" rx="17" fill="#FFB380" />
+  <rect x="131" y="356" width="250" height="34" rx="17" fill="#fff" />
+</svg>

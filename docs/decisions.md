@@ -576,7 +576,7 @@
 
 ### 2026-10-19 — Vercel 주소를 `techgotgan.vercel.app`으로 변경한 뒤 소스/SEO 정렬
 **배경**: 사용자가 Vercel에서 프로젝트 주소를 강제로 `techgotgan`으로 변경했다. 새 주소는 HTTP 200으로 응답했지만, 실제 HTML의 canonical과 Open Graph URL 및 `robots.txt`/sitemap은 계속 `magisa.vercel.app`을 출력했고, 이전 주소는 `DEPLOYMENT_NOT_FOUND`였다.
-**수정**: 공통 `SITE_URL`을 `https://techgotgan.vercel.app`으로 변경해 metadataBase, canonical, Open Graph, 구조화 데이터, robots, sitemap, RSS가 새 호스트를 쓰게 한다. 패키지 이름을 `techgotgan`으로 바꾸고, 관리자/방문자 쿠키는 새 이름으로 발급하되 기존 이름은 만료 시까지 읽어 세션과 이관 데이터를 보존한다. Google Search Console 인증 값은 이전 호스트에 묶인 고정값을 제거하고 `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`으로 받도록 한다. OAuth callback은 요청 host를 사용하므로 코드 변경은 불필요하다.
+**수정**: 공통 `SITE_URL`을 `https://techgotgan.vercel.app`으로 변경해 metadataBase, canonical, Open Graph, 구조화 데이터, robots, sitemap, RSS가 새 호스트를 쓰게 한다. 패키지 이름과 관리자/방문자 쿠키 이름을 `techgotgan`으로 바꾸고, 요청에 기존 쿠키가 포함된 경우를 위한 이름 폴백은 남겼다. 다만 `magisa.vercel.app` 쿠키는 호스트 범위가 달라 308 응답 뒤 새 호스트로 전달되지 않으므로 로그인·읽음 상태의 호스트 간 보존을 보장하지 않는다. Google Search Console 인증 값은 이전 호스트에 묶인 고정값을 제거하고 `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`으로 받도록 한다. OAuth callback은 요청 host를 사용하므로 코드 변경은 불필요하다.
 **외부 후속 작업**: Supabase Auth Site URL·redirect allowlist, Google OAuth 동의 화면, Search Console 속성 소유권을 `techgotgan.vercel.app`으로 갱신했다. 프로덕션 배포와 sitemap 제출을 완료했고, 이전 `magisa.vercel.app`은 새 호스트로 308 리다이렉트한다. 검색 성과 데이터가 쌓인 뒤 기준선을 기록한다.
 **영향**: `src/app/seo.ts`, `src/app/layout.tsx`, `src/lib/visitor.ts`, `src/lib/admin-auth.ts`, `src/proxy.ts`, `src/app/login/actions.ts`, `src/app/auth/callback/route.ts`, `package.json`, `package-lock.json`, `.env.example`, `docs/growth-strategy.md`, `docs/roadmap.md`.
 
@@ -588,6 +588,6 @@
 ### 2026-10-19 — GA4 검색어 수집 차단과 Production 전용 분석 게이트
 **배경**: Tag Assistant에서 `?q=privacy-check-20261019`를 열었을 때 GA4 `page_view`의 `page_location`과 Enhanced Measurement `view_search_results.search_term`에 검색어 원문이 포함되는 것을 확인했다. Amplitude 키는 Vercel Production·Preview 모두에 설정돼 있어 Vercel Preview도 `NODE_ENV=production` 조건으로 분석을 보낼 수 있었다.
 **적용**: GA4 속성과 스트림 이름을 `Techgotgan` 및 `Techgotgan Web`으로 변경하고 새 사이트 URL을 설정했다. GA4 URL Data Redaction에 `q`를 추가하고 Site Search query-parameter 목록에서 `q`를 제거했다. 새 Search Console 속성을 GA4 웹 스트림에 연결했다. Vercel Production에만 `NEXT_PUBLIC_ANALYTICS_ENABLED=true`를 추가하고, GTM·Amplitude 초기화와 검색 이벤트 전송을 모두 이 플래그로 게이트한다. Amplitude 자동 수집은 계속 꺼두며 명시 이벤트에 검색어 원문을 넣지 않는다.
-**검증**: GA4 미리보기에서 `page_view.page_location`은 `q=(redacted)`를 포함했고 `view_search_results`는 발생하지 않았다. Amplitude 테스트 요청은 HTTP 200이었으며 payload에는 `query_length`가 있고 검색어 원문은 없었다. production-only 코드 게이트의 Vercel 배포와 Preview 무전송 확인은 이번 변경의 배포 후 검증 대상이다.
+**검증**: PR #4를 병합·배포했다. Vercel Preview에서 GTM·GA4·Amplitude 요청이 발생하지 않았고, Production에서는 GTM을 통해 GA4 `page_view`가 전송됐다. `?q=prod-privacy-check-20261019`의 `page_location`은 `q=(redacted)`로 기록됐으며 `view_search_results` 요청은 발생하지 않았다. Amplitude 요청은 HTTP 200이었고 payload에 검색어 원문은 없다. GTM 최신 게시 버전 5에는 Google 태그와 `GA4-article_click`을 포함한 태그 2개·트리거 2개가 있으며, 작업공간에 게시 대기 변경사항은 없다. Search Console `/sitemap.xml`은 성공 상태로 60개 URL을 발견했다. GA4·Search Console 연결은 완료했지만 Search Console 실적 보고서는 아직 데이터 처리 중이므로 검색 노출·클릭 기준선은 미기록 상태다.
 
 
