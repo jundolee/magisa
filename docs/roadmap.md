@@ -47,11 +47,11 @@ MVP 완료 이후 추가로 들어온 요청:
 ## 배포·측정 후속 작업
 
 - [x] `0013_tokenized_article_search.sql`, `0014_public_hub_queries.sql` 적용; 검색 10건, 블로그 36개, 색인 주제 8개와 서비스 역할 권한 확인
-- [ ] 코드 변경을 배포한 뒤 sitemap `lastmod`가 새 글 발견 시각을 반영하는지 확인
+- [x] PR #2 프로덕션 배포; sitemap 60개 URL을 확인하고 홈 `lastmod`가 DB 최신 피드 발견 시각과 일치하는지 확인
 - [ ] Search Console에서 브랜드/비브랜드 노출·클릭 기준선을 기록
 - [ ] Amplitude 키와 `page_viewed`, `article_search_completed` 수집 여부 확인
 - [ ] GTM/GA 컨테이너가 페이지 URL의 `q` 검색어를 전송하는지 점검
-- [ ] 새 소스 빌드를 `techgotgan.vercel.app`에 배포하고 canonical·Open Graph·robots·sitemap이 새 호스트를 쓰는지 확인
-- [x] Supabase Auth Site URL·redirect allowlist 갱신, 새 Google Search Console 속성 소유권 확인; sitemap 제출은 배포 후 진행
-- [ ] 이전 `magisa.vercel.app` 주소를 Vercel에서 다시 alias로 연결해 301할 수 있는지 확인; 현재는 `DEPLOYMENT_NOT_FOUND`
+- [x] `techgotgan.vercel.app` 프로덕션 배포; canonical·Open Graph·robots·sitemap·RSS에서 새 호스트 확인
+- [x] Supabase Auth Site URL·redirect allowlist 갱신, Search Console 속성 소유권 확인 및 sitemap 제출; Google에서 60개 URL 발견
+- [x] 이전 `magisa.vercel.app`을 새 호스트로 `308` 리다이렉트하고 경로·쿼리 보존 확인
 - [ ] `techgotgan.kr` 등록기관·상표 검색은 별도 맞춤 도메인을 도입할 때 재확인

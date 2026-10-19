@@ -52,11 +52,14 @@
 - Supabase Auth Site URL을 `https://techgotgan.vercel.app`으로 변경하고
   `https://techgotgan.vercel.app/auth/callback`을 redirect allowlist에 추가했다. 기존 호스트와 로컬 주소는
   유지했다. Google OAuth 동의 화면도 테크곳간과 새 홈페이지·개인정보처리방침 주소로 갱신했다.
-- Search Console에서 `https://techgotgan.vercel.app/` 속성 소유권을 확인했다. sitemap 제출과 검색 성과
-  기준선 기록은 새 코드 배포 후 진행한다.
-- Vercel의 새 주소는 응답하지만, 현재 배포 HTML의 canonical·robots·sitemap은 아직
-  `magisa.vercel.app`을 가리킨다. 코드 변경을 배포한 뒤 새 호스트 응답을 다시 확인해야 한다. 이전 주소는
-  현재 Vercel에서 `DEPLOYMENT_NOT_FOUND`를 반환한다.
+- Search Console에서 `https://techgotgan.vercel.app/` 속성 소유권을 확인하고 `/sitemap.xml`을 제출했다.
+  Google이 sitemap을 성공적으로 읽어 60개 URL을 발견했다. 검색 성과 기준선은 데이터 처리가 끝난 뒤 기록한다.
+- PR #2가 2026-10-19에 프로덕션에 배포됐다. 홈·개인정보 처리방침·RSS·robots·sitemap이 HTTP 200을
+  반환하고 canonical·Open Graph·sitemap은 새 호스트를 사용한다. sitemap에는 URL 60개와 lastmod 59개가
+  있으며, 홈 lastmod가 원격 DB 최신 피드 발견 시각과 일치한다. 기존 `magisa.vercel.app`은 경로와 쿼리를
+  보존하는 `308`으로 새 주소에 전달한다.
+- Google OAuth로 프로덕션 로그인을 완료했다. 로그인한 계정의 기본 `안읽음` 탭은 비어 있었지만 `전체` 탭과
+  `react typescript` 검색(10건)은 정상 응답했다.
 
 ## 보류: 멀티테넌시(사용자별 소스 목록)
 

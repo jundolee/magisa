@@ -566,7 +566,7 @@
 3. Amplitude 자동 수집을 끄고 페이지 경로만 `page_viewed`로 기록한다. 검색어는 공유 가능한 `?q=` URL에 남지만 자동 캡처 이벤트에는 보내지 않는다. Google Tag Manager/GA의 컨테이너 설정은 계정 접근이 없어 미확인으로 둔다.
 4. 블로그 목록 통계와 주제별 최신 20건을 데이터베이스 RPC로 조회한다. 전체 1000건 밖의 소스에 대한 동시 개별 요청과 홈 피드 200건 제한을 없애고, 카테고리·블로그 허브의 `lastmod`를 페이지에 보이는 글 기준으로 계산한다. 글이 없는 주제는 목록과 sitemap에서 제외하고 직접 접근 페이지에는 `noindex`를 적용한다.
 5. `techgotgan.com`, `.kr`, `.co.kr`은 2026-10-19 RDAP 조회에서 등록 레코드를 찾지 못했다. 도메인 구매나 상표권 확인은 하지 않았다.
-**검증 및 배포 상태**: 실제 공개 홈·주제·블로그·sitemap을 읽어 표기와 날짜를 확인했다. 원격 `magisa-reader` DB에 0013·0014를 적용해 검색·허브 RPC 응답과 실행 권한을 확인했고, `source_suggestions` 테이블과 RLS도 확인했다. Supabase Auth Site URL·redirect allowlist와 Google OAuth 브랜딩을 새 호스트로 갱신했으며 Search Console 속성 소유권도 확인했다. 검색 기준선·Amplitude 이벤트는 계정 데이터로 확인하지 않았다. 새 코드의 Vercel 배포와 공개 응답 확인은 아직 남아 있다.
+**검증 및 배포 상태**: 실제 공개 홈·주제·블로그·sitemap을 읽어 표기와 날짜를 확인했다. 원격 `magisa-reader` DB에 0013·0014를 적용해 검색·허브 RPC 응답과 실행 권한을 확인했고, `source_suggestions` 테이블과 RLS도 확인했다. Supabase Auth Site URL·redirect allowlist와 Google OAuth 브랜딩을 새 호스트로 갱신했다. PR #2 배포 후 canonical·Open Graph·robots·sitemap·RSS를 확인했고, Search Console은 sitemap 60개 URL을 성공적으로 읽었다. Google OAuth 로그인과 프로덕션 검색 10건도 확인했다. 검색 실적은 아직 데이터 처리 중이며 Amplitude 이벤트는 계정 데이터로 확인하지 않았다.
 **영향**: `src/app/seo.ts`, `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/topics/*`, `src/app/blogs/*`, `src/app/sitemap.ts`, `src/components/brand-link.tsx`, `src/components/amplitude-analytics.tsx`, `src/components/article-list.tsx`, `src/lib/data/public-hubs.ts`, `src/lib/supabase/cached-rest.ts`, `supabase/migrations/0014_public_hub_queries.sql`, `docs/growth-strategy.md`, `docs/roadmap.md`.
 
 ### 2026-10-19 — `techgotgan.vercel.app` 별도 확인
@@ -577,7 +577,12 @@
 ### 2026-10-19 — Vercel 주소를 `techgotgan.vercel.app`으로 변경한 뒤 소스/SEO 정렬
 **배경**: 사용자가 Vercel에서 프로젝트 주소를 강제로 `techgotgan`으로 변경했다. 새 주소는 HTTP 200으로 응답했지만, 실제 HTML의 canonical과 Open Graph URL 및 `robots.txt`/sitemap은 계속 `magisa.vercel.app`을 출력했고, 이전 주소는 `DEPLOYMENT_NOT_FOUND`였다.
 **수정**: 공통 `SITE_URL`을 `https://techgotgan.vercel.app`으로 변경해 metadataBase, canonical, Open Graph, 구조화 데이터, robots, sitemap, RSS가 새 호스트를 쓰게 한다. 패키지 이름을 `techgotgan`으로 바꾸고, 관리자/방문자 쿠키는 새 이름으로 발급하되 기존 이름은 만료 시까지 읽어 세션과 이관 데이터를 보존한다. Google Search Console 인증 값은 이전 호스트에 묶인 고정값을 제거하고 `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`으로 받도록 한다. OAuth callback은 요청 host를 사용하므로 코드 변경은 불필요하다.
-**외부 후속 작업**: Supabase Auth Site URL·redirect allowlist, Google OAuth 동의 화면, 새 Search Console 속성 소유권은 `techgotgan.vercel.app`으로 갱신했다. 배포 후 canonical·robots·sitemap·OG 응답을 확인하고 Search Console에 sitemap을 제출한다. 이전 `magisa.vercel.app`은 현재 연결되지 않아 리다이렉트되지 않는다. Vercel에서 이전 alias를 다시 붙일 수 있는지 확인한다.
+**외부 후속 작업**: Supabase Auth Site URL·redirect allowlist, Google OAuth 동의 화면, Search Console 속성 소유권을 `techgotgan.vercel.app`으로 갱신했다. 프로덕션 배포와 sitemap 제출을 완료했고, 이전 `magisa.vercel.app`은 새 호스트로 308 리다이렉트한다. 검색 성과 데이터가 쌓인 뒤 기준선을 기록한다.
 **영향**: `src/app/seo.ts`, `src/app/layout.tsx`, `src/lib/visitor.ts`, `src/lib/admin-auth.ts`, `src/proxy.ts`, `src/app/login/actions.ts`, `src/app/auth/callback/route.ts`, `package.json`, `package-lock.json`, `.env.example`, `docs/growth-strategy.md`, `docs/roadmap.md`.
+
+### 2026-10-19 — Techgotgan 프로덕션 배포와 검색·로그인 확인
+**적용**: PR #2 (`d3ae502`)를 `main`에 병합해 `techgotgan.vercel.app`에 배포했다. Vercel Domains에서 기존 `magisa.vercel.app`을 새 호스트로 308 리다이렉트하도록 추가했고, 경로와 쿼리 문자열이 보존되는 것을 확인했다. 새 Google Search Console 속성에 `/sitemap.xml`을 제출했다.
+**검증**: 홈·개인정보 처리방침·RSS·robots·sitemap이 HTTP 200을 반환했다. canonical·Open Graph·구조화 데이터·robots·RSS·sitemap에서 구 호스트 참조가 없고, sitemap 60개 URL이 모두 새 호스트를 사용한다. 홈의 sitemap `lastmod`가 원격 DB 최신 피드 발견 시각(`2026-10-18T22:54:06.691446Z`)과 일치하고 Search Console은 60개 URL을 발견했다. Google OAuth 로그인 후 `/login` 방문이 인증 세션을 확인해 홈으로 이동하며, 프로덕션 검색 `react typescript`는 10건을 반환한다.
+**남은 확인**: Search Console 검색 성과는 데이터 처리 중이라 노출·클릭 기준선을 아직 기록하지 않았다. Amplitude 이벤트와 GTM/GA의 검색어 수집 설정도 계정 데이터로 검증하지 않았다.
 
 
