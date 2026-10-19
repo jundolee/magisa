@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
-import { Badge, Text } from "@seed-design/react";
+import { Text } from "@seed-design/react";
 import { ArticleRow } from "./article-row";
 import { ArticleFilterTabs } from "./article-filter-tabs";
 import { SourceFilterSelect, type SourceOption } from "./source-filter-select";
@@ -60,9 +60,7 @@ export function ArticleList({
   const [searchResults, setSearchResults] = useState<ArticleListItem[] | null>(null);
   const startedWithQuery = initialQuery.trim().length > 0;
   const defaultArticlesRef = useRef<ArticleListItem[] | null>(null);
-  // 검색창이 펼쳐지면 그 줄에서 배지/전체읽음 버튼을 숨긴다 — 좁은 화면에서 네 가지가 한 줄에
-  // 다 안 들어가 여러 단으로 겹쳐 접히며 그 아래 내용까지 크게 밀려나던 문제(docs/decisions.md 참고)를
-  // 애초에 그 줄에 검색창만 남겨서 해결한다.
+  // 검색창이 펼쳐지면 전체 읽음 버튼을 숨겨 좁은 화면에서도 검색창이 줄 전체를 차지하게 한다.
   const [searchExpanded, setSearchExpanded] = useState(startedWithQuery);
 
   const baseArticles = searchResults ?? articles;
@@ -119,23 +117,6 @@ export function ArticleList({
       markReadOptimistically(articleId);
     });
   }
-
-  const unreadCount = useMemo(() => optimisticArticles.filter((a) => !a.is_read).length, [optimisticArticles]);
-
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: 0 };
-    for (const a of optimisticArticles) {
-      if (filter === "unread" && a.is_read) continue;
-      if (filter === "read" && !a.is_read) continue;
-      if (filter === "favorite" && !a.is_favorite) continue;
-      if (sourceId !== "all" && a.source?.id !== sourceId) continue;
-
-      counts.all = (counts.all ?? 0) + 1;
-      const cat = a.category ?? "general";
-      counts[cat] = (counts[cat] ?? 0) + 1;
-    }
-    return counts;
-  }, [optimisticArticles, filter, sourceId]);
 
   const visibleArticles = useMemo(() => {
     return optimisticArticles.filter((a) => {
@@ -263,10 +244,7 @@ export function ArticleList({
         <Text as="h2" textStyle="t8Bold" color="fg.neutral">
           최신 글
         </Text>
-        {/* 검색창이 펼쳐지면 배지/전체읽음 버튼을 숨기고 이 그룹이 줄 전체(flexBasis:100%)를
-            차지하게 한다 — 넷을 한 줄에 다 맞추려다 보니 좁은 화면에서 검색창과 버튼들이 각자
-            다른 지점에서 줄바꿈되며 그 아래 목록까지 크게 밀려나던 문제(docs/decisions.md 참고)를,
-            펼친 동안은 애초에 검색창 하나만 그 줄에 있게 해서 없앤다. */}
+        {/* 검색창이 펼쳐지면 전체 읽음 버튼을 숨기고 검색창이 줄 전체를 차지하게 한다. */}
         <div
           style={{
             display: "flex",
@@ -284,18 +262,13 @@ export function ArticleList({
             expanded={searchExpanded}
             onExpandedChange={setSearchExpanded}
           />
-          {!searchExpanded && unreadCount > 0 && (
-            <Badge size="medium" variant="solid" tone="brand">
-              안읽음 {unreadCount}
-            </Badge>
-          )}
           {!searchExpanded && <ReadAllControls />}
         </div>
       </div>
 
-      {query.trim() && (
+      {query.trim() && (queryTooShort || isSearching) && (
         <Text as="p" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginBottom: 16 }}>
-          {queryTooShort ? "한 글자 검색은 Enter를 눌러 실행할 수 있어요." : isSearching ? "검색 중…" : `${optimisticArticles.length}개 검색됨`}
+          {queryTooShort ? "한 글자 검색은 Enter를 눌러 실행할 수 있어요." : "검색 중…"}
         </Text>
       )}
 
@@ -338,7 +311,6 @@ export function ArticleList({
         <CategoryFilterChips
           selectedCategory={category}
           onSelectCategory={handleCategoryChange}
-          categoryCounts={categoryCounts}
         />
       </div>
 
