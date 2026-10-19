@@ -35,7 +35,11 @@ export async function signInWithProviderAction(provider: OAuthProvider, next: st
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
-    options: { redirectTo: callbackUrl.toString() },
+    options: {
+      redirectTo: callbackUrl.toString(),
+      // Signing out of this app does not sign out of Google; force its account chooser so users can switch accounts.
+      queryParams: { prompt: "select_account" },
+    },
   });
 
   if (error || !data.url) {

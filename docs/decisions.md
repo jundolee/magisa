@@ -590,4 +590,10 @@
 **적용**: GA4 속성과 스트림 이름을 `Techgotgan` 및 `Techgotgan Web`으로 변경하고 새 사이트 URL을 설정했다. GA4 URL Data Redaction에 `q`를 추가하고 Site Search query-parameter 목록에서 `q`를 제거했다. 새 Search Console 속성을 GA4 웹 스트림에 연결했다. Vercel Production에만 `NEXT_PUBLIC_ANALYTICS_ENABLED=true`를 추가하고, GTM·Amplitude 초기화와 검색 이벤트 전송을 모두 이 플래그로 게이트한다. Amplitude 자동 수집은 계속 꺼두며 명시 이벤트에 검색어 원문을 넣지 않는다.
 **검증**: PR #4를 병합·배포했다. Vercel Preview에서 GTM·GA4·Amplitude 요청이 발생하지 않았고, Production에서는 GTM을 통해 GA4 `page_view`가 전송됐다. `?q=prod-privacy-check-20261019`의 `page_location`은 `q=(redacted)`로 기록됐으며 `view_search_results` 요청은 발생하지 않았다. Amplitude 요청은 HTTP 200이었고 payload에 검색어 원문은 없다. GTM 최신 게시 버전 5에는 Google 태그와 `GA4-article_click`을 포함한 태그 2개·트리거 2개가 있으며, 작업공간에 게시 대기 변경사항은 없다. Search Console `/sitemap.xml`은 성공 상태로 60개 URL을 발견했다. GA4·Search Console 연결은 완료했지만 Search Console 실적 보고서는 아직 데이터 처리 중이므로 검색 노출·클릭 기준선은 미기록 상태다.
 
+### 2026-10-19 — Google OAuth에서 계정 선택 창 표시
+**배경**: 앱에서 로그아웃해도 브라우저의 Google 세션은 유지되므로 다음 Google OAuth 진입이 같은 계정으로 바로 이어질 수 있다. 사용자가 다른 계정을 선택하려 해도 계정 선택 화면이 나오지 않는 문제를 보고했다.
+**결정**: `signInWithOAuth` 요청에 `prompt=select_account`를 넣어 로그인 시마다 Google 계정 선택 창을 표시한다. 이 설정은 앱 세션을 종료하거나 Google 세션을 지우지 않으며, 사용자가 브라우저에 로그인된 계정 중 하나를 선택하도록 한다.
+**검증**: Supabase Auth JS의 `queryParams` 옵션과 Google OAuth의 `select_account` prompt를 사용한다. `npx tsc --noEmit` 및 프로덕션 빌드 통과. 배포 후 OAuth redirect URL에 `prompt=select_account`가 포함되는지 확인한다.
+**영향**: `src/app/login/actions.ts`.
+
 
