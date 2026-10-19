@@ -52,7 +52,7 @@ MVP 완료 이후 추가로 들어온 요청:
 - [x] Amplitude 이벤트 전송 확인: POST 200, `page_path`·검색 길이·결과 수만 전송
 - [x] GA4 속성·스트림을 Techgotgan으로 정리하고 Search Console 연결; `q` URL 매개변수 redaction 및 사이트 검색어 자동 수집 제외
 - [x] `NEXT_PUBLIC_ANALYTICS_ENABLED` Production 전용 게이트 배포; Preview 무전송과 Production GA4·Amplitude 전송 확인
-- [x] Amplitude Remote Config 비활성화로 `autocapture: false`를 코드에서 고정하고 분석 식별자·이벤트 범위를 개인정보처리방침에 공개
+- [x] Amplitude Remote Config 비활성화로 `autocapture: false`를 고정하고 IP·언어·플랫폼 메타데이터 수집을 끄며, 분석 식별자·이벤트 범위를 개인정보처리방침에 공개
 - [x] 주제·블로그 허브 글 카드도 `article_click` 이벤트와 읽음/클릭 집계를 사용
 - [x] 잘못된 Figma 내보내기 파비콘을 테크곳간 심볼로 교체하고 헤더 워드마크에 심볼 추가
 - [x] `techgotgan.vercel.app` 프로덕션 배포; canonical·Open Graph·robots·sitemap·RSS에서 새 호스트 확인

@@ -77,8 +77,10 @@
   “데이터를 처리하는 중”으로 표시되고 검색어 표가 비어 있었다. Google 처리가 끝나면 브랜드/비브랜드 기준선을
   기록한다.
 - Amplitude Browser SDK의 Remote Config는 기본 활성화되어 있어 원격 Autocapture 설정이 코드의
-  `autocapture: false`를 다시 켤 수 있다. 이를 막기 위해 SDK 초기화에서 `fetchRemoteConfig: false`를 지정했다.
-  개인정보처리방침은 분석 쿠키·브라우저/세션 식별자, 이벤트 범위, 계정 탈퇴 후 보유 한계를 설명하도록 갱신했다.
+  `autocapture: false`를 다시 켤 수 있다. 이를 막기 위해 SDK 초기화에서
+  `remoteConfig.fetchRemoteConfig: false`를 지정하고, Amplitude의 IP 주소·브라우저 언어·플랫폼 메타데이터
+  수집도 비활성화했다. 개인정보처리방침은 GA4의 대략적인 위치·브라우저·기기 정보와 client ID, Amplitude
+  브라우저/세션 식별자, 이벤트 범위, 계정 탈퇴 후 보유 한계를 설명하도록 갱신했다.
 - 주제·블로그 허브의 원문 카드도 홈 피드와 같은 `ArticleLink`를 사용한다. 따라서 `article_click` 이벤트와
   내부 클릭수 집계는 검색 랜딩 허브에서 원문으로 이동한 경우도 포함한다. 이 이벤트는 GA4/GTM이 받으며,
   Amplitude 검색 지표는 검색어 원문 없이 길이·단어 수·결과 수·주제·소스 필터 여부만 기록한다.
