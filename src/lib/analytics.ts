@@ -9,7 +9,10 @@ export function trackArticleSearchCompleted(
   category: string,
   hasSourceFilter: boolean
 ): void {
-  if (process.env.NODE_ENV !== "production" || !process.env.NEXT_PUBLIC_AMPLITUDE_API_KEY) return;
+  if (
+    process.env.NEXT_PUBLIC_ANALYTICS_ENABLED !== "true" ||
+    !process.env.NEXT_PUBLIC_AMPLITUDE_API_KEY
+  ) return;
 
   const normalizedQuery = query.trim();
   if (!normalizedQuery) return;

@@ -60,6 +60,15 @@
   보존하는 `308`으로 새 주소에 전달한다.
 - Google OAuth로 프로덕션 로그인을 완료했다. 로그인한 계정의 기본 `안읽음` 탭은 비어 있었지만 `전체` 탭과
   `react typescript` 검색(10건)은 정상 응답했다.
+- GA4 속성과 웹 스트림을 `Techgotgan` / `Techgotgan Web`으로 정리하고 스트림 주소를 새 호스트로 바꿨다.
+  새 Search Console 속성을 이 GA4 속성에 연결했다. GA4 데이터 수정에서 `q` URL 매개변수를 가리도록 하고,
+  Enhanced Measurement의 검색어 매개변수 목록에서도 `q`를 제거했다. Tag Assistant에서 `q`가 있는 URL을
+  확인한 결과 `page_view.page_location`에는 `(redacted)`가 들어가고 `view_search_results.search_term` 이벤트는
+  생성되지 않았다.
+- Amplitude 키는 Vercel Production과 Preview에 존재한다. 프로덕션 확인 요청은 200으로 응답했고, 검색 이벤트
+  payload에는 `query_length`와 결과 지표만 있고 검색어 원문은 없었다. Preview에서 분석이 실행되지 않도록
+  `NEXT_PUBLIC_ANALYTICS_ENABLED=true`를 Production에만 추가했고 소스 코드에 이 플래그 게이트를 추가했다.
+  코드 배포와 Preview 무전송 검증은 현재 PR에서 진행 중이다.
 
 ## 보류: 멀티테넌시(사용자별 소스 목록)
 
@@ -78,23 +87,23 @@
 | 탐색 품질 | 검색 실행 수, 결과 0건 비율, 결과 후 원문 클릭률 | `article_search_completed`에 글자 수·단어 수·결과 수만 기록하고 검색어 원문은 저장하지 않음 |
 | 재방문 | 7일 내 다시 방문해 읽음·즐겨찾기·원문 클릭을 한 사용자 | Amplitude의 재방문 사용자 및 이벤트 흐름 |
 
-Amplitude는 이제 전체 URL·검색어를 자동 수집하지 않고 `page_viewed`의 경로와 `article_search_completed`의 길이·단어 수·결과 수만 보낸다. 실제 키 설정과 수집은 배포 후 확인해야 한다. Search Console은 로그인 권한이 없어 이번 점검에서 실적을 읽지 못했다. 기준선이 확보되기 전에는 검색 유입 증가율이나 전환 목표를 임의로 완료 기준으로 만들지 않는다. Google Tag Manager 컨테이너의 GA 설정도 별도로 확인해야 한다.
+Amplitude는 전체 URL·검색어를 자동 수집하지 않는다. 프로덕션 이벤트 요청은 200으로 응답했고 `page_viewed`는 경로만, `article_search_completed`는 검색 길이·단어 수·결과 수만 보낸다. GA4는 URL의 `q` 값을 Data Redaction에서 가리고, Enhanced Measurement 검색어 매개변수에서도 `q`를 제외했다. Search Console 속성은 GA4에 연결했지만 새 속성의 성과 데이터는 아직 처리 중이다. 검색 기준선이 확보되기 전에는 검색 유입 증가율이나 전환 목표를 임의로 완료 기준으로 만들지 않는다.
 
 ## 브랜드 결정 사항
 
 ### 결정: 테크곳간 (Techgotgan)
 
-기존 `Magisa` URL과 `매일 읽는 테크 기사` 설명문은 고유 브랜드를 만들지 못했고, 라이브 홈의 첫 제목도 `글 목록`에 그쳐 서비스 용도가 흐렸다. 공개 이름을 `테크곳간`으로 정하고 "테크 블로그 글을 한곳에서 찾아 읽는다"는 설명을 붙였다. Vercel 주소도 `techgotgan.vercel.app`으로 바뀌었지만, 실제 배포 HTML은 아직 이전 SEO 값을 내보낸다.
+최초 전략 검토 당시 기존 `Magisa` URL과 `매일 읽는 테크 기사` 설명문은 고유 브랜드를 만들지 못했고, 라이브 홈의 첫 제목도 `글 목록`에 그쳐 서비스 용도가 흐렸다. 공개 이름을 `테크곳간`으로 정하고 "테크 블로그 글을 한곳에서 찾아 읽는다"는 설명을 붙였다. 이후 Vercel 주소를 `techgotgan.vercel.app`으로 바꾸고 소스와 프로덕션 SEO 값을 정렬했다.
 
 검색 결과에서 기술 블로그를 모아 보여주는 제품은 이미 존재한다. 예를 들어 [Tech Tab](https://chromewebstore.google.com/detail/tech-tab-%EC%83%88-%ED%83%AD%EC%97%90%EC%84%9C-%EB%A7%8C%EB%82%98%EB%8A%94-%EA%B5%AD%EB%82%B4-%EB%B9%85%ED%85%8C%ED%81%AC/kobpfgadkgconpdpdppekbioiebnoggc?hl=en)은 새 탭에서 기술 블로그 피드를 보여주고, [한눈IT](https://dev.to/hanun_9b2547365f8fff54006/i-built-a-platform-that-aggregates-30-it-news-sources-so-you-dont-have-to-check-them-all-4mok)은 여러 IT 소스의 글을 모은다고 설명한다. 그러므로 이름만 바꾸는 것으로 차별화를 주장하지 않는다. 테크곳간이 실제로 제공하는 전체 글 검색, 주제·발행처 허브, 읽음·즐겨찾기, 주간 아카이브와 RSS를 첫 화면에서 선명하게 설명한다.
 
-2026-10-19 확인 기준 `techgotgan.com`, `techgotgan.kr`, `techgotgan.co.kr`은 각 등록기관 RDAP에서 등록 레코드를 찾지 못했다. 이후 사용자가 Vercel 프로젝트 주소를 `techgotgan.vercel.app`으로 변경했고, 현재 새 주소는 200 응답을 반환한다. 같은 시점에 새 호스트의 `robots.txt`와 sitemap, HTML canonical·Open Graph URL은 `magisa.vercel.app`을 가리켰고, 이전 호스트는 `DEPLOYMENT_NOT_FOUND`였다. 따라서 이번 소스 변경을 배포하고 새 URL을 재확인해야 한다.
+2026-10-19 최초 확인 기준 `techgotgan.com`, `.kr`, `.co.kr`은 각 등록기관 RDAP에서 등록 레코드를 찾지 못했다. Vercel 프로젝트 주소를 바꾼 직후에는 새 호스트의 `robots.txt`, sitemap, HTML canonical·Open Graph URL이 `magisa.vercel.app`을 가리켰고 이전 호스트는 `DEPLOYMENT_NOT_FOUND`였다. 이후 소스와 외부 설정을 갱신해 새 호스트를 배포하고 구 호스트를 308 리다이렉트로 연결했다.
 
-RDAP와 공개 HTTP 응답은 조회 시점의 상태일 뿐 구매 가능 여부, 상표권, 유사 상호까지 보장하지 않는다. 코드의 canonical·Open Graph·robots·sitemap·RSS 주소는 `techgotgan.vercel.app`으로 바꿨다. 다만 현재 Vercel 배포본은 이전 값을 내보내므로 재배포 확인이 필요하다. OAuth redirect allowlist와 Google Search Console 새 사이트 속성/인증 토큰은 외부 설정에서 갱신해야 한다. Search Console 인증 토큰은 `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`으로 받으며 새 토큰이 없으면 메타 태그를 출력하지 않는다. 이전 Vercel 주소는 현재 연결되지 않아 301을 제공하지 못한다. 예전 주소를 다시 alias로 연결할 수 있는지 계정에서 확인해야 한다.
+RDAP와 공개 HTTP 응답은 조회 시점의 상태일 뿐 구매 가능 여부, 상표권, 유사 상호까지 보장하지 않는다. canonical·Open Graph·robots·sitemap·RSS는 현재 새 호스트를 사용한다. OAuth와 Supabase Auth, Search Console, GA4 스트림도 `techgotgan.vercel.app`으로 정렬했다. 이전 Vercel 주소는 308으로 새 주소에 전달된다. 맞춤 도메인 구매나 상표권 확인은 별도 도메인 도입 결정 전까지 보류한다.
 
-## 2026-10-19 라이브 점검
+## 2026-10-19 최초 라이브 점검 (배포 전)
 
 - 공개 홈과 주제·블로그 페이지는 200 응답을 반환했고, 홈 설명은 수집 피드와 읽음·즐겨찾기를 안내했다. 하지만 Search Console 페이지는 로그인 화면으로 이동해 검색 노출·클릭 기준선을 확인할 수 없었다.
 - 공개 sitemap의 모든 항목은 `2026-09-22`를 `lastmod`로 표시했지만, 홈에는 2026-10-18 날짜의 새 글이 보였다. 콘텐츠 발견 시각을 사용하도록 바꾼 코드를 배포한 뒤 sitemap의 `lastmod`가 실제 데이터와 맞는지 재확인한다.
 - `/topics`는 당시 글이 없는 카테고리도 모두 연결했고, 주제 허브는 최신 피드 200건만 사용했다. `0014` 이후에는 활성 소스의 전체 아카이브에서 주제별 최근 글 20건을 읽고, 빈 주제는 목록·sitemap에서 빼며 페이지에 `noindex`를 적용한다.
-- 검색어는 주소의 `q`에 남겨 링크로 공유할 수 있다. Amplitude는 자동 URL 캡처를 끄고 경로만 기록하도록 수정했다. GTM/GA 설정은 계정 접근이 없어 확인하지 못했다.
+- 검색어는 주소의 `q`에 남겨 링크로 공유할 수 있다. 당시 GTM/GA 설정은 계정 접근이 없어 확인하지 못했다. 이후 계정에서 GA4의 `q` 수집을 차단하고 Search Console 속성을 연결했다(위 현재 적용·배포 상태 참고).

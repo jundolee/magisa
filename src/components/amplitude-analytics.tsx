@@ -11,18 +11,19 @@ import * as amplitude from "@amplitude/analytics-browser";
 export function AmplitudeAnalytics() {
   const pathname = usePathname();
   const apiKey = process.env.NEXT_PUBLIC_AMPLITUDE_API_KEY;
+  const analyticsEnabled = process.env.NEXT_PUBLIC_ANALYTICS_ENABLED === "true";
 
   useEffect(() => {
-    if (!apiKey) return;
+    if (!analyticsEnabled || !apiKey) return;
     // Autocapture includes full page URLs, which would also collect ?q= search text.
     // Explicit events below send only the pathname and search quality counts.
     amplitude.init(apiKey, { autocapture: false });
-  }, [apiKey]);
+  }, [analyticsEnabled, apiKey]);
 
   useEffect(() => {
-    if (!apiKey || !pathname) return;
+    if (!analyticsEnabled || !apiKey || !pathname) return;
     amplitude.track("page_viewed", { page_path: pathname });
-  }, [apiKey, pathname]);
+  }, [analyticsEnabled, apiKey, pathname]);
 
   return null;
 }
