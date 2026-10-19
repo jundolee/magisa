@@ -49,8 +49,9 @@ MVP 완료 이후 추가로 들어온 요청:
 - [x] `0013_tokenized_article_search.sql`, `0014_public_hub_queries.sql` 적용; 검색 10건, 블로그 36개, 색인 주제 8개와 서비스 역할 권한 확인
 - [x] PR #2 프로덕션 배포; sitemap 60개 URL을 확인하고 홈 `lastmod`가 DB 최신 피드 발견 시각과 일치하는지 확인
 - [ ] Search Console에서 브랜드/비브랜드 노출·클릭 기준선을 기록
-- [ ] Amplitude 키와 `page_viewed`, `article_search_completed` 수집 여부 확인
-- [ ] GTM/GA 컨테이너가 페이지 URL의 `q` 검색어를 전송하는지 점검
+- [x] Amplitude 이벤트 전송 확인: POST 200, `page_path`·검색 길이·결과 수만 전송
+- [x] GA4 속성·스트림을 Techgotgan으로 정리하고 Search Console 연결; `q` URL 매개변수 redaction 및 사이트 검색어 자동 수집 제외
+- [ ] `NEXT_PUBLIC_ANALYTICS_ENABLED` Production 전용 게이트를 배포하고 Preview 무전송·Production 전송을 검증
 - [x] `techgotgan.vercel.app` 프로덕션 배포; canonical·Open Graph·robots·sitemap·RSS에서 새 호스트 확인
 - [x] Supabase Auth Site URL·redirect allowlist 갱신, Search Console 속성 소유권 확인 및 sitemap 제출; Google에서 60개 URL 발견
 - [x] 이전 `magisa.vercel.app`을 새 호스트로 `308` 리다이렉트하고 경로·쿼리 보존 확인

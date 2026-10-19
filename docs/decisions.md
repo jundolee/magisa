@@ -566,7 +566,7 @@
 3. Amplitude 자동 수집을 끄고 페이지 경로만 `page_viewed`로 기록한다. 검색어는 공유 가능한 `?q=` URL에 남지만 자동 캡처 이벤트에는 보내지 않는다. Google Tag Manager/GA의 컨테이너 설정은 계정 접근이 없어 미확인으로 둔다.
 4. 블로그 목록 통계와 주제별 최신 20건을 데이터베이스 RPC로 조회한다. 전체 1000건 밖의 소스에 대한 동시 개별 요청과 홈 피드 200건 제한을 없애고, 카테고리·블로그 허브의 `lastmod`를 페이지에 보이는 글 기준으로 계산한다. 글이 없는 주제는 목록과 sitemap에서 제외하고 직접 접근 페이지에는 `noindex`를 적용한다.
 5. `techgotgan.com`, `.kr`, `.co.kr`은 2026-10-19 RDAP 조회에서 등록 레코드를 찾지 못했다. 도메인 구매나 상표권 확인은 하지 않았다.
-**검증 및 배포 상태**: 실제 공개 홈·주제·블로그·sitemap을 읽어 표기와 날짜를 확인했다. 원격 `magisa-reader` DB에 0013·0014를 적용해 검색·허브 RPC 응답과 실행 권한을 확인했고, `source_suggestions` 테이블과 RLS도 확인했다. Supabase Auth Site URL·redirect allowlist와 Google OAuth 브랜딩을 새 호스트로 갱신했다. PR #2 배포 후 canonical·Open Graph·robots·sitemap·RSS를 확인했고, Search Console은 sitemap 60개 URL을 성공적으로 읽었다. Google OAuth 로그인과 프로덕션 검색 10건도 확인했다. 검색 실적은 아직 데이터 처리 중이며 Amplitude 이벤트는 계정 데이터로 확인하지 않았다.
+**검증 및 배포 상태**: 실제 공개 홈·주제·블로그·sitemap을 읽어 표기와 날짜를 확인했다. 원격 `magisa-reader` DB에 0013·0014를 적용해 검색·허브 RPC 응답과 실행 권한을 확인했고, `source_suggestions` 테이블과 RLS도 확인했다. Supabase Auth Site URL·redirect allowlist와 Google OAuth 브랜딩을 새 호스트로 갱신했다. PR #2 배포 후 canonical·Open Graph·robots·sitemap·RSS를 확인했고, Search Console은 sitemap 60개 URL을 성공적으로 읽었다. Google OAuth 로그인과 프로덕션 검색 10건도 확인했다. Search Console 검색 실적은 아직 데이터 처리 중이다.
 **영향**: `src/app/seo.ts`, `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/topics/*`, `src/app/blogs/*`, `src/app/sitemap.ts`, `src/components/brand-link.tsx`, `src/components/amplitude-analytics.tsx`, `src/components/article-list.tsx`, `src/lib/data/public-hubs.ts`, `src/lib/supabase/cached-rest.ts`, `supabase/migrations/0014_public_hub_queries.sql`, `docs/growth-strategy.md`, `docs/roadmap.md`.
 
 ### 2026-10-19 — `techgotgan.vercel.app` 별도 확인
@@ -583,6 +583,11 @@
 ### 2026-10-19 — Techgotgan 프로덕션 배포와 검색·로그인 확인
 **적용**: PR #2 (`d3ae502`)를 `main`에 병합해 `techgotgan.vercel.app`에 배포했다. Vercel Domains에서 기존 `magisa.vercel.app`을 새 호스트로 308 리다이렉트하도록 추가했고, 경로와 쿼리 문자열이 보존되는 것을 확인했다. 새 Google Search Console 속성에 `/sitemap.xml`을 제출했다.
 **검증**: 홈·개인정보 처리방침·RSS·robots·sitemap이 HTTP 200을 반환했다. canonical·Open Graph·구조화 데이터·robots·RSS·sitemap에서 구 호스트 참조가 없고, sitemap 60개 URL이 모두 새 호스트를 사용한다. 홈의 sitemap `lastmod`가 원격 DB 최신 피드 발견 시각(`2026-10-18T22:54:06.691446Z`)과 일치하고 Search Console은 60개 URL을 발견했다. Google OAuth 로그인 후 `/login` 방문이 인증 세션을 확인해 홈으로 이동하며, 프로덕션 검색 `react typescript`는 10건을 반환한다.
-**남은 확인**: Search Console 검색 성과는 데이터 처리 중이라 노출·클릭 기준선을 아직 기록하지 않았다. Amplitude 이벤트와 GTM/GA의 검색어 수집 설정도 계정 데이터로 검증하지 않았다.
+**남은 확인**: Search Console 검색 성과는 데이터 처리 중이라 노출·클릭 기준선을 아직 기록하지 않았다. GA4 검색어 원문 차단과 Amplitude 이벤트 전송은 다음 결정 기록에 따라 확인했다.
+
+### 2026-10-19 — GA4 검색어 수집 차단과 Production 전용 분석 게이트
+**배경**: Tag Assistant에서 `?q=privacy-check-20261019`를 열었을 때 GA4 `page_view`의 `page_location`과 Enhanced Measurement `view_search_results.search_term`에 검색어 원문이 포함되는 것을 확인했다. Amplitude 키는 Vercel Production·Preview 모두에 설정돼 있어 Vercel Preview도 `NODE_ENV=production` 조건으로 분석을 보낼 수 있었다.
+**적용**: GA4 속성과 스트림 이름을 `Techgotgan` 및 `Techgotgan Web`으로 변경하고 새 사이트 URL을 설정했다. GA4 URL Data Redaction에 `q`를 추가하고 Site Search query-parameter 목록에서 `q`를 제거했다. 새 Search Console 속성을 GA4 웹 스트림에 연결했다. Vercel Production에만 `NEXT_PUBLIC_ANALYTICS_ENABLED=true`를 추가하고, GTM·Amplitude 초기화와 검색 이벤트 전송을 모두 이 플래그로 게이트한다. Amplitude 자동 수집은 계속 꺼두며 명시 이벤트에 검색어 원문을 넣지 않는다.
+**검증**: GA4 미리보기에서 `page_view.page_location`은 `q=(redacted)`를 포함했고 `view_search_results`는 발생하지 않았다. Amplitude 테스트 요청은 HTTP 200이었으며 payload에는 `query_length`가 있고 검색어 원문은 없었다. production-only 코드 게이트의 Vercel 배포와 Preview 무전송 확인은 이번 변경의 배포 후 검증 대상이다.
 
 
