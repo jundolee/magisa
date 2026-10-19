@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Text } from "@seed-design/react";
+import { ArticleLink } from "@/components/article-link";
 import { PageHeader } from "@/components/page-header";
 import {
   SITE_URL,
@@ -44,7 +45,7 @@ function ArticleList({ articles }: { articles: PublicHubArticle[] }) {
           key={article.id}
           style={{ borderBottom: "1px solid var(--seed-color-stroke-neutral-subtle)", paddingBottom: 16 }}
         >
-          <a href={article.url} target="_blank" rel="noopener noreferrer" style={{ display: "block" }}>
+          <ArticleLink articleId={article.id} articleTitle={article.title} href={article.url} style={{ display: "block" }}>
             <Text as="h3" textStyle="t5Bold" color="fg.neutral">
               {article.title}
             </Text>
@@ -53,7 +54,7 @@ function ArticleList({ articles }: { articles: PublicHubArticle[] }) {
                 {article.excerpt}
               </Text>
             )}
-          </a>
+          </ArticleLink>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
             {article.source && (
               <Link href={`/blogs/${encodeURIComponent(article.source.slug)}`}>

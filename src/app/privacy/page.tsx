@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/page-header";
 import { SITE_NAME } from "@/app/seo";
 
 const CONTACT_EMAIL = "yijunsuc@gmail.com";
-const EFFECTIVE_DATE = "2026년 8월 13일";
+const EFFECTIVE_DATE = "2026년 10월 19일";
 
 export const metadata: Metadata = {
   title: "개인정보처리방침",
@@ -45,16 +45,20 @@ export default function PrivacyPolicyPage() {
           또한 서비스 이용 과정에서 아래 정보가 자동으로 생성·저장됩니다.
           <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
             <li>글 읽음 여부, 즐겨찾기 표시 등 이용 기록</li>
+            <li>분석 도구가 반복 방문을 구분하기 위해 생성하는 브라우저·세션 식별자와 쿠키 또는 브라우저 저장소 정보</li>
           </ul>
         </Section>
 
         <Section title="2. 개인정보 이용 목적">
-          수집한 정보는 로그인 상태 유지, 계정별 읽음/즐겨찾기 등 개인화 기능 제공을 위해서만 이용합니다.
-          이용 목적 외로 사용하지 않습니다.
+          수집한 정보는 로그인 상태 유지, 계정별 읽음/즐겨찾기 등 개인화 기능 제공과 서비스 이용 패턴 분석 및
+          개선을 위해 이용합니다. 이 목적 외로 사용하지 않습니다.
         </Section>
 
         <Section title="3. 개인정보 보유 및 이용 기간">
-          회원 탈퇴(계정 삭제) 요청 시 지체 없이 파기합니다. 별도로 요청하시면 그 이전에도 삭제해드립니다.
+          회원 탈퇴(계정 삭제) 요청 시 계정 정보와 계정별 읽음·즐겨찾기 데이터를 지체 없이 파기합니다.
+          Google Analytics 4와 Amplitude의 분석 기록은 브라우저·세션 식별자를 기준으로 별도 보관되며 각 도구의
+          보유 기간 설정을 따릅니다. 서비스는 분석 이벤트에 계정 ID를 보내지 않으므로 특정 계정의 분석 기록을
+          찾아 삭제하지 못할 수 있습니다.
         </Section>
 
         <Section title="4. 개인정보의 제3자 제공 및 처리 위탁">
@@ -62,13 +66,20 @@ export default function PrivacyPolicyPage() {
           위탁하고 있습니다.
           <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
             <li>Supabase, Inc. — 데이터베이스 및 로그인 인증 인프라 호스팅</li>
-            <li>Google LLC — Google 계정 로그인(OAuth) 인증 처리</li>
+            <li>Google LLC — Google 계정 로그인(OAuth) 및 Google Analytics 4 이용 분석</li>
+            <li>Amplitude, Inc. — 서비스 이용 분석</li>
           </ul>
         </Section>
 
         <Section title="5. 서비스 이용 분석 도구">
-          서비스 개선을 위해 Google Analytics, Amplitude를 통해 페이지 방문·클릭 등 이용 통계를 수집합니다.
-          이 통계는 개인을 특정하지 않는 형태로 집계되어 이용됩니다.
+          서비스 개선을 위해 Google Analytics 4와 Amplitude를 사용합니다. 분석 도구는 브라우저·세션 식별자와
+          쿠키 또는 브라우저 저장소를 이용해 여러 방문의 이벤트를 같은 브라우저 기준으로 연결할 수 있습니다.
+          서비스는 분석 이벤트에 로그인 이메일·이름·계정 ID를 보내지 않습니다.
+          <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
+            <li>Google Analytics 4: 페이지 방문과 원문 글 클릭을 기록하며, 원문 클릭에는 공개 글 ID와 제목이 포함됩니다.</li>
+            <li>Amplitude: 페이지 경로, 검색어 길이·단어 수, 검색 결과 수, 선택한 주제, 소스 필터 적용 여부를 기록합니다.</li>
+            <li>검색어 원문은 분석 이벤트로 보내지 않습니다. 주소의 `q` 검색 매개변수는 Google Analytics 4에서 가려지고 사이트 검색어 자동 측정 대상에서도 제외됩니다.</li>
+          </ul>
         </Section>
 
         <Section title="6. 이용자의 권리">

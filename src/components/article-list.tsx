@@ -260,7 +260,7 @@ export function ArticleList({
           marginBottom: query.trim() ? 8 : 20,
         }}
       >
-        <Text as="h1" textStyle="t8Bold" color="fg.neutral">
+        <Text as="h2" textStyle="t8Bold" color="fg.neutral">
           최신 글
         </Text>
         {/* 검색창이 펼쳐지면 배지/전체읽음 버튼을 숨기고 이 그룹이 줄 전체(flexBasis:100%)를

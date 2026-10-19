@@ -68,7 +68,23 @@
 - Amplitude 키는 Vercel Production과 Preview에 존재한다. 프로덕션 확인 요청은 200으로 응답했고, 검색 이벤트
   payload에는 `query_length`와 결과 지표만 있고 검색어 원문은 없었다. Preview에서 분석이 실행되지 않도록
   `NEXT_PUBLIC_ANALYTICS_ENABLED=true`를 Production에만 추가했고 소스 코드에 이 플래그 게이트를 추가했다.
-  코드 배포와 Preview 무전송 검증은 현재 PR에서 진행 중이다.
+  PR #4가 병합·배포됐다. 2026-10-19 재확인에서 Preview는 GTM·GA4·Amplitude 요청 없이 열렸고,
+  Production에서는 GTM·Google 태그가 실행돼 GA4 `page_view`가 전송됐다. `?q=prod-privacy-check-20261019`
+  요청의 `page_location`에는 `q=(redacted)`가 들어갔으며 별도 `view_search_results` 요청은 없었다.
+- GTM 최신 게시 버전 5에는 Google 태그와 `GA4-article_click` 등 2개 태그·2개 트리거가 포함돼 있다.
+  작업공간에는 게시 대기 변경사항이 없어서 불필요한 새 버전을 만들지 않았다.
+- Search Console `/sitemap.xml` 상태는 성공이며 발견 페이지 수는 60개다. 실적 보고서는 2026-10-19 확인 시
+  “데이터를 처리하는 중”으로 표시되고 검색어 표가 비어 있었다. Google 처리가 끝나면 브랜드/비브랜드 기준선을
+  기록한다.
+- Amplitude Browser SDK의 Remote Config는 기본 활성화되어 있어 원격 Autocapture 설정이 코드의
+  `autocapture: false`를 다시 켤 수 있다. 이를 막기 위해 SDK 초기화에서 `fetchRemoteConfig: false`를 지정했다.
+  개인정보처리방침은 분석 쿠키·브라우저/세션 식별자, 이벤트 범위, 계정 탈퇴 후 보유 한계를 설명하도록 갱신했다.
+- 주제·블로그 허브의 원문 카드도 홈 피드와 같은 `ArticleLink`를 사용한다. 따라서 `article_click` 이벤트와
+  내부 클릭수 집계는 검색 랜딩 허브에서 원문으로 이동한 경우도 포함한다. 이 이벤트는 GA4/GTM이 받으며,
+  Amplitude 검색 지표는 검색어 원문 없이 길이·단어 수·결과 수·주제·소스 필터 여부만 기록한다.
+- 브라우저 아이콘은 `곳간 지붕과 글 선반` 심볼로 교체했고, 헤더 워드마크에도 같은 심볼을 붙였다.
+- `0013`·`0014`는 Dashboard SQL Editor에서 적용돼 CLI migration history에 기록되지 않았다. 원격 스키마와 기존
+  migration 상태를 대조해 이력을 정리하기 전에는 `supabase db push`를 실행하지 않는다.
 
 ## 보류: 멀티테넌시(사용자별 소스 목록)
 
@@ -87,7 +103,7 @@
 | 탐색 품질 | 검색 실행 수, 결과 0건 비율, 결과 후 원문 클릭률 | `article_search_completed`에 글자 수·단어 수·결과 수만 기록하고 검색어 원문은 저장하지 않음 |
 | 재방문 | 7일 내 다시 방문해 읽음·즐겨찾기·원문 클릭을 한 사용자 | Amplitude의 재방문 사용자 및 이벤트 흐름 |
 
-Amplitude는 전체 URL·검색어를 자동 수집하지 않는다. 프로덕션 이벤트 요청은 200으로 응답했고 `page_viewed`는 경로만, `article_search_completed`는 검색 길이·단어 수·결과 수만 보낸다. GA4는 URL의 `q` 값을 Data Redaction에서 가리고, Enhanced Measurement 검색어 매개변수에서도 `q`를 제외했다. Search Console 속성은 GA4에 연결했지만 새 속성의 성과 데이터는 아직 처리 중이다. 검색 기준선이 확보되기 전에는 검색 유입 증가율이나 전환 목표를 임의로 완료 기준으로 만들지 않는다.
+Amplitude는 전체 URL·검색어를 자동 수집하지 않는다. 프로덕션 이벤트 요청은 200으로 응답했고 `page_viewed`는 경로만, `article_search_completed`는 검색 길이·단어 수·결과 수만 보낸다. GA4는 URL의 `q` 값을 Data Redaction에서 가리고, Enhanced Measurement 검색어 매개변수에서도 `q`를 제외했다. Production GA4 `page_view`에서 `q=(redacted)`를 확인했다. Search Console 속성은 GA4에 연결했지만 새 속성의 성과 데이터는 아직 처리 중이다. 검색 기준선이 확보되기 전에는 검색 유입 증가율이나 전환 목표를 임의로 완료 기준으로 만들지 않는다.
 
 ## 브랜드 결정 사항
 
