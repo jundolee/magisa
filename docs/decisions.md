@@ -545,4 +545,39 @@
 - Cloudflare 신규 생성 Worker 서브도메인의 SSL 발급 지연으로 인한 `SSL alert number 40` (handshake failure) 대응으로 `toHttpUrl` 및 `isSslError` 기반 HTTP 자동 폴백 추가.
 **영향**: `src/lib/ingestion/feed-proxy.ts`(신규), `src/lib/ingestion/parse-feed.ts`, `src/lib/ingestion/discover-feed.ts`, `src/lib/storage/thumbnails.ts`, `.env.example`, `docs/decisions.md`.
 
+### 2026-10-19 — 검색·공개 허브·sitemap을 실제 제품 흐름에 맞춤
+**배경**: 라이브 검색은 제목/요약의 연속 문자열만 찾았고, `react`와 `리액트` 결과 수가 크게 달랐음. 블로그 허브는 전체 최신 200건에서만 소스 글을 찾으므로 일부 활성 소스가 글이 있는 상태에서도 빈 페이지로 보일 수 있었음. sitemap은 모든 URL에 2026-09-22 고정 `lastmod`를 넣고 있었음.
+**결정 및 수정**:
+1. 검색 RPC를 공백 기준 AND 검색으로 바꾸고, 기술 용어의 제한된 한·영 별칭과 태그 검색을 추가. 1~2자 영문 토큰은 단어 경계로 비교해 `AI`가 `mail` 같은 무관한 부분 문자열에 걸리는 현상을 줄임.
+2. 블로그 인덱스에는 최신 1000건을 먼저 보고, 그 범위 밖인 활성 소스만 소스별 최신 글을 조회. 블로그 상세는 소스별 최신 20건을 조회해 전체 피드 200건 제한에 영향받지 않게 함.
+3. 글이 없는 허브는 직접 방문 시 안내는 유지하되 `noindex`로 처리하고 sitemap·블로그 목록 링크·ItemList 구조화 데이터에서 제외.
+4. sitemap `lastmod`를 `discovered_at` 기반으로 계산하고, 내용 수정 시각을 알 수 없는 정적 주제 인덱스에는 날짜를 보내지 않음. 주간 큐레이션은 해당 주 글의 최근 발견 시각을 사용.
+5. `article_search_completed` 이벤트에는 검색어를 저장하지 않고 글자 수·단어 수·결과 수·카테고리·소스 필터 여부만 전송. 홈 소개 문구는 실제로 제공하는 기능에 맞게 정리.
+6. `/suggest`는 `noindex`이므로 sitemap에서 제외한다는 점을 성장 전략 문서에 반영. Google에서 지원 중단된 `SearchAction` 마크업은 제거.
+**검증**: `tsc --noEmit`, `npm run lint`, 기존 Node 테스트 3건, `npm run build`, `git diff --check` 통과. 새 `0013` 검색 RPC는 임시 PGlite 실행 환경에서 한영 별칭, 다중 단어, 짧은 `AI` 경계, `%` 이스케이프, 공백 검색을 포함한 8개 사례를 확인. Lint에는 변경 범위 밖인 `src/app/login/actions.ts`의 기존 미사용 `_formData` 경고 1건이 남음.
+**미확인 사항**: 원격 Supabase에 마이그레이션을 적용하거나 배포 사이트를 바꾸지는 않음. PGlite 사례 검증은 실제 Supabase 데이터·실행계획·환경을 대신하지 않는다. Search Console/Amplitude 실제 유입 기준값도 계정 데이터로 확인하지 않음. 공개 브랜드명은 사용자 선택 전까지 변경하지 않음.
+**영향**: `src/lib/data/articles.ts`, `src/lib/data/public-hubs.ts`, `src/lib/data/weekly-digests.ts`, `src/app/sitemap.ts`, `src/app/blogs/*`, `src/components/article-list.tsx`, `src/lib/analytics.ts`, `supabase/migrations/0013_tokenized_article_search.sql`, `src/app/seo.ts`, `src/app/layout.tsx`, `src/app/page.tsx`, `docs/growth-strategy.md`, `docs/roadmap.md`.
+
+### 2026-10-19 — 공개 브랜드를 테크곳간으로 정렬하고 검색·허브 범위를 보완
+**배경**: 라이브 서비스는 `magisa.vercel.app`을 쓰면서 화면과 메타데이터는 `매일 읽는 테크 기사`를 이름처럼 사용했고, 사용자가 기억하거나 검색할 고유 브랜드가 없었다. 라이브 sitemap의 모든 URL이 2026-09-22를 `lastmod`로 내보내는 동안 홈에는 2026-10-18 새 글이 보였다. `/topics`는 비어 있는 카테고리도 노출했고, 허브 쿼리는 최신 200건에 묶여 있었다. Search Console은 로그인 권한이 없어 유입 수치를 읽지 못했다.
+**결정**:
+1. 공개 브랜드는 `테크곳간`(영문 표기 `Techgotgan`), 설명 문구는 “테크 블로그 글을 한곳에서 찾아 읽는다”로 정렬한다. 이름과 설명을 함께 쓰고, 현재 제품이 개인별 블로그 구독을 제공하는 것처럼 말하지 않는다.
+2. 검색 자동 실행을 두 글자부터 허용해 `AI`, `DB`, `ML` 같은 약어가 다른 결과를 남겨 둔 채 Enter 입력을 기다리지 않게 한다. 한 글자 검색은 Enter로 실행하고, Amplitude에는 검색어 원문 없이 길이·단어 수·결과 수만 전송한다.
+3. Amplitude 자동 수집을 끄고 페이지 경로만 `page_viewed`로 기록한다. 검색어는 공유 가능한 `?q=` URL에 남지만 자동 캡처 이벤트에는 보내지 않는다. Google Tag Manager/GA의 컨테이너 설정은 계정 접근이 없어 미확인으로 둔다.
+4. 블로그 목록 통계와 주제별 최신 20건을 데이터베이스 RPC로 조회한다. 전체 1000건 밖의 소스에 대한 동시 개별 요청과 홈 피드 200건 제한을 없애고, 카테고리·블로그 허브의 `lastmod`를 페이지에 보이는 글 기준으로 계산한다. 글이 없는 주제는 목록과 sitemap에서 제외하고 직접 접근 페이지에는 `noindex`를 적용한다.
+5. `techgotgan.com`, `.kr`, `.co.kr`은 2026-10-19 RDAP 조회에서 등록 레코드를 찾지 못했다. 도메인 구매나 상표권 확인은 하지 않았다.
+**검증 및 배포 상태**: 실제 공개 홈·주제·블로그·sitemap을 읽어 표기와 날짜를 확인했다. 원격 `magisa-reader` DB에 0013·0014를 적용해 검색·허브 RPC 응답과 실행 권한을 확인했고, `source_suggestions` 테이블과 RLS도 확인했다. Supabase Auth Site URL·redirect allowlist와 Google OAuth 브랜딩을 새 호스트로 갱신했으며 Search Console 속성 소유권도 확인했다. 검색 기준선·Amplitude 이벤트는 계정 데이터로 확인하지 않았다. 새 코드의 Vercel 배포와 공개 응답 확인은 아직 남아 있다.
+**영향**: `src/app/seo.ts`, `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/topics/*`, `src/app/blogs/*`, `src/app/sitemap.ts`, `src/components/brand-link.tsx`, `src/components/amplitude-analytics.tsx`, `src/components/article-list.tsx`, `src/lib/data/public-hubs.ts`, `src/lib/supabase/cached-rest.ts`, `supabase/migrations/0014_public_hub_queries.sql`, `docs/growth-strategy.md`, `docs/roadmap.md`.
+
+### 2026-10-19 — `techgotgan.vercel.app` 별도 확인
+**확인**: DNS는 Vercel 인프라로 해석되고 HTTPS는 `404 DEPLOYMENT_NOT_FOUND`를 반환한다. 현재 접속 가능한 배포는 찾지 못했다. Vercel 문서는 `.vercel.app` 배포 주소가 선착순 할당이며 예약할 수 없고, alias 충돌 여부는 계정에서 확인해야 한다고 안내한다.
+**한계**: 이 작업 환경에 Vercel CLI가 없고 저장소가 `.vercel` 프로젝트에 연결돼 있지 않아 해당 alias가 다른 Vercel 계정에서 점유됐는지는 확인하지 못했다. alias 추가, 프로젝트 이름 변경, 배포는 하지 않았다.
+**영향**: [Vercel 도메인 정책](https://vercel.com/docs/domains/working-with-domains), [Vercel alias 충돌 안내](https://vercel.com/docs/cli/alias), `docs/growth-strategy.md`.
+
+### 2026-10-19 — Vercel 주소를 `techgotgan.vercel.app`으로 변경한 뒤 소스/SEO 정렬
+**배경**: 사용자가 Vercel에서 프로젝트 주소를 강제로 `techgotgan`으로 변경했다. 새 주소는 HTTP 200으로 응답했지만, 실제 HTML의 canonical과 Open Graph URL 및 `robots.txt`/sitemap은 계속 `magisa.vercel.app`을 출력했고, 이전 주소는 `DEPLOYMENT_NOT_FOUND`였다.
+**수정**: 공통 `SITE_URL`을 `https://techgotgan.vercel.app`으로 변경해 metadataBase, canonical, Open Graph, 구조화 데이터, robots, sitemap, RSS가 새 호스트를 쓰게 한다. 패키지 이름을 `techgotgan`으로 바꾸고, 관리자/방문자 쿠키는 새 이름으로 발급하되 기존 이름은 만료 시까지 읽어 세션과 이관 데이터를 보존한다. Google Search Console 인증 값은 이전 호스트에 묶인 고정값을 제거하고 `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`으로 받도록 한다. OAuth callback은 요청 host를 사용하므로 코드 변경은 불필요하다.
+**외부 후속 작업**: Supabase Auth Site URL·redirect allowlist, Google OAuth 동의 화면, 새 Search Console 속성 소유권은 `techgotgan.vercel.app`으로 갱신했다. 배포 후 canonical·robots·sitemap·OG 응답을 확인하고 Search Console에 sitemap을 제출한다. 이전 `magisa.vercel.app`은 현재 연결되지 않아 리다이렉트되지 않는다. Vercel에서 이전 alias를 다시 붙일 수 있는지 확인한다.
+**영향**: `src/app/seo.ts`, `src/app/layout.tsx`, `src/lib/visitor.ts`, `src/lib/admin-auth.ts`, `src/proxy.ts`, `src/app/login/actions.ts`, `src/app/auth/callback/route.ts`, `package.json`, `package-lock.json`, `.env.example`, `docs/growth-strategy.md`, `docs/roadmap.md`.
+
 

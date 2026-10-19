@@ -39,3 +39,36 @@ export async function fetchCachedFromSupabase<T>(
 
   return res.json() as Promise<T>;
 }
+
+/** Cache safe, read-only PostgREST RPC calls through the same shared data cache. */
+export async function fetchCachedRpcFromSupabase<T>(
+  functionName: string,
+  params: Record<string, string>,
+  cache: { revalidate: number; tags: string[] }
+): Promise<T> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceRoleKey) {
+    throw new Error(
+      "NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 환경변수가 설정되어 있지 않습니다. .env.example을 참고해 .env.local을 만드세요."
+    );
+  }
+
+  const query = new URLSearchParams(params);
+  const res = await fetch(`${url}/rest/v1/rpc/${encodeURIComponent(functionName)}?${query.toString()}`, {
+    method: "GET",
+    headers: {
+      apikey: serviceRoleKey,
+      authorization: `Bearer ${serviceRoleKey}`,
+    },
+    cache: "force-cache",
+    next: { revalidate: cache.revalidate, tags: cache.tags },
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Supabase RPC 조회 실패(${res.status} ${functionName}): ${body}`);
+  }
+
+  return res.json() as Promise<T>;
+}

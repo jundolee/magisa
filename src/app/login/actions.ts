@@ -4,14 +4,16 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { migrateVisitorDataToUser } from "@/lib/data/articles";
-import { VISITOR_COOKIE_NAME } from "@/lib/visitor";
+import { LEGACY_VISITOR_COOKIE_NAME, VISITOR_COOKIE_NAME } from "@/lib/visitor";
 
 type OAuthProvider = "google";
 
 // 로그인 전 익명 방문자 쿠키로 쌓아둔 읽음/즐겨찾기 기록을 최초 로그인 시 이 계정으로 옮긴다
 // (docs/decisions.md 참고). 방문자 쿠키가 없으면(이미 옮겨졌거나 애초에 없던 경우) 아무 일도 안 한다.
 async function migrateVisitorDataIfNeeded(userId: string): Promise<void> {
-  const visitorId = (await cookies()).get(VISITOR_COOKIE_NAME)?.value;
+  const cookieStore = await cookies();
+  const visitorId =
+    cookieStore.get(VISITOR_COOKIE_NAME)?.value ?? cookieStore.get(LEGACY_VISITOR_COOKIE_NAME)?.value;
   if (!visitorId) return;
   await migrateVisitorDataToUser(visitorId, userId);
 }

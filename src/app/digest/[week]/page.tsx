@@ -8,8 +8,7 @@ import { DigestDistributionList } from "@/components/weekly-digest/digest-distri
 import { DigestHeader } from "@/components/weekly-digest/digest-header";
 import { DigestJsonLd } from "@/components/weekly-digest/digest-json-ld";
 import { getWeeklyDigest, isValidDigestWeek } from "@/lib/data/weekly-digests";
-
-const SITE_URL = "https://magisa.vercel.app";
+import { SITE_NAME, SITE_URL } from "@/app/seo";
 
 type PageProps = {
   params: Promise<{ week: string }>;
@@ -35,7 +34,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description,
     alternates: { canonical: `/digest/${digest.week}` },
     openGraph: {
-      title: `${title} | 매일 읽는 테크 기사`,
+      title: `${title} | ${SITE_NAME}`,
       description,
       url: `${SITE_URL}/digest/${digest.week}`,
       locale: "ko_KR",
@@ -76,7 +75,7 @@ export default async function WeeklyDigestPage({ params }: PageProps) {
           description,
           url: canonicalUrl,
           inLanguage: "ko-KR",
-          isPartOf: { "@type": "WebSite", name: "매일 읽는 테크 기사", url: SITE_URL },
+          isPartOf: { "@type": "WebSite", name: SITE_NAME, url: SITE_URL },
         }}
       />
       <DigestHeader />

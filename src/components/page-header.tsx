@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Text } from "@seed-design/react";
+import { BrandLink } from "@/components/brand-link";
 
 export function PageHeader({
   navHref,
@@ -22,16 +22,7 @@ export function PageHeader({
         borderBottom: "1px solid var(--seed-color-stroke-neutral-subtle)",
       }}
     >
-      <Link href="/" aria-label="매일 읽는 테크 기사 홈" style={{ display: "block", lineHeight: 0 }}>
-        <Image
-          src="/brand-logo.svg"
-          alt="매일 읽는 테크 기사"
-          width={305}
-          height={37}
-          priority
-          style={{ display: "block", width: "clamp(156px, 45vw, 250px)", height: "auto" }}
-        />
-      </Link>
+      <BrandLink />
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         {navHref && navLabel && (
           <Link href={navHref}>

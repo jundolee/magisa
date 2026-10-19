@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import { Text } from "@seed-design/react";
 import { PageHeader } from "@/components/page-header";
-import { PUBLIC_CATEGORY_IDS, PUBLIC_CATEGORY_META, SITE_URL } from "@/lib/data/public-hubs";
+import { getPublicCategoryIndex } from "@/lib/data/public-hubs";
+import { SITE_NAME, SITE_URL } from "@/app/seo";
 
 const TITLE = "테크 주제별 최신 글";
 const DESCRIPTION = "AI, 프론트엔드, 백엔드, DevOps, 데이터 등 주제별로 테크 블로그의 최신 글을 찾아보세요.";
@@ -11,17 +13,22 @@ export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: `${SITE_URL}/topics` },
-  openGraph: { title: `${TITLE} | 매일 읽는 테크 기사`, description: DESCRIPTION, url: `${SITE_URL}/topics`, locale: "ko_KR", type: "website" },
+  openGraph: { title: `${TITLE} | ${SITE_NAME}`, description: DESCRIPTION, url: `${SITE_URL}/topics`, locale: "ko_KR", type: "website" },
 };
 
-export default function TopicsPage() {
+export const runtime = "nodejs";
+export const fetchCache = "default-cache";
+
+export default async function TopicsPage() {
+  await connection();
+  const categories = await getPublicCategoryIndex();
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     name: TITLE,
     description: DESCRIPTION,
     url: `${SITE_URL}/topics`,
-    isPartOf: { "@type": "WebSite", name: "매일 읽는 테크 기사", url: SITE_URL },
+    isPartOf: { "@type": "WebSite", name: SITE_NAME, url: SITE_URL },
   };
 
   return (
@@ -33,8 +40,7 @@ export default function TopicsPage() {
         <Text as="p" textStyle="t4Regular" color="var(--seed-color-fg-neutral-muted)">{DESCRIPTION}</Text>
       </header>
       <ul style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, listStyle: "none" }}>
-        {PUBLIC_CATEGORY_IDS.map((category) => {
-          const meta = PUBLIC_CATEGORY_META[category];
+        {categories.map(({ category, meta, articleCount }) => {
           return (
             <li key={category}>
               <Link
@@ -43,6 +49,9 @@ export default function TopicsPage() {
               >
                 <Text as="h2" textStyle="t5Bold" color="fg.neutral">{meta.title}</Text>
                 <Text as="p" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">{meta.description}</Text>
+                <Text as="span" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)">
+                  {articleCount.toLocaleString("ko-KR")}개 글
+                </Text>
               </Link>
             </li>
           );

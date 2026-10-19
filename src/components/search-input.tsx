@@ -48,7 +48,7 @@ export function SearchInput({
     >
       <TextFieldInput
         aria-label="글 검색"
-        placeholder="제목/요약 검색"
+        placeholder="제목·요약·태그 검색"
         autoFocus={autoFocus}
         onBlur={onBlur}
         onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {

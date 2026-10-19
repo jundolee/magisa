@@ -5,13 +5,13 @@ import { connection } from "next/server";
 import { Text } from "@seed-design/react";
 import { PageHeader } from "@/components/page-header";
 import {
-  PUBLIC_CATEGORY_IDS,
-  PUBLIC_CATEGORY_META,
   SITE_URL,
+  getPublicCategoryIndex,
   getPublicCategoryHub,
   isPublicCategory,
   type PublicHubArticle,
 } from "@/lib/data/public-hubs";
+import { SITE_NAME } from "@/app/seo";
 
 // 공개 허브는 Supabase 읽기 모듈을 함께 번들링하므로 기본 Node.js 런타임을 사용한다.
 export const runtime = "nodejs";
@@ -83,11 +83,12 @@ export async function generateMetadata({ params }: TopicPageProps): Promise<Meta
   if (!hub) return { robots: { index: false, follow: false } };
 
   const title = hub.meta.title;
-  const socialTitle = `${title} | 매일 읽는 테크 기사`;
+  const socialTitle = `${title} | ${SITE_NAME}`;
   const canonical = topicUrl(category);
   return {
     title,
     description: hub.meta.description,
+    robots: hub.articles.length > 0 ? undefined : { index: false, follow: false },
     alternates: { canonical },
     openGraph: { title: socialTitle, description: hub.meta.description, url: canonical, type: "website", locale: "ko_KR" },
     twitter: { card: "summary", title: socialTitle, description: hub.meta.description },
@@ -101,20 +102,21 @@ export default async function TopicPage({ params }: TopicPageProps) {
   if (!hub) notFound();
 
   const canonical = topicUrl(hub.category);
+  const relatedTopics = (await getPublicCategoryIndex()).filter((item) => item.category !== hub.category);
   const jsonLd = [
     {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      name: `${hub.meta.title} | 매일 읽는 테크 기사`,
+      name: `${hub.meta.title} | ${SITE_NAME}`,
       description: hub.meta.description,
       url: canonical,
-      isPartOf: { "@type": "WebSite", name: "매일 읽는 테크 기사", url: SITE_URL },
+      isPartOf: { "@type": "WebSite", name: SITE_NAME, url: SITE_URL },
     },
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "매일 읽는 테크 기사", item: SITE_URL },
+        { "@type": "ListItem", position: 1, name: SITE_NAME, item: SITE_URL },
         { "@type": "ListItem", position: 2, name: "주제", item: `${SITE_URL}/topics/${hub.category}` },
         { "@type": "ListItem", position: 3, name: hub.meta.label, item: canonical },
       ],
@@ -131,7 +133,7 @@ export default async function TopicPage({ params }: TopicPageProps) {
 
       <nav aria-label="breadcrumb">
         <ol style={{ display: "flex", gap: 8, listStyle: "none", flexWrap: "wrap" }}>
-          <li><Link href="/">매일 읽는 테크 기사</Link></li>
+          <li><Link href="/">{SITE_NAME}</Link></li>
           <li aria-hidden="true">/</li>
           <li><span>주제</span></li>
           <li aria-hidden="true">/</li>
@@ -156,13 +158,13 @@ export default async function TopicPage({ params }: TopicPageProps) {
           다른 주제 둘러보기
         </Text>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {PUBLIC_CATEGORY_IDS.filter((id) => id !== hub.category).map((id) => (
+          {relatedTopics.map(({ category, meta }) => (
             <Link
-              key={id}
-              href={`/topics/${id}`}
+              key={category}
+              href={`/topics/${category}`}
               style={{ border: "1px solid var(--seed-color-stroke-neutral-subtle)", borderRadius: 999, padding: "7px 12px" }}
             >
-              {PUBLIC_CATEGORY_META[id].label}
+              {meta.label}
             </Link>
           ))}
         </div>

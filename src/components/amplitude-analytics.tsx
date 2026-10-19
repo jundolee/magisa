@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import * as amplitude from "@amplitude/analytics-browser";
 
 /**
@@ -8,11 +9,20 @@ import * as amplitude from "@amplitude/analytics-browser";
  * 로컬 개발 접속이 실제 분석 데이터에 섞이지 않도록.
  */
 export function AmplitudeAnalytics() {
+  const pathname = usePathname();
+  const apiKey = process.env.NEXT_PUBLIC_AMPLITUDE_API_KEY;
+
   useEffect(() => {
-    const apiKey = process.env.NEXT_PUBLIC_AMPLITUDE_API_KEY;
     if (!apiKey) return;
-    amplitude.init(apiKey, { autocapture: true });
-  }, []);
+    // Autocapture includes full page URLs, which would also collect ?q= search text.
+    // Explicit events below send only the pathname and search quality counts.
+    amplitude.init(apiKey, { autocapture: false });
+  }, [apiKey]);
+
+  useEffect(() => {
+    if (!apiKey || !pathname) return;
+    amplitude.track("page_viewed", { page_path: pathname });
+  }, [apiKey, pathname]);
 
   return null;
 }

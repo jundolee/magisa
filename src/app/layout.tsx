@@ -7,6 +7,7 @@ import "@seed-design/css/all.css";
 import "./globals.css";
 
 const GTM_CONTAINER_ID = "GTM-P2HHB9CG";
+const GOOGLE_SITE_VERIFICATION = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
 
 const freesentation = localFont({
   variable: "--font-freesentation",
@@ -23,11 +24,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: SITE_TITLE,
-    template: "%s | 매일 읽는 테크 기사",
+    template: `%s | ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
-    keywords: ["테크 기사", "매일 읽는 테크 기사", "테크 블로그", "개발 기사", "IT 기사", "AI 기사"],
+    keywords: ["테크 블로그", "기술 블로그", "테크 글", "개발 글", "AI 기술 글"],
   alternates: {
     canonical: "/",
     types: { "application/rss+xml": `${SITE_URL}/feed.xml` },
@@ -44,7 +45,7 @@ export const metadata: Metadata = {
         url: DEFAULT_OG_IMAGE,
         width: 1200,
         height: 630,
-        alt: "매일 읽는 테크 기사",
+        alt: SITE_NAME,
       },
     ],
   },
@@ -52,11 +53,9 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: [{ url: DEFAULT_OG_IMAGE, alt: "매일 읽는 테크 기사" }],
+    images: [{ url: DEFAULT_OG_IMAGE, alt: SITE_NAME }],
   },
-  verification: {
-    google: "lhOSAHwCAKIdiUFUj-lftkkbb8fIjsD21lB_uEAvuYg",
-  },
+  ...(GOOGLE_SITE_VERIFICATION ? { verification: { google: GOOGLE_SITE_VERIFICATION } } : {}),
 };
 
 const websiteJsonLd = {
@@ -69,11 +68,6 @@ const websiteJsonLd = {
       url: SITE_URL,
       description: SITE_DESCRIPTION,
       inLanguage: "ko-KR",
-      potentialAction: {
-        "@type": "SearchAction",
-        target: `${SITE_URL}/?q={search_term_string}`,
-        "query-input": "required name=search_term_string",
-      },
     },
     {
       "@type": "Organization",

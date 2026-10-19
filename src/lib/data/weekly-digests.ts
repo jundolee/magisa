@@ -14,6 +14,7 @@ export interface DigestArticle {
   url: string;
   excerpt: string | null;
   published_at: string;
+  discovered_at: string;
   category: string | null;
   source: {
     id: string;
@@ -33,6 +34,7 @@ export interface DigestArchiveItem {
   label: string;
   dateRangeLabel: string;
   articleCount: number;
+  lastModified: string;
 }
 
 export interface WeeklyDigest {
@@ -40,6 +42,7 @@ export interface WeeklyDigest {
   label: string;
   dateRangeLabel: string;
   articleCount: number;
+  lastModified: string;
   latestArticles: DigestArticle[];
   categoryDistribution: DigestDistributionItem[];
   sourceDistribution: DigestDistributionItem[];
@@ -161,13 +164,14 @@ function createDistribution(
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "ko"));
 }
 
-function formatArchiveItem(week: IsoWeek, articleCount: number): DigestArchiveItem {
+function formatArchiveItem(week: IsoWeek, articleCount: number, lastModified: string): DigestArchiveItem {
   const { dateRangeLabel } = getWeekDateRange(week);
   return {
     week: toWeekId(week),
     label: toWeekLabel(week),
     dateRangeLabel,
     articleCount,
+    lastModified,
   };
 }
 
@@ -178,10 +182,10 @@ export function isValidDigestWeek(value: string): boolean {
 
 /** 최근에 글이 있었던 주차만 모아, 색인 가능한 아카이브 진입점을 만든다. */
 export async function listRecentDigestWeeks(): Promise<DigestArchiveItem[]> {
-  const articles = await fetchCachedFromSupabase<Pick<DigestArticleRow, "published_at">[]>(
+  const articles = await fetchCachedFromSupabase<Pick<DigestArticleRow, "published_at" | "discovered_at">[]>(
     "articles",
     {
-      select: "published_at",
+      select: "published_at,discovered_at",
       published_at: "not.is.null",
       order: "published_at.desc",
       limit: String(RECENT_ARCHIVE_ARTICLE_LIMIT),
@@ -189,18 +193,22 @@ export async function listRecentDigestWeeks(): Promise<DigestArchiveItem[]> {
     { revalidate: 900, tags: ["articles"] }
   );
 
-  const articleCounts = new Map<string, { isoWeek: IsoWeek; count: number }>();
+  const articleCounts = new Map<string, { isoWeek: IsoWeek; count: number; lastModified: string }>();
   for (const article of articles) {
     const isoWeek = getIsoWeekFromCalendarDate(getKoreaCalendarDate(new Date(article.published_at)));
     const week = toWeekId(isoWeek);
     const current = articleCounts.get(week);
-    articleCounts.set(week, { isoWeek, count: (current?.count ?? 0) + 1 });
+    const lastModified =
+      !current || Date.parse(article.discovered_at) > Date.parse(current.lastModified)
+        ? article.discovered_at
+        : current.lastModified;
+    articleCounts.set(week, { isoWeek, count: (current?.count ?? 0) + 1, lastModified });
   }
 
   return [...articleCounts.values()]
     .sort((a, b) => b.isoWeek.year - a.isoWeek.year || b.isoWeek.week - a.isoWeek.week)
     .slice(0, 12)
-    .map(({ isoWeek, count }) => formatArchiveItem(isoWeek, count));
+    .map(({ isoWeek, count, lastModified }) => formatArchiveItem(isoWeek, count, lastModified));
 }
 
 /** 한 주의 기사와 통계를 같은 시간 범위로 조회해 목록과 분포가 어긋나지 않게 한다. */
@@ -212,7 +220,7 @@ export async function getWeeklyDigest(week: string): Promise<WeeklyDigest | null
   const articles = await fetchCachedFromSupabase<DigestArticleRow[]>(
     "articles",
     {
-      select: "id,title,url,excerpt,published_at,category,source:sources(id,title,site_url)",
+      select: "id,title,url,excerpt,published_at,discovered_at,category,source:sources(id,title,site_url)",
       // fetchCachedFromSupabase는 같은 키를 두 번 받을 수 없으므로 PostgREST의 and 필터로 범위를 표현한다.
       and: `(published_at.gte.${start.toISOString()},published_at.lt.${end.toISOString()})`,
       order: "published_at.desc",
@@ -223,11 +231,18 @@ export async function getWeeklyDigest(week: string): Promise<WeeklyDigest | null
 
   if (articles.length === 0) return null;
 
+  const lastModified = articles.reduce(
+    (latest, article) =>
+      Date.parse(article.discovered_at) > Date.parse(latest) ? article.discovered_at : latest,
+    articles[0].discovered_at
+  );
+
   return {
     week,
     label: toWeekLabel(isoWeek),
     dateRangeLabel,
     articleCount: articles.length,
+    lastModified,
     latestArticles: articles.slice(0, LATEST_ARTICLE_LIMIT),
     categoryDistribution: createDistribution(articles, (article) => getCategoryMeta(article.category).label),
     sourceDistribution: createDistribution(

@@ -1,58 +1,76 @@
 import type { MetadataRoute } from "next";
 import { connection } from "next/server";
-import { PUBLIC_CATEGORY_IDS, getPublicSourceSlug } from "@/lib/data/public-hubs";
-import { listSources } from "@/lib/data/sources";
+import { getCachedArticleFeed } from "@/lib/data/articles";
+import { getPublicBlogIndex, getPublicCategoryIndex } from "@/lib/data/public-hubs";
 import { listRecentDigestWeeks } from "@/lib/data/weekly-digests";
-import { SITEMAP_LAST_MODIFIED, SITE_URL } from "./seo";
+import { SITE_URL } from "./seo";
 
-// /suggest와 관리자 화면은 noindex이므로 제외한다. 실제 검색 진입점인 주제·블로그·주간 큐레이션만 등록한다.
+function latestContentDate<T extends { discovered_at?: string | null; published_at?: string | null }>(
+  items: T[]
+): string | undefined {
+  return items
+    .map((item) => item.discovered_at ?? item.published_at ?? null)
+    .filter((value): value is string => Boolean(value))
+    .sort((a, b) => Date.parse(b) - Date.parse(a))[0];
+}
+
+function latestDate(values: Array<string | null>): string | undefined {
+  return values
+    .filter((value): value is string => Boolean(value))
+    .sort((a, b) => Date.parse(b) - Date.parse(a))[0];
+}
+
+// /suggest와 관리자 화면은 noindex이므로 제외한다. 실제 내용이 없는 블로그 허브도 sitemap에서 제외한다.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // 로컬/CI 빌드에서 Supabase를 요구하지 않고, 배포 요청에서만 공개 URL 목록을 계산한다.
-  // 데이터 조회 자체는 각각의 force-cache 설정으로 캐시된다.
+  // 공개 데이터와 실제 수집 시각을 사용해 페이지별 lastmod를 계산한다.
   await connection();
-  const [sources, digestWeeks] = await Promise.all([listSources(), listRecentDigestWeeks()]);
-  const activeSources = sources.filter((source) => source.is_active);
+  const [digestWeeks, feed, blogs, topics] = await Promise.all([
+    listRecentDigestWeeks(),
+    getCachedArticleFeed(),
+    getPublicBlogIndex(),
+    getPublicCategoryIndex(),
+  ]);
+  const blogIndexLastModified = latestDate(blogs.map((blog) => blog.lastModified));
 
   return [
     {
       url: SITE_URL,
-      lastModified: SITEMAP_LAST_MODIFIED,
+      lastModified: latestContentDate(feed),
       changeFrequency: "daily",
       priority: 1,
     },
     {
       url: `${SITE_URL}/topics`,
-      lastModified: SITEMAP_LAST_MODIFIED,
       changeFrequency: "weekly",
       priority: 0.8,
     },
-    ...PUBLIC_CATEGORY_IDS.map((category) => ({
-      url: `${SITE_URL}/topics/${category}`,
-      lastModified: SITEMAP_LAST_MODIFIED,
+    ...topics.map((topic) => ({
+      url: `${SITE_URL}/topics/${topic.category}`,
+      lastModified: topic.lastModified ?? undefined,
       changeFrequency: "daily" as const,
       priority: 0.8,
     })),
     {
       url: `${SITE_URL}/blogs`,
-      lastModified: SITEMAP_LAST_MODIFIED,
+      lastModified: blogIndexLastModified,
       changeFrequency: "weekly",
       priority: 0.7,
     },
-    ...activeSources.map((source) => ({
-      url: `${SITE_URL}/blogs/${encodeURIComponent(getPublicSourceSlug(source))}`,
-      lastModified: SITEMAP_LAST_MODIFIED,
+    ...blogs.filter((blog) => blog.hasArticles).map((blog) => ({
+      url: `${SITE_URL}/blogs/${encodeURIComponent(blog.slug)}`,
+      lastModified: blog.lastModified ?? undefined,
       changeFrequency: "daily" as const,
       priority: 0.6,
     })),
     {
       url: `${SITE_URL}/digest`,
-      lastModified: SITEMAP_LAST_MODIFIED,
+      lastModified: latestDate(digestWeeks.map((digest) => digest.lastModified)),
       changeFrequency: "weekly",
       priority: 0.8,
     },
     ...digestWeeks.map((digest) => ({
       url: `${SITE_URL}/digest/${digest.week}`,
-      lastModified: SITEMAP_LAST_MODIFIED,
+      lastModified: digest.lastModified,
       changeFrequency: "weekly" as const,
       priority: 0.7,
     })),
