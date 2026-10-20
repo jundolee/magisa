@@ -1,0 +1,191 @@
+import "server-only";
+import { createServiceClient } from "@/lib/supabase/service";
+import { ARTICLE_SUMMARY_PROMPT_VERSION } from "@/lib/ingestion/article-summary";
+
+export interface RelatedArticle {
+  id: string;
+  title: string;
+  sourceTitle: string | null;
+  category: string;
+  publishedAt: string | null;
+}
+
+export interface ArticlePreview {
+  id: string;
+  title: string;
+  url: string;
+  excerpt: string | null;
+  publishedAt: string | null;
+  category: string;
+  tags: string[];
+  sourceTitle: string | null;
+  summary: { lead: string; keyPoints: string[] } | null;
+  summaryStatus: "pending" | "processing" | "ready" | "unavailable" | "failed" | null;
+}
+
+interface RelatedArticleRow {
+  id: string;
+  title: string;
+  category: string;
+  tags: string[] | null;
+  published_at: string | null;
+  source:
+    | { title: string | null }
+    | { title: string | null }[]
+    | null;
+}
+
+const MAX_RELATED_ARTICLES = 3;
+const TAG_OVERLAP_CANDIDATE_LIMIT = 200;
+const RELATED_ARTICLE_SELECT = "id,title,category,tags,published_at,source:sources(title)";
+
+export async function getArticlePreview(articleId: string): Promise<ArticlePreview | null> {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from("articles")
+    .select("id,title,url,excerpt,published_at,category,tags,source:sources(title)")
+    .eq("id", articleId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  const source = Array.isArray(data.source) ? data.source[0] : data.source;
+  let summary: ArticlePreview["summary"] = null;
+  let summaryStatus: ArticlePreview["summaryStatus"] = null;
+  const summaryResult = await supabase
+    .from("article_summary_jobs")
+    .select("status,lead,key_points")
+    .eq("article_id", articleId)
+    .eq("prompt_version", ARTICLE_SUMMARY_PROMPT_VERSION)
+    .maybeSingle();
+  if (summaryResult.error) {
+    if (summaryResult.error.code === "42P01") {
+      console.warn("article_summary_jobs table is not installed yet; showing the collected excerpt.");
+    } else {
+      console.error("Failed to read article summary:", summaryResult.error.message);
+    }
+  } else if (summaryResult.data) {
+    const allowedStatuses = ["pending", "processing", "ready", "unavailable", "failed"] as const;
+    if (allowedStatuses.includes(summaryResult.data.status as typeof allowedStatuses[number])) {
+      summaryStatus = summaryResult.data.status as ArticlePreview["summaryStatus"];
+    }
+    if (summaryStatus === "ready" && Array.isArray(summaryResult.data.key_points)) {
+      summary = {
+        lead: summaryResult.data.lead,
+        keyPoints: summaryResult.data.key_points.filter((point): point is string => typeof point === "string"),
+      };
+    }
+  }
+
+  return {
+    id: data.id,
+    title: data.title,
+    url: data.url,
+    excerpt: data.excerpt,
+    publishedAt: data.published_at,
+    category: data.category ?? "general",
+    tags: data.tags ?? [],
+    sourceTitle: source?.title ?? null,
+    summary,
+    summaryStatus,
+  };
+}
+
+function getSafeLimit(limit?: number): number {
+  if (limit === undefined || !Number.isFinite(limit)) return MAX_RELATED_ARTICLES;
+  return Math.min(MAX_RELATED_ARTICLES, Math.max(0, Math.trunc(limit)));
+}
+
+function getTagOverlapCount(articleTags: string[] | null, currentTags: Set<string>): number {
+  if (!articleTags) return 0;
+  return new Set(articleTags.filter((tag) => currentTags.has(tag))).size;
+}
+
+function comparePublishedAtDescending(
+  left: string | null,
+  right: string | null
+): number {
+  if (left === null) return right === null ? 0 : 1;
+  if (right === null) return -1;
+
+  const leftTime = Date.parse(left);
+  const rightTime = Date.parse(right);
+  if (Number.isNaN(leftTime)) return Number.isNaN(rightTime) ? 0 : 1;
+  if (Number.isNaN(rightTime)) return -1;
+  return rightTime - leftTime;
+}
+
+function toRelatedArticle(row: RelatedArticleRow): RelatedArticle {
+  const source = Array.isArray(row.source) ? row.source[0] : row.source;
+  return {
+    id: row.id,
+    title: row.title,
+    sourceTitle: source?.title ?? null,
+    category: row.category,
+    publishedAt: row.published_at,
+  };
+}
+
+/**
+ * Finds up to three same-category articles, preferring candidates that share tags.
+ * Only article metadata is selected; article bodies and excerpts are never read.
+ */
+export async function getRelatedArticles(
+  articleId: string,
+  category: string,
+  tags?: string[] | null,
+  limit?: number
+): Promise<RelatedArticle[]> {
+  const safeLimit = getSafeLimit(limit);
+  if (safeLimit === 0) return [];
+
+  const supabase = createServiceClient();
+  const currentTags = new Set((tags ?? []).filter((tag) => tag.length > 0));
+  const candidates: RelatedArticleRow[] = [];
+
+  if (currentTags.size > 0) {
+    const { data, error } = await supabase
+      .from("articles")
+      .select(RELATED_ARTICLE_SELECT)
+      .eq("category", category)
+      .neq("id", articleId)
+      .overlaps("tags", [...currentTags])
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("id", { ascending: true })
+      .limit(TAG_OVERLAP_CANDIDATE_LIMIT);
+
+    if (error) throw error;
+    candidates.push(...((data ?? []) as unknown as RelatedArticleRow[]));
+  }
+
+  if (candidates.length < safeLimit) {
+    const { data, error } = await supabase
+      .from("articles")
+      .select(RELATED_ARTICLE_SELECT)
+      .eq("category", category)
+      .neq("id", articleId)
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("id", { ascending: true })
+      .limit(safeLimit);
+
+    if (error) throw error;
+    const candidateIds = new Set(candidates.map((candidate) => candidate.id));
+    for (const row of (data ?? []) as unknown as RelatedArticleRow[]) {
+      if (!candidateIds.has(row.id)) candidates.push(row);
+    }
+  }
+
+  candidates.sort((left, right) => {
+    const overlapDifference =
+      getTagOverlapCount(right.tags, currentTags) - getTagOverlapCount(left.tags, currentTags);
+    if (overlapDifference !== 0) return overlapDifference;
+
+    const dateDifference = comparePublishedAtDescending(left.published_at, right.published_at);
+    if (dateDifference !== 0) return dateDifference;
+    if (left.id < right.id) return -1;
+    if (left.id > right.id) return 1;
+    return 0;
+  });
+
+  return candidates.slice(0, safeLimit).map(toRelatedArticle);
+}

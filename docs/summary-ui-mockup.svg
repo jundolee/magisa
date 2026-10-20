@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1080" viewBox="0 0 1440 1080" role="img" aria-labelledby="title desc">
+  <title id="title">Techgotgan article summary drawer mockup</title>
+  <desc id="desc">A proposal for opening an in-site summary drawer over the Techgotgan feed. All article copy is fictional placeholder text.</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-10%" width="140%" height="120%">
+      <feDropShadow dx="-7" dy="0" stdDeviation="14" flood-color="#202124" flood-opacity=".12"/>
+    </filter>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+      .muted { fill: #73777d; }
+      .small { font-size: 12px; }
+      .body { font-size: 14px; }
+      .chip { font-size: 12px; font-weight: 600; }
+      .title { fill: #202124; font-weight: 700; }
+    </style>
+  </defs>
+
+  <!-- Draft frame -->
+  <rect width="1440" height="1080" fill="#f7f7f8"/>
+  <!-- Existing feed, intentionally dimmed behind the drawer -->
+  <g opacity=".63">
+    <rect x="0" y="0" width="1440" height="1080" fill="#fff"/>
+    <g transform="translate(360 32)">
+      <text class="title" x="0" y="22" font-size="23">테크곳간</text>
+      <text class="muted body" x="392" y="21">블로그 추천하기 →</text>
+      <text class="muted body" x="520" y="21">RSS</text>
+      <text class="muted body" x="568" y="21">로그인</text>
+      <line x1="0" y1="42" x2="720" y2="42" stroke="#e7e8eb"/>
+
+      <text class="title" x="0" y="104" font-size="26">흩어진 테크 블로그 글을 한곳에서 찾아 읽어요</text>
+      <text class="muted body" x="0" y="133">여러 기술 블로그의 새 글을 모아 제목·요약·태그로 검색할 수 있는 피드예요.</text>
+      <text x="0" y="175" font-size="14" font-weight="700" fill="#c45c1b">주제별 글</text>
+      <text x="88" y="175" font-size="14" font-weight="700" fill="#c45c1b">블로그 목록</text>
+      <text x="190" y="175" font-size="14" font-weight="700" fill="#c45c1b">주간 큐레이션</text>
+
+      <rect x="0" y="202" width="570" height="42" rx="9" fill="#fff" stroke="#e1e3e6"/>
+      <circle cx="21" cy="222" r="7" fill="none" stroke="#777b81" stroke-width="1.6"/>
+      <line x1="26" y1="227" x2="31" y2="232" stroke="#777b81" stroke-width="1.6"/>
+      <text class="muted body" x="43" y="227">검색어를 입력하세요</text>
+      <rect x="584" y="202" width="136" height="42" rx="9" fill="#f5f5f6"/>
+      <text class="muted small" x="600" y="227">전체 · 안읽음 · 읽음</text>
+
+      <g transform="translate(0 270)">
+        <rect width="78" height="31" rx="16" fill="#fff1e7"/>
+        <text class="chip" x="19" y="20" fill="#b75013">전체</text>
+        <rect x="86" width="92" height="31" rx="16" fill="#f5f5f6"/>
+        <text class="chip" x="102" y="20" fill="#60646a">Frontend</text>
+        <rect x="186" width="86" height="31" rx="16" fill="#f5f5f6"/>
+        <text class="chip" x="203" y="20" fill="#60646a">Backend</text>
+        <rect x="280" width="78" height="31" rx="16" fill="#f5f5f6"/>
+        <text class="chip" x="296" y="20" fill="#60646a">AI / ML</text>
+        <rect x="366" width="82" height="31" rx="16" fill="#f5f5f6"/>
+        <text class="chip" x="382" y="20" fill="#60646a">DevOps</text>
+      </g>
+
+      <g transform="translate(0 324)">
+        <text class="title" x="0" y="0" font-size="18">최신 글</text>
+        <line x1="0" y1="21" x2="720" y2="21" stroke="#ececef"/>
+        <g transform="translate(0 47)">
+          <rect x="-12" y="-15" width="744" height="130" rx="12" fill="#fff8f3" stroke="#f1c8ae"/>
+          <rect x="0" y="0" width="104" height="104" rx="9" fill="#eceef1"/>
+          <rect x="14" y="16" width="76" height="7" rx="3.5" fill="#d8dbe0"/>
+          <rect x="14" y="31" width="62" height="7" rx="3.5" fill="#d8dbe0"/>
+          <rect x="14" y="46" width="71" height="7" rx="3.5" fill="#d8dbe0"/>
+          <text class="small" x="122" y="6" fill="#62666c">카카오페이 기술 블로그　·　Backend</text>
+          <text class="title" x="122" y="34" font-size="18">대규모 트랜잭션을 위한 재시도 설계</text>
+          <text class="muted body" x="122" y="60">원문 발췌 또는 짧은 설명이 들어가는 기존 글 카드 영역입니다.</text>
+          <text class="muted body" x="122" y="82">선택한 글은 drawer에서 요약과 발췌를 구분해 볼 수 있습니다.</text>
+          <text class="muted small" x="122" y="108">2026. 10. 19.　　클릭수: 24</text>
+        </g>
+        <g transform="translate(0 192)">
+          <rect x="0" y="0" width="104" height="104" rx="9" fill="#f0f1f3"/>
+          <text class="muted small" x="16" y="58">썸네일</text>
+          <text class="muted small" x="122" y="5">쏘카 테크 블로그　·　AI / ML</text>
+          <text class="title" x="122" y="34" font-size="18">현실 서비스에 AI 에이전트를 적용한 과정</text>
+          <text class="muted body" x="122" y="61">목록은 그대로 유지되고, 선택한 글 상세가 화면 오른쪽에 열립니다.</text>
+          <text class="muted small" x="122" y="93">2026. 10. 18.</text>
+          <line x1="0" y1="120" x2="720" y2="120" stroke="#ececef"/>
+        </g>
+        <g transform="translate(0 337)">
+          <rect x="0" y="0" width="104" height="104" rx="9" fill="#f0f1f3"/>
+          <text class="muted small" x="16" y="58">썸네일</text>
+          <text class="muted small" x="122" y="5">오늘의집 기술 블로그　·　Frontend</text>
+          <text class="title" x="122" y="34" font-size="18">검색 품질을 개선한 실험과 결과</text>
+          <text class="muted body" x="122" y="61">요약 패널을 닫으면 기존 검색·필터 맥락으로 돌아옵니다.</text>
+        </g>
+      </g>
+    </g>
+    <rect width="1440" height="1080" fill="#17191c" opacity=".28"/>
+  </g>
+
+  <!-- Annotation above the dimmed page, outside the product UI -->
+  <rect x="28" y="18" width="258" height="34" rx="17" fill="#fff1e7" stroke="#ffd6bf"/>
+  <circle cx="47" cy="35" r="5" fill="#e9742b"/>
+  <text x="61" y="40" font-size="13" font-weight="700" fill="#9d4916">UI 시안 · 더미 콘텐츠</text>
+
+  <!-- Summary drawer -->
+  <g filter="url(#shadow)">
+    <rect x="880" y="0" width="560" height="1080" fill="#fff"/>
+    <line x1="880" y1="0" x2="880" y2="1080" stroke="#e4e5e8"/>
+  </g>
+  <g transform="translate(912 0)">
+    <!-- Drawer top bar -->
+    <text x="0" y="42" font-size="14" fill="#555a60">← 목록으로</text>
+    <circle cx="495" cy="34" r="18" fill="#f5f5f6"/>
+    <text x="489" y="40" font-size="18" fill="#4d5156">×</text>
+    <line x1="-32" y1="66" x2="528" y2="66" stroke="#e8e9ec"/>
+
+    <g transform="translate(0 -50)">
+    <!-- Publisher metadata -->
+    <rect x="0" y="137" width="25" height="25" rx="7" fill="#f2f2f3"/>
+    <text x="7" y="154" font-size="12" font-weight="700" fill="#73777c">K</text>
+    <text x="34" y="151" font-size="13" font-weight="600" fill="#45494e">카카오페이 기술 블로그</text>
+    <text x="34" y="169" class="small muted">2026. 10. 19.　·　Backend</text>
+
+    <text class="title" x="0" y="217" font-size="26">대규모 트랜잭션을 위한</text>
+    <text class="title" x="0" y="251" font-size="26">재시도 설계</text>
+    <text class="muted small" x="0" y="279">약 8분 읽기　·　시안용 글 제목</text>
+
+    <!-- Summary block -->
+    <rect x="0" y="307" width="496" height="270" rx="16" fill="#fff8f2" stroke="#f3d4c0"/>
+    <circle cx="26" cy="339" r="13" fill="#ffe5d5"/>
+    <text x="21" y="344" font-size="15" font-weight="700" fill="#c75e1b">✦</text>
+    <text x="48" y="344" font-size="16" font-weight="700" fill="#25272a">AI 요약</text>
+    <rect x="387" y="324" width="91" height="24" rx="12" fill="#fff" stroke="#f0c9ae"/>
+    <text x="400" y="340" class="small" font-weight="700" fill="#a9511d">시안용 더미</text>
+    <text x="20" y="378" class="small muted">원문을 대신하지 않는 짧은 길잡이</text>
+    <circle cx="28" cy="410" r="10" fill="#f4dfd1"/>
+    <text x="25" y="414" font-size="10" font-weight="700" fill="#a5501d">1</text>
+    <text x="48" y="414" class="body" fill="#34373b">가상 예시: 문제 상황과 핵심 맥락을 먼저 보여줍니다.</text>
+    <circle cx="28" cy="451" r="10" fill="#f4dfd1"/>
+    <text x="25" y="455" font-size="10" font-weight="700" fill="#a5501d">2</text>
+    <text x="48" y="455" class="body" fill="#34373b">선택한 접근과 중요한 트레이드오프를 짧게 정리합니다.</text>
+    <circle cx="28" cy="492" r="10" fill="#f4dfd1"/>
+    <text x="25" y="496" font-size="10" font-weight="700" fill="#a5501d">3</text>
+    <text x="48" y="496" class="body" fill="#34373b">세부 구현과 수치는 원문에서 확인하도록 안내합니다.</text>
+    <text x="20" y="541" class="small muted">실제 요약은 출처별 권리·품질 확인 뒤 제공됩니다.</text>
+
+    <!-- Separate original CTA -->
+    <rect x="0" y="597" width="496" height="52" rx="11" fill="#e66b23"/>
+    <text x="180" y="630" font-size="15" font-weight="700" fill="#fff">원문 읽기 ↗</text>
+
+    <!-- Separate collected excerpt -->
+    <text x="0" y="691" font-size="14" font-weight="700" fill="#41454a">수집 발췌</text>
+    <text x="0" y="715" class="small muted">생성 요약과 다른 기존 목록 발췌입니다.</text>
+    <rect x="0" y="733" width="496" height="92" rx="12" fill="#fafafa" stroke="#e8e9ec"/>
+    <text x="17" y="761" class="body" fill="#62666b">이 영역에는 기존 excerpt가 표시됩니다. 요약이 준비되지</text>
+    <text x="17" y="784" class="body" fill="#62666b">않아도 출처와 원문 버튼은 계속 사용할 수 있습니다.</text>
+    <text x="0" y="856" font-size="14" font-weight="700" fill="#41454a">관련 기사</text>
+    <text x="0" y="877" class="small muted">주제나 기술 맥락이 닿는 글</text>
+    <line x1="0" y1="888" x2="496" y2="888" stroke="#ececef"/>
+    <text x="0" y="909" class="small muted">샘플 기술 블로그 · Backend · 2026. 10. 12.</text>
+    <text x="0" y="931" font-size="13" font-weight="700" fill="#34373b">재시도 정책을 테스트하는 방법　↗</text>
+    <line x1="0" y1="943" x2="496" y2="943" stroke="#ececef"/>
+    <text x="0" y="964" class="small muted">샘플 기술 블로그 · Distributed Systems · 2026. 10. 10.</text>
+    <text x="0" y="986" font-size="13" font-weight="700" fill="#34373b">실패를 고려한 비동기 작업 설계　↗</text>
+    <text x="0" y="1032" class="small muted">목록에서 열거나 이 글의 상세 URL로 바로 들어올 수 있어요.</text>
+    </g>
+  </g>
+</svg>

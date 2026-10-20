@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/page-header";
 import { SITE_NAME } from "@/app/seo";
 
 const CONTACT_EMAIL = "yijunsuc@gmail.com";
-const EFFECTIVE_DATE = "2026년 10월 19일";
+const EFFECTIVE_DATE = "2026년 10월 20일";
 
 export const metadata: Metadata = {
   title: "개인정보처리방침",
@@ -52,7 +52,7 @@ export default function PrivacyPolicyPage() {
 
         <Section title="2. 개인정보 이용 목적">
           수집한 정보는 로그인 상태 유지, 계정별 읽음/즐겨찾기 등 개인화 기능 제공과 서비스 이용 패턴 분석 및
-          개선을 위해 이용합니다. 이 목적 외로 사용하지 않습니다.
+          개선을 위해 이용합니다. AI 요약 기능을 사용할 때는 서비스가 이미 수집한 글 제목과 짧은 발췌만 요약 생성에 이용합니다.
         </Section>
 
         <Section title="3. 개인정보 보유 및 이용 기간">
@@ -69,10 +69,17 @@ export default function PrivacyPolicyPage() {
             <li>Supabase, Inc. — 데이터베이스 및 로그인 인증 인프라 호스팅</li>
             <li>Google LLC — Google 계정 로그인(OAuth) 및 Google Analytics 4 이용 분석</li>
             <li>Amplitude, Inc. — 서비스 이용 분석</li>
+            <li>OpenAI, LLC — AI 요약 기능이 켜진 경우 기존 글 제목과 저장된 짧은 발췌를 API로 전달해 요약 생성</li>
           </ul>
         </Section>
 
-        <Section title="5. 서비스 이용 분석 도구">
+        <Section title="5. AI 요약">
+          AI 요약은 기존 수집 코드가 데이터베이스에 저장한 글 제목과 발췌만 입력으로 사용합니다. 제목은 최대 300자,
+          발췌는 최대 500자로 제한하며, 원문 URL이나 본문 전체, 로그인 이메일·계정 ID, 사용자의 검색어는 OpenAI에 보내지 않습니다.
+          요약 결과와 모델·prompt 버전, 입력 hash, 사용 토큰 수를 서비스 데이터베이스에 저장합니다. 충분한 발췌가 없는 글은 요약하지 않습니다.
+        </Section>
+
+        <Section title="6. 서비스 이용 분석 도구">
           서비스 개선을 위해 Google Analytics 4와 Amplitude를 사용합니다. 분석 도구는 브라우저·세션 식별자와
           쿠키 또는 브라우저 저장소를 이용해 여러 방문의 이벤트를 같은 브라우저 기준으로 연결할 수 있습니다.
           서비스는 분석 이벤트에 로그인 이메일·이름·계정 ID를 보내지 않습니다.
@@ -83,12 +90,12 @@ export default function PrivacyPolicyPage() {
           </ul>
         </Section>
 
-        <Section title="6. 이용자의 권리">
+        <Section title="7. 이용자의 권리">
           이용자는 언제든지 본인의 개인정보 열람, 정정, 삭제를 요청할 수 있습니다. 아래 연락처로 문의해주시면
           지체 없이 조치합니다.
         </Section>
 
-        <Section title="7. 문의처">이메일: {CONTACT_EMAIL}</Section>
+        <Section title="8. 문의처">이메일: {CONTACT_EMAIL}</Section>
       </div>
     </main>
   );

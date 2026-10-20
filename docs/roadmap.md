@@ -59,4 +59,19 @@ MVP 완료 이후 추가로 들어온 요청:
 - [x] Supabase Auth Site URL·redirect allowlist 갱신, Search Console 속성 소유권 확인 및 sitemap 제출; Google에서 60개 URL 발견
 - [x] 이전 `magisa.vercel.app`을 새 호스트로 `308` 리다이렉트하고 경로·쿼리 보존 확인
 - [ ] `techgotgan.kr` 등록기관·상표 검색은 별도 맞춤 도메인을 도입할 때 재확인
-- [ ] Dashboard에서 수동 적용한 `0013`·`0014` migration history를 Supabase CLI에 반영하기 전 실제 스키마와 대조; 확인 전 `supabase db push` 금지
+- [ ] Dashboard 수동 적용 이력 `0013`·`0014`를 migration history에 안전하게 기록할 절차 확정; 현재 원격 `supabase_migrations.schema_migrations`가 없으므로 history 정리 전 `supabase db push` 금지
+
+## 앱 내 AI 요약 (TGT-1)
+
+- [x] 글 목록 → drawer/직접 상세 경로와 관련 기사 표시 코드 작성
+- [x] 기존 DB 제목·발췌만 사용하는 `gpt-5.6-luna` 비동기 요약 worker, retry·lease, 요약 cache 구현
+- [x] TGT-3 live catalog를 로컬 0001–0014와 대조하고 `0015_article_summary_jobs.sql`을 Dashboard SQL Editor에서 적용
+- [x] TGT-3 `0016_summary_worker_batch_limit.sql`을 Dashboard SQL Editor에서 적용하고 claim 상한 80을 확인
+- [ ] TGT-2 원문 전문 수집/외부 전송 검토는 별도 조사로 유지; 현재 기능은 기존 저장 발췌만 사용
+- [ ] TGT-3 과거 수동 migration history를 CLI에 안전하게 반영할 방법 확정; `db push`는 계속 금지
+- [x] TGT-4 full body fetch 대신 기존 title/excerpt를 요약 입력으로 사용하도록 범위 조정
+- [ ] TGT-5 DB·OpenAI API를 이용한 실제 worker 실행과 비용/실패 처리 검증
+- [x] TGT-6 Preview에서 실데이터 drawer/direct route/관련 기사 표시 검증
+- [ ] TGT-7 release QA 및 배포 후 production 확인
+
+구현 동작·환경변수·go-live 순서는 `docs/article-summary-operations.md`에 정리했다. Worker는 `OPENAI_SUMMARY_ENABLED=true`가 설정되기 전까지 비활성이다.

@@ -5,6 +5,7 @@ import { FavoriteToggleForm } from "./favorite-toggle-form";
 import { ShareButton } from "./share-button";
 import type { ArticleListItem } from "@/lib/data/articles";
 import { getCategoryMeta, type CategoryId } from "@/lib/categories";
+import { ArticlePreviewLink } from "@/components/article-preview-panel";
 
 const MUTED = "var(--seed-color-fg-neutral-muted)";
 
@@ -113,9 +114,6 @@ export function ArticleRow({
             <Text as="span" textStyle="t2Regular" color={MUTED}>
               {formatDate(article.published_at)}
             </Text>
-            <Text as="span" textStyle="t2Regular" color={MUTED}>
-              클릭수 : {article.click_count}
-            </Text>
           </div>
         </ArticleLink>
 
@@ -123,6 +121,7 @@ export function ArticleRow({
           <FavoriteToggleForm articleId={article.id} isFavorite={article.is_favorite} />
           {article.is_read && <UnreadToggleForm articleId={article.id} />}
           <ShareButton title={article.title} url={article.url} />
+          <ArticlePreviewLink articleId={article.id} />
         </div>
       </div>
 
