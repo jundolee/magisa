@@ -3,6 +3,7 @@ import "server-only";
 export const ARTICLE_SUMMARY_MODEL = process.env.OPENAI_SUMMARY_MODEL?.trim() || "gpt-5.6-luna";
 export const ARTICLE_SUMMARY_PROMPT_VERSION = "2026-10-20-excerpt-v2";
 export const ARTICLE_SUMMARY_MAX_INPUT_CHARS = 500;
+export const ARTICLE_SUMMARY_MIN_EXCERPT_CHARS = 200;
 
 export interface ArticleSummaryContent {
   lead: string;
@@ -52,7 +53,7 @@ export async function generateArticleSummary(
   if (!apiKey) return null;
   const safeTitle = title.trim().slice(0, 300);
   const sourceText = excerpt.trim().slice(0, ARTICLE_SUMMARY_MAX_INPUT_CHARS);
-  if (sourceText.length < 80) return null;
+  if (sourceText.length < ARTICLE_SUMMARY_MIN_EXCERPT_CHARS) return null;
 
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",

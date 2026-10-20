@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
   ARTICLE_SUMMARY_MODEL,
+  ARTICLE_SUMMARY_MIN_EXCERPT_CHARS,
   generateArticleSummary,
   isArticleSummaryEnabled,
 } from "@/lib/ingestion/article-summary";
@@ -34,7 +35,7 @@ async function processClaimedJob(client: ServiceClient, job: ClaimedJob): Promis
 
     const typedArticle = article as SummaryArticle;
     const excerpt = typedArticle.excerpt?.trim() ?? "";
-    if (excerpt.length < 80) {
+    if (excerpt.length < ARTICLE_SUMMARY_MIN_EXCERPT_CHARS) {
       await updateJob(client, job, {
         status: "unavailable",
         extraction_status: "insufficient",
