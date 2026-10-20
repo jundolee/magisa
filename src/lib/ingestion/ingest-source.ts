@@ -6,6 +6,10 @@ import { fetchOgImage } from "./fetch-og-image";
 import { mirrorThumbnail } from "@/lib/storage/thumbnails";
 import { classifyArticlesBatch } from "./category-classifier";
 import type { FeedType, NormalizedArticle, ScrapeConfig } from "./types";
+import {
+  ARTICLE_SUMMARY_PROMPT_VERSION,
+  isArticleSummaryEnabledForSource,
+} from "./article-summary";
 
 const POSTGRES_UNIQUE_VIOLATION = "23505";
 
@@ -127,6 +131,14 @@ export async function ingestSource(
             .eq("id", r.articleId);
         })
       );
+    })(),
+    (async () => {
+      if (!isArticleSummaryEnabledForSource(source.id) || newlyInserted.length === 0) return;
+      const { error } = await supabase.from("article_summary_jobs").upsert(
+        newlyInserted.map(({ articleId }) => ({ article_id: articleId, prompt_version: ARTICLE_SUMMARY_PROMPT_VERSION })),
+        { onConflict: "article_id,prompt_version", ignoreDuplicates: true }
+      );
+      if (error) console.error(`AI summary queue failed for source ${source.id}:`, error.message);
     })(),
   ]);
 

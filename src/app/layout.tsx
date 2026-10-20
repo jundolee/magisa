@@ -82,8 +82,10 @@ const websiteJsonLd = {
 
 export default function RootLayout({
   children,
+  modal,
 }: Readonly<{
   children: React.ReactNode;
+  modal: React.ReactNode;
 }>) {
   return (
     <html lang="ko" data-seed-color-mode="light" className={freesentation.variable}>
@@ -105,6 +107,7 @@ export default function RootLayout({
           </noscript>
         )}
         <div className="app-shell">{children}</div>
+        {modal}
       </body>
     </html>
   );
