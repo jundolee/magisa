@@ -22,14 +22,13 @@
 - 2026-10-20 Production DB에 `0015_article_summary_jobs.sql`을 적용했다. 테이블은 비어 있으며 RLS, service-role 접근, anon 차단, `claim_article_summary_jobs` 권한을 확인했다.
 - 2026-10-20 `0016_summary_worker_batch_limit.sql` 적용 완료. catalog에서 claim 함수의 80건 상한, `service_role` 실행 권한과 anon 차단을 확인했다. migration history가 없으므로 `supabase db push`는 실행하지 않는다.
 - 기존 글 집계: 총 2,340건, excerpt 200자 이상 406건, 200자 미만 1,934건, excerpt 평균 87.1자, 최대 500자. 요약 backfill은 아직 하지 않았다.
-- Vercel에 `OPENAI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` 변수가 Production/Preview에 있는 것을 확인했으며 값을 열람하지 않았다. `OPENAI_SUMMARY_ENABLED`는 아직 없고, Production AI 호출은 하지 않았다.
-- 커밋 `1f0e366` Preview에서 실제 DB 글 drawer/direct route/관련 기사 표시까지 검증했다. Preview AI 호출은 아직 검증하지 않았다.
+- Vercel에 `OPENAI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` 변수가 Production/Preview에 있는 것을 확인했으며 값을 열람하지 않았다. `OPENAI_SUMMARY_ENABLED=true`는 Preview와 Production 모두 설정했지만 Production 배포는 아직 이전 코드라 호출이 발생하지 않았다.
+- Preview commit `403e19b` Ready. production DB에 260자 excerpt 테스트 글 job 1건이 pending으로 들어갔으며 OpenAI 호출은 아직 없다.
 
 ## 남은 운영 작업
 
-1. Preview 환경에만 `OPENAI_SUMMARY_ENABLED=true`를 추가해 Preview를 재배포한다.
-2. 기존 excerpt가 충분한 테스트 글 1건을 queue에 추가하고 Preview cron으로 실제 요약 생성·저장·UI 표시와 usage token을 확인한다. Preview가 Production DB를 공유하므로 테스트 summary 1건도 Production DB에 보관된다.
-3. Preview 검증 후 Production에 `OPENAI_SUMMARY_ENABLED=true`를 적용하고 feature commit을 Production에 배포한다.
-4. 기존 406개 eligible 글을 queue에 넣어 backfill하고, worker가 하루 최대 80건씩 처리하는지 확인한다.
+1. feature branch를 Production으로 배포한다. Production flag는 이미 true지만 새 route가 배포되기 전까지 실행되지 않는다.
+2. Vercel Cron Jobs의 `/api/cron/summaries` “Run”을 눌러 pending 테스트 글 1건을 처리하고 OpenAI usage, DB ready row, Preview/Production 상세 UI를 검증한다.
+3. 검증 후 기존 excerpt 200자 이상 406개 글을 queue에 넣어 backfill하고, worker가 하루 최대 80건씩 처리하는지 확인한다. 필요하면 Cron Jobs UI에서 추가 수동 batch를 실행한다.
 
 사용자가 정정한 제품 범위는 “기존 수집 정보 요약”이다. 현재 요약 worker는 그 범위에 맞춰 제목·발췌만 읽고 원문 전문을 새로 가져오지 않는다.
