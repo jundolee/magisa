@@ -24,11 +24,17 @@ test("KST day starts at 15:00 UTC on the previous calendar day", () => {
 
 test("every first and retry shard has one daily Vercel cron", () => {
   const { crons } = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
-  assert.equal(crons.length, CRON_SHARD_COUNT * 2);
+  assert.equal(crons.length, CRON_SHARD_COUNT * 2 + 2);
   for (const [sweep, schedule] of [["first", "0 22 * * *"], ["retry", "0 23 * * *"]]) {
     for (let shard = 0; shard < CRON_SHARD_COUNT; shard++) {
       assert.deepEqual(crons.filter((cron) => cron.path === `/api/cron/ingest/${sweep}/${shard}`),
         [{ path: `/api/cron/ingest/${sweep}/${shard}`, schedule }]);
     }
   }
+  assert.deepEqual(crons.filter((cron) => cron.path === "/api/cron/embeddings"), [
+    { path: "/api/cron/embeddings", schedule: "0 0 * * *" },
+  ]);
+  assert.deepEqual(crons.filter((cron) => cron.path === "/api/cron/summaries"), [
+    { path: "/api/cron/summaries", schedule: "30 23 * * *" },
+  ]);
 });

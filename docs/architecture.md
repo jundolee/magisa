@@ -125,3 +125,11 @@ techgotgan/
   vercel.json                    # 크론 스케줄 설정
   .env.local.example
 ```
+
+## 7. 제텔카스텐·기사 의미 연결 (2026-10)
+
+- 공유 기사 임베딩은 Pinecone Serverless의 `multilingual-e5-large` integrated inference 인덱스에 저장한다. 입력은 공개 기사 제목·요약·카테고리·태그다.
+- Pinecone은 유사 기사 후보를 찾는 검색 계층이다. 사용자 노트, 기사 출처 관계, 관계 유형·이유가 있는 노트 간 링크는 Supabase가 원본으로 관리한다.
+- 로그인 사용자의 노트 및 링크는 `user_id`를 포함하며 RLS를 켜고 직접 클라이언트 접근은 허용하지 않는다. 서버 전용 DAL이 세션과 소유권을 확인한 뒤 서비스 롤로 접근한다.
+- `article_embedding_jobs`는 Postgres trigger가 채우는 outbox다. 일일 크론이 일정량씩 임베딩/업서트하고 지연·실패를 재시도한다. 벡터 후보는 `article_related_candidates`에 캐시해 공개 페이지 요청마다 Pinecone을 호출하지 않는다. 기사 삭제는 별도 tombstone 큐로 Pinecone 벡터를 정리한다.
+- 기사 본문은 기존대로 저장하지 않는다. 사용자 노트는 Pinecone에 전송하지 않는다. 상세 운영 절차는 `docs/zettelkasten.md`를 참고한다.

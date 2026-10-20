@@ -81,6 +81,9 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
           <a href={article.url} target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: 20, padding: "17px 20px", borderRadius: 14, background: "var(--seed-color-bg-brand-solid, #eb641c)", color: "white", textDecoration: "none", fontWeight: 700 }}>
             원문 읽기 ↗
           </a>
+          <Link href={`/articles/${encodeURIComponent(article.id)}/connections`} style={{ display: "block", marginTop: 14, color: "var(--seed-color-fg-brand)", fontWeight: 600 }}>
+            비슷한 기사와 내 노트 연결하기 →
+          </Link>
 
           <section aria-labelledby="collected-excerpt-heading" style={{ marginTop: 22 }}>
             <Text as="h2" id="collected-excerpt-heading" textStyle="t4Bold" color="fg.neutral">수집 발췌</Text>

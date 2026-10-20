@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/page-header";
 import { SITE_NAME } from "@/app/seo";
 
 const CONTACT_EMAIL = "yijunsuc@gmail.com";
-const EFFECTIVE_DATE = "2026년 10월 20일";
+const EFFECTIVE_DATE = "2026년 10월 21일";
 
 export const metadata: Metadata = {
   title: "개인정보처리방침",
@@ -45,18 +45,19 @@ export default function PrivacyPolicyPage() {
           또한 서비스 이용 과정에서 아래 이용 기록과 분석 정보가 자동으로 생성·수집됩니다.
           <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
             <li>글 읽음 여부, 즐겨찾기 표시 등 이용 기록</li>
+            <li>로그인 사용자가 작성한 제텔카스텐 노트와 노트·기사 사이의 연결 정보</li>
             <li>분석 도구가 반복 방문을 구분하기 위해 생성하는 브라우저·세션 식별자와 쿠키 또는 브라우저 저장소 정보</li>
             <li>Google Analytics 4가 수집하는 대략적인 위치, 브라우저·기기 정보 및 브라우저별 client ID</li>
           </ul>
         </Section>
 
         <Section title="2. 개인정보 이용 목적">
-          수집한 정보는 로그인 상태 유지, 계정별 읽음/즐겨찾기 등 개인화 기능 제공과 서비스 이용 패턴 분석 및
-          개선을 위해 이용합니다. AI 요약 기능을 사용할 때는 서비스가 이미 수집한 글 제목과 짧은 발췌만 요약 생성에 이용합니다.
+          수집한 정보는 로그인 상태 유지, 계정별 읽음/즐겨찾기, 개인 노트와 노트 연결 기능 제공, 서비스 이용 패턴
+          분석 및 개선을 위해 이용합니다. AI 요약은 수집한 글 제목과 발췌를 이용하며, 이 목적 외로 사용하지 않습니다.
         </Section>
 
         <Section title="3. 개인정보 보유 및 이용 기간">
-          회원 탈퇴(계정 삭제) 요청 시 계정 정보와 계정별 읽음·즐겨찾기 데이터를 지체 없이 파기합니다.
+          회원 탈퇴(계정 삭제) 요청 시 계정 정보와 계정별 읽음·즐겨찾기·노트·노트 연결 데이터를 지체 없이 파기합니다.
           Google Analytics 4와 Amplitude의 분석 기록은 브라우저·세션 식별자를 기준으로 별도 보관되며 각 도구의
           보유 기간 설정을 따릅니다. 서비스는 분석 이벤트에 계정 ID를 보내지 않으므로 특정 계정의 분석 기록을
           찾아 삭제하지 못할 수 있습니다.
@@ -67,10 +68,13 @@ export default function PrivacyPolicyPage() {
           위탁하고 있습니다.
           <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
             <li>Supabase, Inc. — 데이터베이스 및 로그인 인증 인프라 호스팅</li>
+            <li>Pinecone, Inc. — 공개 기사 제목·요약·주제·태그의 임베딩 생성 및 의미상 관련 기사 검색</li>
             <li>Google LLC — Google 계정 로그인(OAuth) 및 Google Analytics 4 이용 분석</li>
             <li>Amplitude, Inc. — 서비스 이용 분석</li>
             <li>OpenAI, LLC — AI 요약 기능이 켜진 경우 기존 글 제목과 저장된 짧은 발췌를 API로 전달해 요약 생성</li>
           </ul>
+          의미상 관련 기사를 찾기 위해 수집한 공개 기사 제목·요약·주제·태그와 그 임베딩을 Pinecone에 보냅니다.
+          사용자가 작성한 비공개 노트와 노트 연결 내용은 Pinecone으로 보내지 않습니다.
         </Section>
 
         <Section title="5. AI 요약">
