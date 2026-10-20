@@ -8,7 +8,7 @@ import { classifyArticlesBatch } from "./category-classifier";
 import type { FeedType, NormalizedArticle, ScrapeConfig } from "./types";
 import {
   ARTICLE_SUMMARY_PROMPT_VERSION,
-  isArticleSummaryEnabledForSource,
+  isArticleSummaryEnabled,
 } from "./article-summary";
 
 const POSTGRES_UNIQUE_VIOLATION = "23505";
@@ -133,9 +133,11 @@ export async function ingestSource(
       );
     })(),
     (async () => {
-      if (!isArticleSummaryEnabledForSource(source.id) || newlyInserted.length === 0) return;
+      if (!isArticleSummaryEnabled() || newlyInserted.length === 0) return;
+      const summaryCandidates = newlyInserted.filter(({ index }) => (articles[index].excerpt?.trim().length ?? 0) >= 80);
+      if (summaryCandidates.length === 0) return;
       const { error } = await supabase.from("article_summary_jobs").upsert(
-        newlyInserted.map(({ articleId }) => ({ article_id: articleId, prompt_version: ARTICLE_SUMMARY_PROMPT_VERSION })),
+        summaryCandidates.map(({ articleId }) => ({ article_id: articleId, prompt_version: ARTICLE_SUMMARY_PROMPT_VERSION })),
         { onConflict: "article_id,prompt_version", ignoreDuplicates: true }
       );
       if (error) console.error(`AI summary queue failed for source ${source.id}:`, error.message);

@@ -1,14 +1,13 @@
 import { createHash } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/service";
-import { extractArticleContent } from "@/lib/ingestion/article-content";
 import {
   ARTICLE_SUMMARY_MODEL,
   generateArticleSummary,
-  isArticleSummaryEnabledForSource,
+  isArticleSummaryEnabled,
 } from "@/lib/ingestion/article-summary";
 
 type ClaimedJob = { article_id: string; attempt_count: number; prompt_version: string };
-type SummaryArticle = { id: string; title: string; url: string; source_id: string };
+type SummaryArticle = { id: string; title: string; excerpt: string | null };
 type ServiceClient = ReturnType<typeof createServiceClient>;
 type JobOutcome = "ready" | "unavailable" | "failed";
 
@@ -24,7 +23,7 @@ async function processClaimedJob(client: ServiceClient, job: ClaimedJob): Promis
   try {
     const { data: article, error: articleError } = await client
       .from("articles")
-      .select("id,title,url,source_id")
+      .select("id,title,excerpt")
       .eq("id", job.article_id)
       .maybeSingle();
     if (articleError) throw articleError;
@@ -34,30 +33,24 @@ async function processClaimedJob(client: ServiceClient, job: ClaimedJob): Promis
     }
 
     const typedArticle = article as SummaryArticle;
-    if (!isArticleSummaryEnabledForSource(typedArticle.source_id)) {
-      await updateJob(client, job, { status: "unavailable", error_code: "source_not_allowlisted", lease_until: null });
+    const excerpt = typedArticle.excerpt?.trim() ?? "";
+    if (excerpt.length < 80) {
+      await updateJob(client, job, {
+        status: "unavailable",
+        extraction_status: "insufficient",
+        error_code: "stored_excerpt_too_short",
+        lease_until: null,
+      });
       return "unavailable";
     }
 
-    const extracted = await extractArticleContent(typedArticle.url);
-    if (extracted.status !== "supported" || !extracted.text) {
-      const terminal = extracted.status !== "failed";
-      await updateJob(client, job, {
-        status: terminal ? "unavailable" : "failed",
-        extraction_status: extracted.status,
-        error_code: extracted.reason ?? extracted.status,
-        lease_until: null,
-        retry_after: terminal || job.attempt_count >= 3 ? null : new Date(Date.now() + 30 * 60_000).toISOString(),
-      });
-      return terminal ? "unavailable" : "failed";
-    }
-
-    const summary = await generateArticleSummary(typedArticle.title, extracted.text);
+    const summary = await generateArticleSummary(typedArticle.title, excerpt);
     if (!summary) throw new Error("summary_generation_failed");
-    const inputSha256 = createHash("sha256").update(extracted.text).digest("hex");
+    const normalizedInput = `${typedArticle.title.trim().slice(0, 300)}\n${excerpt.slice(0, 500)}`;
+    const inputSha256 = createHash("sha256").update(normalizedInput).digest("hex");
     await updateJob(client, job, {
       status: "ready",
-      extraction_status: extracted.status,
+      extraction_status: "partial",
       error_code: null,
       lead: summary.content.lead,
       key_points: summary.content.keyPoints,
@@ -91,18 +84,19 @@ async function processClaimedJob(client: ServiceClient, job: ClaimedJob): Promis
   }
 }
 
-export async function runSummaryJobs(limit = 8): Promise<{ claimed: number; ready: number; unavailable: number; failed: number }> {
-  if (process.env.OPENAI_SUMMARY_ENABLED !== "true" || !process.env.OPENAI_API_KEY) {
+export async function runSummaryJobs(limit = 80): Promise<{ claimed: number; ready: number; unavailable: number; failed: number }> {
+  if (!isArticleSummaryEnabled()) {
     return { claimed: 0, ready: 0, unavailable: 0, failed: 0 };
   }
   const client = createServiceClient();
-  const { data, error } = await client.rpc("claim_article_summary_jobs", { p_limit: Math.min(Math.max(Math.trunc(limit), 1), 8) });
+  const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 80);
+  const { data, error } = await client.rpc("claim_article_summary_jobs", { p_limit: safeLimit });
   if (error) throw error;
 
   const jobs = (data ?? []) as ClaimedJob[];
   const outcomes: JobOutcome[] = [];
   let nextIndex = 0;
-  const concurrency = Math.min(4, jobs.length);
+  const concurrency = Math.min(20, jobs.length);
   await Promise.all(Array.from({ length: concurrency }, async () => {
     while (true) {
       const index = nextIndex++;

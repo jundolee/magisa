@@ -50,13 +50,13 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           <ol style={{ paddingLeft: 22, margin: "14px 0 0", display: "grid", gap: 10 }}>
             {article.summary.keyPoints.map((point, index) => <li key={`${index}-${point}`}><Text as="span" textStyle="t3Regular" color="fg.neutral">{point}</Text></li>)}
           </ol>
-          <Text as="p" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginTop: 14 }}>원문 전문을 대신하지 않는 짧은 길잡이입니다.</Text>
+          <Text as="p" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginTop: 14 }}>기존 수집 제목과 발췌를 바탕으로 만든 짧은 요약입니다.</Text>
         </> : <Text as="p" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginTop: 6 }}>
           {article.summaryStatus === "pending" ? "요약 대기 중입니다. 원문과 수집 발췌를 이용할 수 있습니다." :
             article.summaryStatus === "processing" ? "요약을 만들고 있습니다. 잠시 후 다시 확인해 주세요." :
               article.summaryStatus === "failed" ? "요약 생성에 실패했습니다. 원문과 수집 발췌를 이용해 주세요." :
-                article.summaryStatus === "unavailable" ? "원문을 추출할 수 없어 요약을 제공하지 않습니다." :
-                  "요약 대상이 아니거나 아직 준비되지 않았습니다."}
+              article.summaryStatus === "unavailable" ? "저장된 발췌가 짧거나 요약 입력으로 부족해 AI 요약을 제공하지 않습니다." :
+                  "요약이 아직 준비되지 않았습니다. 기존 수집 발췌와 원문을 확인해 주세요."}
         </Text>}
       </section>
       <a href={article.url} target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "center", marginTop: 18, padding: 16, borderRadius: 14, background: "var(--seed-color-bg-brand-solid, #eb641c)", color: "white", textDecoration: "none", fontWeight: 700 }}>원문 읽기 ↗</a>

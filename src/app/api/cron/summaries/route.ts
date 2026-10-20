@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
   try {
-    const result = await runSummaryJobs(8);
+    const result = await runSummaryJobs(80);
     return Response.json({ ok: result.failed === 0, ...result });
   } catch (error) {
     console.error("Summary worker request failed:", error);
