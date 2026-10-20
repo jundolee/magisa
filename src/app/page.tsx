@@ -109,6 +109,7 @@ export default async function Home({
         <Link href="/topics"><Text as="span" textStyle="t3Medium" color="var(--seed-color-fg-brand)">주제별 글</Text></Link>
         <Link href="/blogs"><Text as="span" textStyle="t3Medium" color="var(--seed-color-fg-brand)">블로그 목록</Text></Link>
         <Link href="/digest"><Text as="span" textStyle="t3Medium" color="var(--seed-color-fg-brand)">주간 큐레이션</Text></Link>
+        <Link href="/privacy"><Text as="span" textStyle="t3Medium" color="var(--seed-color-fg-brand)">개인정보처리방침</Text></Link>
       </nav>
 
       <Suspense fallback={<ArticleListSkeleton />}>
