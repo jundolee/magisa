@@ -114,9 +114,6 @@ export function ArticleRow({
             <Text as="span" textStyle="t2Regular" color={MUTED}>
               {formatDate(article.published_at)}
             </Text>
-            <Text as="span" textStyle="t2Regular" color={MUTED}>
-              클릭수 : {article.click_count}
-            </Text>
           </div>
         </ArticleLink>
 
