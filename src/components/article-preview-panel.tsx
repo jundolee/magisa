@@ -7,6 +7,30 @@ import { RelatedArticleList } from "@/components/related-article-list";
 import { CATEGORY_MAP, type CategoryId } from "@/lib/categories";
 import type { ArticlePreview, RelatedArticle } from "@/lib/data/related-articles";
 
+const ENGINEERING_BOX_METAS = [
+  {
+    icon: "🚨",
+    label: "문제 & 배경",
+    bg: "#fff8f8",
+    border: "#fed7d7",
+    tagColor: "#c53030",
+  },
+  {
+    icon: "🛠️",
+    label: "기술 & 해결책",
+    bg: "#f0f9ff",
+    border: "#bae6fd",
+    tagColor: "#0284c7",
+  },
+  {
+    icon: "💡",
+    label: "교훈 & 주의점",
+    bg: "#fefce8",
+    border: "#fef08a",
+    tagColor: "#b45309",
+  },
+];
+
 function formatDate(value: string | null): string | null {
   if (!value) return null;
   const date = new Date(value);
@@ -210,7 +234,7 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
             </Text>
           </div>
 
-          {/* 2. [최상위 계층] ✨ AI 3줄 핵심 요약 카드 */}
+          {/* 2. [최상위 계층] ✨ AI 엔지니어링 3-Box 브리핑 카드 */}
           {article.summary ? (
             <section
               aria-labelledby="ai-summary-heading"
@@ -226,7 +250,7 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span aria-hidden="true" style={{ fontSize: 16 }}>✨</span>
                   <Text as="h2" id="ai-summary-heading" textStyle="t5Bold" color="fg.neutral">
-                    AI 핵심 요약
+                    AI 엔지니어링 브리핑
                   </Text>
                 </div>
                 <Text as="span" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)">
@@ -247,44 +271,44 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
                 </Text>
               </div>
 
-              {/* 핵심 포인트 리스트 */}
-              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-                {article.summary.keyPoints.map((point, index) => (
-                  <li
-                    key={`${index}-${point}`}
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 10,
-                      background: "rgba(255, 255, 255, 0.8)",
-                      padding: "10px 14px",
-                      borderRadius: 12,
-                      border: "1px solid rgba(245, 201, 173, 0.4)",
-                    }}
-                  >
-                    <span
+              {/* 엔지니어링 3-Box (문제 ➔ 기술/해결책 ➔ 교훈/주의점) */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {article.summary.keyPoints.map((point, index) => {
+                  const meta = ENGINEERING_BOX_METAS[index] ?? {
+                    icon: "📌",
+                    label: `핵심 ${index + 1}`,
+                    bg: "#ffffff",
+                    border: "#fed7aa",
+                    tagColor: "var(--seed-color-fg-brand)",
+                  };
+
+                  return (
+                    <div
+                      key={`${index}-${point}`}
                       style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: "50%",
-                        background: "var(--seed-color-bg-brand-solid, #eb641c)",
-                        color: "white",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        display: "grid",
-                        placeItems: "center",
-                        flexShrink: 0,
-                        marginTop: 2,
+                        background: meta.bg,
+                        border: `1px solid ${meta.border}`,
+                        borderRadius: 14,
+                        padding: "12px 16px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 6,
+                        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
                       }}
                     >
-                      {index + 1}
-                    </span>
-                    <Text as="span" textStyle="t3Regular" color="fg.neutral" style={{ lineHeight: 1.55 }}>
-                      {point}
-                    </Text>
-                  </li>
-                ))}
-              </ul>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span aria-hidden="true" style={{ fontSize: 14 }}>{meta.icon}</span>
+                        <Text as="span" textStyle="t2Bold" style={{ color: meta.tagColor, letterSpacing: "-0.01em" }}>
+                          {meta.label}
+                        </Text>
+                      </div>
+                      <Text as="p" textStyle="t3Regular" color="fg.neutral" style={{ lineHeight: 1.55, margin: 0 }}>
+                        {point}
+                      </Text>
+                    </div>
+                  );
+                })}
+              </div>
             </section>
           ) : (
             <section

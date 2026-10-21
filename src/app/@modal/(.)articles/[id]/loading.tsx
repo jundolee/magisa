@@ -89,7 +89,7 @@ export default function ArticleModalLoading() {
             />
           </div>
 
-          {/* AI 요약 카드 스켈레톤 */}
+          {/* AI 3-Box 요약 카드 스켈레톤 */}
           <div
             style={{
               borderRadius: 20,
@@ -98,33 +98,31 @@ export default function ArticleModalLoading() {
               background: "var(--seed-color-bg-neutral-weak, #fafafa)",
               display: "flex",
               flexDirection: "column",
-              gap: 14,
+              gap: 12,
             }}
           >
             <div
               style={{
-                width: "120px",
+                width: "140px",
                 height: "20px",
                 borderRadius: 6,
                 background: "var(--seed-color-stroke-neutral-subtle)",
+                marginBottom: 4,
               }}
             />
             <div
               style={{
                 width: "100%",
-                height: "16px",
+                height: "22px",
                 borderRadius: 6,
                 background: "var(--seed-color-stroke-neutral-subtle)",
+                marginBottom: 8,
               }}
             />
-            <div
-              style={{
-                width: "80%",
-                height: "16px",
-                borderRadius: 6,
-                background: "var(--seed-color-stroke-neutral-subtle)",
-              }}
-            />
+            {/* 3개의 박스 스켈레톤 */}
+            <div style={{ height: "48px", borderRadius: 12, background: "rgba(0,0,0,0.03)" }} />
+            <div style={{ height: "48px", borderRadius: 12, background: "rgba(0,0,0,0.03)" }} />
+            <div style={{ height: "48px", borderRadius: 12, background: "rgba(0,0,0,0.03)" }} />
           </div>
 
           {/* 버튼 스켈레톤 */}
