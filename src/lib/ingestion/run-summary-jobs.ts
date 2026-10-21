@@ -89,34 +89,54 @@ async function processClaimedJob(client: ServiceClient, job: ClaimedJob): Promis
   }
 }
 
-export async function runSummaryJobs(limit = 8): Promise<{ claimed: number; ready: number; unavailable: number; failed: number }> {
+export async function runSummaryJobs(limit = 24): Promise<{ claimed: number; ready: number; unavailable: number; failed: number }> {
   if (!isArticleSummaryEnabled()) {
     return { claimed: 0, ready: 0, unavailable: 0, failed: 0 };
   }
   const client = createServiceClient();
-  const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 8);
-  const { data, error } = await client.rpc("claim_article_summary_jobs_by_version", {
-    p_prompt_version: ARTICLE_SUMMARY_PROMPT_VERSION,
-    p_limit: safeLimit,
-  });
-  if (error) throw error;
+  const targetLimit = Math.min(Math.max(Math.trunc(limit), 1), 32);
 
-  const jobs = (data ?? []) as ClaimedJob[];
-  const outcomes: JobOutcome[] = [];
-  let nextIndex = 0;
-  const concurrency = Math.min(4, jobs.length);
-  await Promise.all(Array.from({ length: concurrency }, async () => {
-    while (true) {
-      const index = nextIndex++;
-      if (index >= jobs.length) return;
-      outcomes.push(await processClaimedJob(client, jobs[index]));
-    }
-  }));
+  let totalClaimed = 0;
+  let readyCount = 0;
+  let unavailableCount = 0;
+  let failedCount = 0;
+
+  // DB RPC는 1회당 최대 8건씩 claim하므로, targetLimit까지 연속 배치로 처리하여 처리량을 대폭 확대
+  while (totalClaimed < targetLimit) {
+    const batchLimit = Math.min(8, targetLimit - totalClaimed);
+    const { data, error } = await client.rpc("claim_article_summary_jobs_by_version", {
+      p_prompt_version: ARTICLE_SUMMARY_PROMPT_VERSION,
+      p_limit: batchLimit,
+    });
+    if (error) throw error;
+
+    const jobs = (data ?? []) as ClaimedJob[];
+    if (jobs.length === 0) break;
+
+    totalClaimed += jobs.length;
+    const outcomes: JobOutcome[] = [];
+    let nextIndex = 0;
+    const concurrency = Math.min(4, jobs.length);
+    await Promise.all(Array.from({ length: concurrency }, async () => {
+      while (true) {
+        const index = nextIndex++;
+        if (index >= jobs.length) return;
+        outcomes.push(await processClaimedJob(client, jobs[index]));
+      }
+    }));
+
+    readyCount += outcomes.filter((outcome) => outcome === "ready").length;
+    unavailableCount += outcomes.filter((outcome) => outcome === "unavailable").length;
+    failedCount += outcomes.filter((outcome) => outcome === "failed").length;
+
+    // 이번 배치가 8건 미만이었다면 대기열에 남은 작업이 없으므로 종료
+    if (jobs.length < batchLimit) break;
+  }
 
   return {
-    claimed: jobs.length,
-    ready: outcomes.filter((outcome) => outcome === "ready").length,
-    unavailable: outcomes.filter((outcome) => outcome === "unavailable").length,
-    failed: outcomes.filter((outcome) => outcome === "failed").length,
+    claimed: totalClaimed,
+    ready: readyCount,
+    unavailable: unavailableCount,
+    failed: failedCount,
   };
 }

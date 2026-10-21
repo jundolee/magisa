@@ -10,6 +10,7 @@ import {
   ARTICLE_SUMMARY_PROMPT_VERSION,
   isArticleSummaryEnabled,
 } from "./article-summary";
+import { runSummaryJobs } from "./run-summary-jobs";
 
 const POSTGRES_UNIQUE_VIOLATION = "23505";
 
@@ -138,7 +139,16 @@ export async function ingestSource(
         newlyInserted.map(({ articleId }) => ({ article_id: articleId, prompt_version: ARTICLE_SUMMARY_PROMPT_VERSION })),
         { onConflict: "article_id,prompt_version", ignoreDuplicates: true }
       );
-      if (error) console.error(`AI summary queue failed for source ${source.id}:`, error.message);
+      if (error) {
+        console.error(`AI summary queue failed for source ${source.id}:`, error.message);
+        return;
+      }
+      // 수집 시 새로 등록된 글에 대해 곧바로 본문 추출 및 AI 요약을 함께 실행
+      try {
+        await runSummaryJobs(newlyInserted.length);
+      } catch (summaryError) {
+        console.error(`Immediate summary run failed after ingest for source ${source.id}:`, summaryError);
+      }
     })(),
   ]);
 
