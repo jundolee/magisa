@@ -2,7 +2,7 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
   ARTICLE_EMBEDDING_MODEL,
-  deleteArticleVectors,
+  deleteArticleDocuments,
   findRelatedArticleIds,
   isPineconeConfigured,
   pineconeErrorMessage,
@@ -62,7 +62,7 @@ async function processDeletionJobs(
 
   const ids = jobs.map((job) => job.article_id);
   try {
-    await deleteArticleVectors(ids);
+    await deleteArticleDocuments(ids);
     const { error: completionError } = await client.rpc("complete_article_embedding_deletions", {
       article_ids: ids,
       succeeded: true,
@@ -87,7 +87,7 @@ async function refreshRelatedCandidates(
 ): Promise<Map<string, string | null>> {
   const queryResults = await Promise.all(jobs.map(async (job) => {
     try {
-      const matches = await findRelatedArticleIds(job.article_id, 12);
+      const matches = await findRelatedArticleIds(job, 12);
       return { job, matches, error: null as string | null };
     } catch (cause) {
       return { job, matches: [], error: pineconeErrorMessage(cause) };

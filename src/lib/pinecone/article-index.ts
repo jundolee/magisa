@@ -15,16 +15,6 @@ export interface ArticleEmbeddingInput {
   content_hash: string;
 }
 
-interface ArticleVectorMetadata {
-  [key: string]: string | number | boolean | string[];
-  embedding_text: string;
-  title: string;
-  category: string;
-  tags: string[];
-  source_id: string;
-  content_hash: string;
-}
-
 export interface RelatedArticleId {
   id: string;
   score: number;
@@ -42,7 +32,7 @@ function getPineconeIndex() {
   if (!apiKey || !host) return null;
 
   pineconeClient ??= new Pinecone({ apiKey });
-  return pineconeClient.index<ArticleVectorMetadata>({
+  return pineconeClient.index({
     host,
     namespace: ARTICLE_VECTOR_NAMESPACE,
   });
@@ -59,9 +49,9 @@ export async function upsertArticleEmbeddings(articles: ArticleEmbeddingInput[])
   const index = getPineconeIndex();
   if (!index) throw new Error("Pinecone is not configured");
 
-  await index.upsertRecords({
-    records: articles.map((article) => ({
-      id: article.article_id,
+  await index.documents.upsert({
+    documents: articles.map((article) => ({
+      _id: article.article_id,
       embedding_text: buildArticleEmbeddingText(article),
       title: article.title,
       category: article.category,
@@ -72,23 +62,32 @@ export async function upsertArticleEmbeddings(articles: ArticleEmbeddingInput[])
   });
 }
 
-export async function findRelatedArticleIds(articleId: string, topK = 12): Promise<RelatedArticleId[]> {
+export async function findRelatedArticleIds(
+  article: ArticleEmbeddingInput,
+  topK = 12
+): Promise<RelatedArticleId[]> {
   const index = getPineconeIndex();
   if (!index) return [];
 
-  const result = await index.searchRecords({
-    query: { id: articleId, topK },
-    fields: ["category"],
+  const result = await index.documents.search({
+    scoreBy: [{
+      type: "embed",
+      field: "embedding_text",
+      query: buildArticleEmbeddingText(article),
+    }],
+    topK,
   });
 
-  return result.result.hits
-    .filter((hit) => hit._id !== articleId)
-    .map((hit) => ({ id: hit._id, score: hit._score }));
+  return result.matches.flatMap((hit) =>
+    hit._id === article.article_id || hit._score === null
+      ? []
+      : [{ id: hit._id, score: hit._score }]
+  );
 }
 
-export async function deleteArticleVectors(articleIds: string[]): Promise<void> {
+export async function deleteArticleDocuments(articleIds: string[]): Promise<void> {
   if (articleIds.length === 0) return;
   const index = getPineconeIndex();
   if (!index) throw new Error("Pinecone is not configured");
-  await index.deleteMany({ ids: articleIds });
+  await index.documents.delete({ ids: articleIds });
 }
