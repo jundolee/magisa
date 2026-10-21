@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, type CSSProperties, type MouseEvent, type ReactNode } from "react";
+import Link from "next/link";
 import { markArticleReadAction } from "@/app/articles/actions";
 
 interface ArticleLinkProps {
@@ -14,8 +15,8 @@ interface ArticleLinkProps {
 }
 
 /**
- * 클릭 시 원문을 새 탭으로 열면서 동시에 읽음 처리를 트리거한다.
- * 기본 앵커 내비게이션을 막지 않아 새 탭 열기/우클릭 메뉴 등 브라우저 기본 동작은 그대로 유지된다.
+ * 클릭 시 앱 안의 상세 경로로 이동해 인터셉트 모달을 열고 읽음 처리를 트리거한다.
+ * 새 탭이나 직접 URL 진입에서는 같은 경로의 독립 상세 페이지를 보여준다.
  */
 export function ArticleLink({ articleId, articleTitle, href, children, style, onRead }: ArticleLinkProps) {
   const trackClick = () => {
@@ -32,10 +33,8 @@ export function ArticleLink({ articleId, articleTitle, href, children, style, on
   };
 
   return (
-    <a
+    <Link
       href={href}
-      target="_blank"
-      rel="noopener noreferrer"
       style={style}
       onClick={trackClick}
       // 휠 버튼(가운데)이나 우클릭으로 여는 경우 "click"이 아니라 "auxclick"이 발생해 onClick만으로는
@@ -47,6 +46,6 @@ export function ArticleLink({ articleId, articleTitle, href, children, style, on
       }}
     >
       {children}
-    </a>
+    </Link>
   );
 }

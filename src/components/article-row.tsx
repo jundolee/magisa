@@ -6,7 +6,6 @@ import { FavoriteToggleForm } from "./favorite-toggle-form";
 import { ShareButton } from "./share-button";
 import type { ArticleListItem } from "@/lib/data/articles";
 import { getCategoryMeta, type CategoryId } from "@/lib/categories";
-import { ArticlePreviewLink } from "@/components/article-preview-panel";
 
 const MUTED = "var(--seed-color-fg-neutral-muted)";
 
@@ -93,11 +92,11 @@ export function ArticleRow({
           )}
         </div>
 
-        {/* 썸네일뿐 아니라 제목/요약/날짜 전부 클릭 가능해야 해서 하나의 링크로 묶는다 */}
+        {/* 제목·요약·날짜를 누르면 앱 내 아티클 모달을 연다. */}
         <ArticleLink
           articleId={article.id}
           articleTitle={article.title}
-          href={article.url}
+          href={`/articles/${encodeURIComponent(article.id)}`}
           style={{ display: "flex", flexDirection: "column", gap: 8 }}
           onRead={onRead}
         >
@@ -122,7 +121,6 @@ export function ArticleRow({
           <FavoriteToggleForm articleId={article.id} isFavorite={article.is_favorite} />
           {article.is_read && <UnreadToggleForm articleId={article.id} />}
           <ShareButton title={article.title} url={article.url} />
-          <ArticlePreviewLink articleId={article.id} />
           <Link href={`/articles/${encodeURIComponent(article.id)}/connections`} style={{ color: "var(--seed-color-fg-brand)", fontSize: 13 }}>
             연결·메모
           </Link>
@@ -133,7 +131,7 @@ export function ArticleRow({
       <ArticleLink
         articleId={article.id}
         articleTitle={article.title}
-        href={article.url}
+        href={`/articles/${encodeURIComponent(article.id)}`}
         style={{ flexShrink: 0, display: "block" }}
         onRead={onRead}
       >

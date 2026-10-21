@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Text } from "@seed-design/react";
@@ -16,22 +16,61 @@ function formatDate(value: string | null): string | null {
 }
 
 function summaryNotice(status: ArticlePreview["summaryStatus"]): string {
-  if (status === "pending") return "요약 대기 중입니다. 원문 링크와 수집 발췌를 이용할 수 있습니다.";
-  if (status === "processing") return "요약을 만들고 있습니다. 잠시 후 다시 확인해 주세요.";
-  if (status === "failed") return "요약 생성에 실패했습니다. 원문 링크와 수집 발췌를 이용해 주세요.";
-  if (status === "unavailable") return "저장된 발췌가 짧거나 요약 입력으로 부족해 AI 요약을 제공하지 않습니다.";
-  return "요약이 아직 준비되지 않았습니다. 기존 수집 발췌와 원문을 확인해 주세요.";
+  if (status === "pending") return "원문 본문을 가져와 요약할 예정입니다. 다음 요약 작업을 기다리고 있습니다.";
+  if (status === "processing") return "원문을 확인하고 요약을 만들고 있습니다.";
+  if (status === "failed") return "원문을 가져오거나 요약을 만드는 데 실패했습니다. 잠시 후 다시 시도합니다.";
+  if (status === "unavailable") return "원문 본문을 추출할 수 없어 요약을 제공하지 않습니다. 원문에서 확인해 주세요.";
+  return "등록된 AI 요약이 없습니다. 원문에서 확인해 주세요.";
+}
+
+function summaryBasisNotice(basis: ArticlePreview["summaryBasis"]): string {
+  if (basis === "excerpt") return "기존 글에 저장되어 있던 제목과 발췌를 바탕으로 만든 요약입니다.";
+  if (basis === "partial_article") return "원문 페이지에서 추출한 일부 본문을 바탕으로 만든 요약입니다.";
+  return "원문 페이지에서 추출한 본문을 바탕으로 만든 요약입니다.";
 }
 
 export function ArticlePreviewPanel({ article, related }: { article: ArticlePreview; related: RelatedArticle[] }) {
   const router = useRouter();
+  const dialogRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    document.body.style.overflow = "hidden";
+    dialogRef.current?.querySelector<HTMLElement>("button[aria-label='닫기']")?.focus();
+
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") router.back();
+      if (event.key === "Escape") {
+        router.back();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        "a[href], button:not([disabled]), [tabindex]:not([tabindex='-1'])"
+      );
+      if (!focusable?.length) {
+        event.preventDefault();
+        dialogRef.current?.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
   }, [router]);
 
   const date = formatDate(article.publishedAt);
@@ -39,13 +78,15 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
     <div
       role="presentation"
       onMouseDown={(event) => { if (event.target === event.currentTarget) router.back(); }}
-      style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(25, 27, 30, .34)" }}
+      style={{ position: "fixed", inset: 0, zIndex: 1000, display: "grid", placeItems: "center", padding: 16, background: "rgba(25, 27, 30, .58)" }}
     >
       <section
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="article-preview-title"
-        style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "min(720px, 100%)", overflowY: "auto", background: "var(--seed-color-bg-layer-default, #fff)", padding: "28px clamp(22px, 5vw, 52px) 48px", boxShadow: "-12px 0 40px rgba(0,0,0,.12)" }}
+        tabIndex={-1}
+        style={{ position: "relative", width: "min(760px, 100%)", maxHeight: "calc(100dvh - 32px)", overflowY: "auto", borderRadius: 24, background: "var(--seed-color-bg-layer-default, #fff)", padding: "24px clamp(16px, 5vw, 48px) 36px", boxShadow: "0 24px 80px rgba(0,0,0,.24)" }}
       >
         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--seed-color-stroke-neutral-subtle)", paddingBottom: 18 }}>
           <button type="button" onClick={() => router.back()} style={{ border: 0, background: "none", color: "inherit", cursor: "pointer", font: "inherit" }}>← 목록으로</button>
@@ -67,7 +108,7 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
               <ol style={{ paddingLeft: 22, margin: "14px 0 0", display: "grid", gap: 10 }}>
                 {article.summary.keyPoints.map((point, index) => <li key={`${index}-${point}`}><Text as="span" textStyle="t3Regular" color="fg.neutral">{point}</Text></li>)}
               </ol>
-              <Text as="p" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginTop: 14 }}>기존 수집 제목과 발췌를 바탕으로 만든 짧은 요약입니다.</Text>
+              <Text as="p" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginTop: 14 }}>{summaryBasisNotice(article.summaryBasis)}</Text>
             </section>
           ) : (
             <section aria-labelledby="ai-summary-heading" style={{ marginTop: 28, border: "1px solid var(--seed-color-stroke-neutral-subtle)", borderRadius: 18, padding: 22, background: "var(--seed-color-bg-neutral-weak, #fafafa)" }}>
@@ -85,13 +126,6 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
             비슷한 기사와 내 노트 연결하기 →
           </Link>
 
-          <section aria-labelledby="collected-excerpt-heading" style={{ marginTop: 22 }}>
-            <Text as="h2" id="collected-excerpt-heading" textStyle="t4Bold" color="fg.neutral">수집 발췌</Text>
-            <Text as="p" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginTop: 8, whiteSpace: "pre-wrap", lineHeight: 1.65 }}>
-              {article.excerpt || "등록된 발췌가 없습니다. 원문에서 내용을 확인해 주세요."}
-            </Text>
-          </section>
-
           <RelatedArticleList items={related.map((item) => ({ ...item, href: `/articles/${encodeURIComponent(item.id)}` }))} />
           <Text as="p" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginTop: 20 }}>
             원문과 발행처를 확인한 뒤 읽어 주세요.
@@ -100,8 +134,4 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
       </section>
     </div>
   );
-}
-
-export function ArticlePreviewLink({ articleId }: { articleId: string }) {
-  return <Link href={`/articles/${encodeURIComponent(articleId)}`} style={{ color: "var(--seed-color-fg-brand)", fontWeight: 600, textDecoration: "none" }}>간단히 보기</Link>;
 }

@@ -9,6 +9,18 @@
       "schedule": "0 0 * * *"
     },
     {
+      "path": "/api/cron/summaries/1",
+      "schedule": "30 5 * * *"
+    },
+    {
+      "path": "/api/cron/summaries/2",
+      "schedule": "30 11 * * *"
+    },
+    {
+      "path": "/api/cron/summaries/3",
+      "schedule": "30 17 * * *"
+    },
+    {
       "path": "/api/cron/ingest/first/0",
       "schedule": "0 22 * * *"
     },

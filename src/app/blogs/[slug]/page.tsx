@@ -33,7 +33,7 @@ function ArticleList({ articles }: { articles: PublicHubArticle[] }) {
     <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 16 }}>
       {articles.map((article) => (
         <li key={article.id} style={{ borderBottom: "1px solid var(--seed-color-stroke-neutral-subtle)", paddingBottom: 16 }}>
-          <ArticleLink articleId={article.id} articleTitle={article.title} href={article.url} style={{ display: "block" }}>
+          <ArticleLink articleId={article.id} articleTitle={article.title} href={`/articles/${encodeURIComponent(article.id)}`} style={{ display: "block" }}>
             <Text as="h3" textStyle="t5Bold" color="fg.neutral">{article.title}</Text>
             {article.excerpt && (
               <Text as="p" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginTop: 6 }}>
