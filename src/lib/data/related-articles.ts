@@ -167,7 +167,7 @@ interface RelatedArticleRpcRow {
  */
 export async function getRelatedArticles(
   articleId: string,
-  category: string,
+  category?: string | null,
   tags?: string[] | null,
   limit?: number
 ): Promise<RelatedArticle[]> {
@@ -204,8 +204,7 @@ export async function getRelatedArticles(
       return validSemanticArticles.slice(0, safeLimit);
     }
     if (validSemanticArticles.length > 0) {
-      // If we have some semantic articles but fewer than safeLimit, we can use them
-      // and fill the rest from tag/category fallback
+      if (!category) return validSemanticArticles.slice(0, safeLimit);
       const seenIds = new Set(validSemanticArticles.map((a) => a.id));
       seenIds.add(articleId);
 
@@ -217,6 +216,7 @@ export async function getRelatedArticles(
   }
 
   // 2. Fallback to tag overlap + category matching
+  if (!category) return [];
   return getCategoryFallbackArticles(articleId, category, tags, safeLimit, new Set([articleId]));
 }
 

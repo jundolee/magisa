@@ -38,9 +38,15 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 export default async function ArticlePage({ params }: ArticlePageProps) {
   await connection();
   const { id } = await params;
-  const article = await getArticle(id);
+
+  const articlePromise = getArticle(id);
+  const relatedPromise = getRelatedArticles(id);
+  const [article, initialRelated] = await Promise.all([articlePromise, relatedPromise]);
   if (!article) notFound();
-  const related = await getRelatedArticles(article.id, article.category, article.tags);
+
+  const related = initialRelated.length > 0
+    ? initialRelated
+    : await getRelatedArticles(article.id, article.category, article.tags);
 
   return (
     <main style={{ maxWidth: 760, margin: "0 auto", padding: "24px 0 56px" }}>

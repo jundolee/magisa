@@ -2,8 +2,9 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Text } from "@seed-design/react";
+import { Badge, Text } from "@seed-design/react";
 import { RelatedArticleList } from "@/components/related-article-list";
+import { CATEGORY_MAP, type CategoryId } from "@/lib/categories";
 import type { ArticlePreview, RelatedArticle } from "@/lib/data/related-articles";
 
 function formatDate(value: string | null): string | null {
@@ -23,9 +24,9 @@ function summaryNotice(status: ArticlePreview["summaryStatus"]): string {
 }
 
 function summaryBasisNotice(basis: ArticlePreview["summaryBasis"]): string {
-  if (basis === "excerpt") return "기존 글에 저장되어 있던 제목과 발췌를 바탕으로 만든 요약입니다.";
-  if (basis === "partial_article") return "원문 페이지에서 추출한 일부 본문을 바탕으로 만든 요약입니다.";
-  return "원문 페이지에서 추출한 본문을 바탕으로 만든 요약입니다.";
+  if (basis === "excerpt") return "발췌 기반 요약";
+  if (basis === "partial_article") return "일부 본문 기반 요약";
+  return "원문 전문 기반 요약";
 }
 
 export function ArticlePreviewPanel({ article, related }: { article: ArticlePreview; related: RelatedArticle[] }) {
@@ -34,9 +35,17 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
   const backdropMouseDownTargetRef = useRef<EventTarget | null>(null);
 
   useEffect(() => {
+    // 1. 브라우저 스크롤 락 시 스크롤바 폭만큼 paddingRight를 보정하여 페이지가 좌우로 덜컹거리는 현상 방지
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
     const previousOverflow = document.body.style.overflow;
+    const previousPaddingRight = document.body.style.paddingRight;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
     document.body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
     dialogRef.current?.querySelector<HTMLElement>("button[aria-label='닫기']")?.focus();
 
     function onKeyDown(event: KeyboardEvent) {
@@ -69,11 +78,14 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
     return () => {
       window.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previousOverflow;
+      document.body.style.paddingRight = previousPaddingRight;
       if (previousFocus?.isConnected) previousFocus.focus();
     };
   }, [router]);
 
   const date = formatDate(article.publishedAt);
+  const categoryMeta = article.category && article.category !== "general" ? CATEGORY_MAP.get(article.category as CategoryId) : null;
+
   return (
     <div
       role="presentation"
@@ -85,7 +97,19 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
           router.back();
         }
       }}
-      style={{ position: "fixed", inset: 0, zIndex: 1000, display: "grid", placeItems: "center", padding: 16, background: "rgba(25, 27, 30, .58)" }}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 1000,
+        overflowY: "auto",
+        overscrollBehavior: "contain",
+        padding: "32px 16px 48px",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "flex-start",
+        background: "rgba(25, 27, 30, .62)",
+        scrollbarWidth: "thin",
+      }}
     >
       <section
         ref={dialogRef}
@@ -93,45 +117,255 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
         aria-modal="true"
         aria-labelledby="article-preview-title"
         tabIndex={-1}
-        style={{ position: "relative", width: "min(760px, 100%)", maxHeight: "calc(100dvh - 32px)", overflowY: "auto", borderRadius: 24, background: "var(--seed-color-bg-layer-default, #fff)", padding: "24px clamp(16px, 5vw, 48px) 36px", boxShadow: "0 24px 80px rgba(0,0,0,.24)" }}
+        style={{
+          position: "relative",
+          width: "min(740px, 100%)",
+          borderRadius: 24,
+          background: "var(--seed-color-bg-layer-default, #fff)",
+          padding: "26px clamp(20px, 4.5vw, 44px) 40px",
+          boxShadow: "0 24px 80px rgba(0,0,0,.26), 0 4px 16px rgba(0,0,0,.08)",
+          margin: "auto 0",
+        }}
       >
-        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--seed-color-stroke-neutral-subtle)", paddingBottom: 18 }}>
-          <button type="button" onClick={() => router.back()} style={{ border: 0, background: "none", color: "inherit", cursor: "pointer", font: "inherit" }}>← 목록으로</button>
-          <button type="button" aria-label="닫기" onClick={() => router.back()} style={{ width: 40, height: 40, borderRadius: "50%", border: 0, background: "var(--seed-color-bg-neutral-weak)", color: "inherit", cursor: "pointer", fontSize: 24 }}>×</button>
+        {/* 상단 액션 바 */}
+        <header
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            borderBottom: "1px solid var(--seed-color-stroke-neutral-subtle)",
+            paddingBottom: 16,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => router.back()}
+            style={{
+              border: 0,
+              background: "none",
+              color: "var(--seed-color-fg-neutral-muted)",
+              cursor: "pointer",
+              font: "inherit",
+              fontSize: 14,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "6px 8px",
+              borderRadius: 8,
+            }}
+          >
+            ← 목록으로
+          </button>
+          <button
+            type="button"
+            aria-label="닫기"
+            onClick={() => router.back()}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              border: 0,
+              background: "var(--seed-color-bg-neutral-weak)",
+              color: "inherit",
+              cursor: "pointer",
+              fontSize: 22,
+              display: "grid",
+              placeItems: "center",
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
         </header>
 
-        <div style={{ paddingTop: 30 }}>
-          <Text as="p" textStyle="t2Medium" color="var(--seed-color-fg-neutral-muted)">
-            {article.sourceTitle ?? "출처 미상"}{date ? ` · ${date}` : ""}{article.category !== "general" ? ` · ${article.category}` : ""}
-          </Text>
-          <Text as="h1" id="article-preview-title" textStyle="t8Bold" color="fg.neutral" style={{ marginTop: 18, lineHeight: 1.25 }}>
-            {article.title}
-          </Text>
+        {/* 본문 컨텐츠 */}
+        <div style={{ paddingTop: 26, display: "flex", flexDirection: "column", gap: 24 }}>
+          {/* 1. 메타 정보 (출처, 날짜, 카테고리) & 제목 */}
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+              <Badge size="medium" variant="weak" tone="neutral">
+                {article.sourceTitle ?? "출처 미상"}
+              </Badge>
+              {categoryMeta && (
+                <Badge size="medium" variant="outline" tone={categoryMeta.badgeTone}>
+                  {categoryMeta.label}
+                </Badge>
+              )}
+              {date && (
+                <Text as="span" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)">
+                  {date}
+                </Text>
+              )}
+            </div>
 
+            <Text
+              as="h1"
+              id="article-preview-title"
+              textStyle="t8Bold"
+              color="fg.neutral"
+              style={{ lineHeight: 1.35, wordBreak: "keep-all" }}
+            >
+              {article.title}
+            </Text>
+          </div>
+
+          {/* 2. [최상위 계층] ✨ AI 3줄 핵심 요약 카드 */}
           {article.summary ? (
-            <section aria-labelledby="ai-summary-heading" style={{ marginTop: 28, border: "1px solid #f5c9ad", borderRadius: 18, padding: 22, background: "#fff8f3" }}>
-              <Text as="h2" id="ai-summary-heading" textStyle="t5Bold" color="fg.neutral">AI 요약</Text>
-              <Text as="p" textStyle="t3Medium" color="fg.neutral" style={{ marginTop: 12 }}>{article.summary.lead}</Text>
-              <ol style={{ paddingLeft: 22, margin: "14px 0 0", display: "grid", gap: 10 }}>
-                {article.summary.keyPoints.map((point, index) => <li key={`${index}-${point}`}><Text as="span" textStyle="t3Regular" color="fg.neutral">{point}</Text></li>)}
-              </ol>
-              <Text as="p" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginTop: 14 }}>{summaryBasisNotice(article.summaryBasis)}</Text>
+            <section
+              aria-labelledby="ai-summary-heading"
+              style={{
+                borderRadius: 20,
+                padding: "24px clamp(18px, 3.5vw, 28px)",
+                background: "linear-gradient(180deg, #fffaf5 0%, #ffffff 100%)",
+                border: "1px solid #fbd8bc",
+                boxShadow: "0 2px 10px rgba(235, 100, 28, 0.04)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span aria-hidden="true" style={{ fontSize: 16 }}>✨</span>
+                  <Text as="h2" id="ai-summary-heading" textStyle="t5Bold" color="fg.neutral">
+                    AI 핵심 요약
+                  </Text>
+                </div>
+                <Text as="span" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)">
+                  {summaryBasisNotice(article.summaryBasis)}
+                </Text>
+              </div>
+
+              {/* 리드 결론문 */}
+              <div
+                style={{
+                  borderLeft: "3px solid var(--seed-color-bg-brand-solid, #eb641c)",
+                  paddingLeft: 14,
+                  marginBottom: 18,
+                }}
+              >
+                <Text as="p" textStyle="t3Bold" color="fg.neutral" style={{ lineHeight: 1.5, wordBreak: "keep-all" }}>
+                  {article.summary.lead}
+                </Text>
+              </div>
+
+              {/* 핵심 포인트 리스트 */}
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+                {article.summary.keyPoints.map((point, index) => (
+                  <li
+                    key={`${index}-${point}`}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 10,
+                      background: "rgba(255, 255, 255, 0.8)",
+                      padding: "10px 14px",
+                      borderRadius: 12,
+                      border: "1px solid rgba(245, 201, 173, 0.4)",
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        background: "var(--seed-color-bg-brand-solid, #eb641c)",
+                        color: "white",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        display: "grid",
+                        placeItems: "center",
+                        flexShrink: 0,
+                        marginTop: 2,
+                      }}
+                    >
+                      {index + 1}
+                    </span>
+                    <Text as="span" textStyle="t3Regular" color="fg.neutral" style={{ lineHeight: 1.55 }}>
+                      {point}
+                    </Text>
+                  </li>
+                ))}
+              </ul>
             </section>
           ) : (
-            <section aria-labelledby="ai-summary-heading" style={{ marginTop: 28, border: "1px solid var(--seed-color-stroke-neutral-subtle)", borderRadius: 18, padding: 22, background: "var(--seed-color-bg-neutral-weak, #fafafa)" }}>
-              <Text as="h2" id="ai-summary-heading" textStyle="t5Bold" color="fg.neutral">AI 요약</Text>
-              <Text as="p" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginTop: 6 }}>
+            <section
+              aria-labelledby="ai-summary-heading"
+              style={{
+                borderRadius: 18,
+                padding: "20px 24px",
+                background: "var(--seed-color-bg-neutral-weak, #fafafa)",
+                border: "1px solid var(--seed-color-stroke-neutral-subtle)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                <span aria-hidden="true" style={{ fontSize: 16 }}>🤖</span>
+                <Text as="h2" id="ai-summary-heading" textStyle="t5Bold" color="fg.neutral">
+                  AI 요약
+                </Text>
+              </div>
+              <Text as="p" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)">
                 {summaryNotice(article.summaryStatus)}
               </Text>
             </section>
           )}
 
-          <a href={article.url} target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: 20, padding: "17px 20px", borderRadius: 14, background: "var(--seed-color-bg-brand-solid, #eb641c)", color: "white", textDecoration: "none", fontWeight: 700 }}>
-            원문 읽기 ↗
-          </a>
+          {/* 3. [주요 액션] 원문 읽기 CTA 버튼 */}
+          <div>
+            <a
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 8,
+                padding: "16px 24px",
+                borderRadius: 16,
+                background: "var(--seed-color-bg-brand-solid, #eb641c)",
+                color: "white",
+                textDecoration: "none",
+                fontWeight: 700,
+                fontSize: 16,
+                boxShadow: "0 4px 16px rgba(235, 100, 28, 0.28)",
+                transition: "opacity 0.15s ease",
+              }}
+            >
+              <span>{article.sourceTitle ? `${article.sourceTitle}에서 전체 원문 읽기` : "전체 원문 읽기"}</span>
+              <span aria-hidden="true">↗</span>
+            </a>
+          </div>
 
-          <RelatedArticleList items={related.map((item) => ({ ...item, href: `/articles/${encodeURIComponent(item.id)}` }))} />
-          <Text as="p" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginTop: 20 }}>
+          {/* 4. [보충 컨텐츠] 수집 발췌문 (있는 경우) */}
+          {article.excerpt && (
+            <section
+              aria-labelledby="collected-excerpt-heading"
+              style={{
+                borderRadius: 16,
+                padding: "18px 22px",
+                background: "var(--seed-color-bg-neutral-weak, #f8f9fa)",
+                border: "1px solid var(--seed-color-stroke-neutral-subtle)",
+              }}
+            >
+              <Text as="h2" id="collected-excerpt-heading" textStyle="t3Bold" color="var(--seed-color-fg-neutral-muted)" style={{ marginBottom: 8 }}>
+                수집 원문 발췌
+              </Text>
+              <Text
+                as="p"
+                textStyle="t3Regular"
+                color="var(--seed-color-fg-neutral-muted)"
+                style={{ whiteSpace: "pre-wrap", lineHeight: 1.65 }}
+              >
+                {article.excerpt}
+              </Text>
+            </section>
+          )}
+
+          {/* 5. [지식 확장] AI 벡터 시맨틱 연관 기사 리스트 */}
+          <div style={{ borderTop: "1px solid var(--seed-color-stroke-neutral-subtle)", paddingTop: 12 }}>
+            <RelatedArticleList items={related.map((item) => ({ ...item, href: `/articles/${encodeURIComponent(item.id)}` }))} />
+          </div>
+
+          <Text as="p" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)" style={{ textAlign: "center", marginTop: 4 }}>
             원문과 발행처를 확인한 뒤 읽어 주세요.
           </Text>
         </div>

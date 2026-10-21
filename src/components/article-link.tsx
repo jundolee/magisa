@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, type CSSProperties, type MouseEvent, type ReactNode } from "react";
+import { type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { markArticleReadAction } from "@/app/articles/actions";
 
@@ -27,14 +27,14 @@ export function ArticleLink({ articleId, articleTitle, href, children, style, on
       article_title: articleTitle,
     });
     onRead?.(articleId);
-    startTransition(() => {
-      markArticleReadAction(articleId);
-    });
+    // 내비게이션 트랜지션을 블로킹하지 않도록 fire-and-forget으로 비동기 호출
+    void markArticleReadAction(articleId);
   };
 
   return (
     <Link
       href={href}
+      prefetch={true}
       style={style}
       onClick={trackClick}
       // 휠 버튼(가운데)이나 우클릭으로 여는 경우 "click"이 아니라 "auxclick"이 발생해 onClick만으로는
