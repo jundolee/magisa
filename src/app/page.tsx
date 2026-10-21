@@ -105,11 +105,11 @@ export default async function Home({
         테크곳간은 여러 기술 블로그의 새 글을 모아 제목·요약·태그로 검색할 수 있는 피드예요. 로그인하면 읽음 표시와 즐겨찾기를 동기화하고, AI 요약과 의미 기반 연관 글을 찾아볼 수 있어요.
       </Text>
 
-      <nav aria-label="콘텐츠 탐색" style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
-        <Link href="/topics"><Text as="span" textStyle="t3Medium" color="var(--seed-color-fg-brand)">주제별 글</Text></Link>
-        <Link href="/blogs"><Text as="span" textStyle="t3Medium" color="var(--seed-color-fg-brand)">블로그 목록</Text></Link>
-        <Link href="/digest"><Text as="span" textStyle="t3Medium" color="var(--seed-color-fg-brand)">주간 큐레이션</Text></Link>
-        <Link href="/privacy"><Text as="span" textStyle="t3Medium" color="var(--seed-color-fg-brand)">개인정보처리방침</Text></Link>
+      <nav aria-label="콘텐츠 탐색" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 28 }}>
+        <Link href="/topics" className="home-nav-chip">주제별 글</Link>
+        <Link href="/blogs" className="home-nav-chip">블로그 목록</Link>
+        <Link href="/digest" className="home-nav-chip">주간 큐레이션</Link>
+        <Link href="/privacy" className="home-nav-chip">개인정보처리방침</Link>
       </nav>
 
       <Suspense fallback={<ArticleListSkeleton />}>

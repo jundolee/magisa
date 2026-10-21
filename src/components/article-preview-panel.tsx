@@ -113,6 +113,7 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
   return (
     <div
       role="presentation"
+      className="article-preview-backdrop"
       onMouseDown={(event) => {
         backdropMouseDownTargetRef.current = event.target;
       }}
@@ -121,19 +122,6 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
           router.back();
         }
       }}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 1000,
-        overflowY: "auto",
-        overscrollBehavior: "contain",
-        padding: "32px 16px 48px",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "flex-start",
-        background: "rgba(25, 27, 30, .62)",
-        scrollbarWidth: "thin",
-      }}
     >
       <section
         ref={dialogRef}
@@ -141,26 +129,10 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
         aria-modal="true"
         aria-labelledby="article-preview-title"
         tabIndex={-1}
-        style={{
-          position: "relative",
-          width: "min(740px, 100%)",
-          borderRadius: 24,
-          background: "var(--seed-color-bg-layer-default, #fff)",
-          padding: "26px clamp(20px, 4.5vw, 44px) 40px",
-          boxShadow: "0 24px 80px rgba(0,0,0,.26), 0 4px 16px rgba(0,0,0,.08)",
-          margin: "auto 0",
-        }}
+        className="article-preview-dialog"
       >
-        {/* 상단 액션 바 */}
-        <header
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            borderBottom: "1px solid var(--seed-color-stroke-neutral-subtle)",
-            paddingBottom: 16,
-          }}
-        >
+        {/* 상단 고정 액션 바: 긴 본문을 스크롤해도 닫기 버튼이 항상 보임 */}
+        <header className="article-preview-sticky-header">
           <button
             type="button"
             onClick={() => router.back()}
@@ -175,8 +147,10 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
               display: "flex",
               alignItems: "center",
               gap: 4,
-              padding: "6px 8px",
+              padding: "8px 10px",
               borderRadius: 8,
+              minHeight: 40,
+              touchAction: "manipulation",
             }}
           >
             ← 목록으로
@@ -186,8 +160,8 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
             aria-label="닫기"
             onClick={() => router.back()}
             style={{
-              width: 36,
-              height: 36,
+              width: 40,
+              height: 40,
               borderRadius: "50%",
               border: 0,
               background: "var(--seed-color-bg-neutral-weak)",
@@ -197,6 +171,7 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
               display: "grid",
               placeItems: "center",
               lineHeight: 1,
+              touchAction: "manipulation",
             }}
           >
             ×
@@ -228,7 +203,7 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
               id="article-preview-title"
               textStyle="t8Bold"
               color="fg.neutral"
-              style={{ lineHeight: 1.35, wordBreak: "keep-all" }}
+              style={{ lineHeight: 1.35, wordBreak: "keep-all", overflowWrap: "break-word" }}
             >
               {article.title}
             </Text>
@@ -246,7 +221,7 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
                 boxShadow: "0 2px 10px rgba(235, 100, 28, 0.04)",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span aria-hidden="true" style={{ fontSize: 16 }}>✨</span>
                   <Text as="h2" id="ai-summary-heading" textStyle="t5Bold" color="fg.neutral">
@@ -266,7 +241,7 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
                   marginBottom: 18,
                 }}
               >
-                <Text as="p" textStyle="t3Bold" color="fg.neutral" style={{ lineHeight: 1.5, wordBreak: "keep-all" }}>
+                <Text as="p" textStyle="t3Bold" color="fg.neutral" style={{ lineHeight: 1.5, wordBreak: "keep-all", overflowWrap: "break-word" }}>
                   {article.summary.lead}
                 </Text>
               </div>
@@ -342,8 +317,9 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
+                textAlign: "center",
                 gap: 8,
-                padding: "16px 24px",
+                padding: "16px 20px",
                 borderRadius: 16,
                 background: "var(--seed-color-bg-brand-solid, #eb641c)",
                 color: "white",
@@ -352,6 +328,8 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
                 fontSize: 16,
                 boxShadow: "0 4px 16px rgba(235, 100, 28, 0.28)",
                 transition: "opacity 0.15s ease",
+                touchAction: "manipulation",
+                minHeight: 52,
               }}
             >
               <span>{article.sourceTitle ? `${article.sourceTitle}에서 전체 원문 읽기` : "전체 원문 읽기"}</span>

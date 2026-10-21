@@ -30,14 +30,7 @@ export function ArticleRow({
   const categoryMeta = article.category && article.category !== "general" ? getCategoryMeta(article.category) : null;
 
   return (
-    <li
-      style={{
-        display: "flex",
-        gap: 20,
-        padding: "20px 0",
-        borderBottom: "1px solid var(--seed-color-stroke-neutral-subtle)",
-      }}
-    >
+    <li className="article-row-item">
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           <Badge size="medium" variant="weak" tone="neutral">
@@ -127,16 +120,17 @@ export function ArticleRow({
         </div>
       </div>
 
-      {/* 썸네일 유무와 무관하게 항상 같은 112x112 규격을 유지 — 없는 글은 빈 플레이스홀더로 채워 목록 전체의 정렬을 맞춘다 */}
+      {/* 썸네일: 모바일에서는 84px로 축소되며, 썸네일 이미지가 없는 글은 모바일에서 숨겨 제목/본문 영역을 극대화 */}
       <ArticleLink
         articleId={article.id}
         articleTitle={article.title}
         href={`/articles/${encodeURIComponent(article.id)}`}
-        style={{ flexShrink: 0, display: "block" }}
+        className={`article-row-thumb ${!article.thumbnail_url ? "article-row-thumb-empty" : ""}`}
         onRead={onRead}
       >
         <AspectRatio
           ratio={1}
+          className="article-row-thumb-aspect"
           width="112px"
           style={{
             borderRadius: 8,

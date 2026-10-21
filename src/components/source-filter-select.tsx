@@ -41,11 +41,11 @@ export function SourceFilterSelect({
 
   return (
     <MenuRoot open={open} onOpenChange={setOpen}>
-      <MenuAnchor>
+      <MenuAnchor style={{ width: "100%" }}>
         <FieldButton
           size="medium"
           suffixIcon={<IconChevronDownLine />}
-          style={{ minWidth: 160 }}
+          style={{ minWidth: 160, width: "100%" }}
           buttonProps={{
             onClick: () => setOpen((v) => !v),
             "aria-label": "소스 필터",

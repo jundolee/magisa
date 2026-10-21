@@ -25,7 +25,7 @@ export default async function LoginPage({
   if (user) redirect(redirectTo);
 
   return (
-    <main style={{ maxWidth: 360, margin: "80px auto", display: "flex", flexDirection: "column", gap: 24 }}>
+    <main style={{ maxWidth: 360, margin: "24px auto 48px", display: "flex", flexDirection: "column", gap: 24 }}>
       <Text as="h1" textStyle="t7Bold" color="fg.neutral">
         로그인
       </Text>
@@ -52,7 +52,7 @@ export default async function LoginPage({
         <form action={signInWithPasswordAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <input type="hidden" name="next" value={redirectTo} />
           <TextField name="email" label="이메일">
-            <TextFieldInput type="email" placeholder="you@example.com" required autoFocus />
+            <TextFieldInput type="email" placeholder="you@example.com" required />
           </TextField>
           <TextField name="password" label="비밀번호">
             <TextFieldInput type="password" required minLength={6} />

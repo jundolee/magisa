@@ -10,6 +10,7 @@ interface ArticleLinkProps {
   href: string;
   children: ReactNode;
   style?: CSSProperties;
+  className?: string;
   // 서버 액션 응답(revalidatePath)을 기다리지 않고 클릭 즉시 목록에 읽음으로 반영하기 위한 낙관적 업데이트 콜백.
   onRead?: (articleId: string) => void;
 }
@@ -18,7 +19,7 @@ interface ArticleLinkProps {
  * 클릭 시 앱 안의 상세 경로로 이동해 인터셉트 모달을 열고 읽음 처리를 트리거한다.
  * 새 탭이나 직접 URL 진입에서는 같은 경로의 독립 상세 페이지를 보여준다.
  */
-export function ArticleLink({ articleId, articleTitle, href, children, style, onRead }: ArticleLinkProps) {
+export function ArticleLink({ articleId, articleTitle, href, children, style, className, onRead }: ArticleLinkProps) {
   const trackClick = () => {
     // GTM 맞춤 이벤트 트리거(article_click)로 GA4에서 아티클명 기준 집계가 가능하도록 push
     (window as { dataLayer?: unknown[] }).dataLayer?.push({
@@ -36,6 +37,7 @@ export function ArticleLink({ articleId, articleTitle, href, children, style, on
       href={href}
       prefetch={true}
       style={style}
+      className={className}
       onClick={trackClick}
       // 휠 버튼(가운데)이나 우클릭으로 여는 경우 "click"이 아니라 "auxclick"이 발생해 onClick만으로는
       // 읽음 처리가 누락됨. 우클릭 메뉴에서 실제로 "새 탭에서 링크 열기"를 선택했는지는 JS로 알 수 없어

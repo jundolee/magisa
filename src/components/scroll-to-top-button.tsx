@@ -27,8 +27,8 @@ export function ScrollToTopButton() {
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       style={{
         position: "fixed",
-        right: 20,
-        bottom: 20,
+        right: "calc(20px + env(safe-area-inset-right, 0px))",
+        bottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
         width: 44,
         height: 44,
         borderRadius: "50%",
@@ -40,6 +40,7 @@ export function ScrollToTopButton() {
         justifyContent: "center",
         cursor: "pointer",
         zIndex: 50,
+        touchAction: "manipulation",
       }}
     >
       <Icon svg={<IconArrowUpFill />} />

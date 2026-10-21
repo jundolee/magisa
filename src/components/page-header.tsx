@@ -11,27 +11,21 @@ export function PageHeader({
   navLabel?: string;
   authSlot?: React.ReactNode;
 }) {
+  const shortLabel = navLabel ? navLabel.replace(/하기$/, "") : "";
+
   return (
-    <header
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingBottom: 20,
-        marginBottom: 28,
-        borderBottom: "1px solid var(--seed-color-stroke-neutral-subtle)",
-      }}
-    >
+    <header className="page-header-container">
       <BrandLink />
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      <div className="page-header-actions">
         {navHref && navLabel && (
-          <Link href={navHref}>
+          <Link href={navHref} className="page-header-nav-link">
             <Text as="span" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">
-              {navLabel} →
+              <span className="page-header-nav-label-full">{navLabel} →</span>
+              <span className="page-header-nav-label-short">{shortLabel} →</span>
             </Text>
           </Link>
         )}
-        <a href="/feed.xml" title="RSS 피드 구독">
+        <a href="/feed.xml" title="RSS 피드 구독" className="page-header-nav-link">
           <Text as="span" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">
             RSS
           </Text>

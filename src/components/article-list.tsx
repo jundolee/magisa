@@ -272,16 +272,7 @@ export function ArticleList({
         </Text>
       )}
 
-      <div
-        style={{
-          marginBottom: 16,
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
+      <div className="article-list-filter-bar">
         {/* 가로 스크롤 대신 flexShrink:0 + 부모의 flexWrap으로 이 자리에 다 안 들어가면
             소스 드롭다운과 나란히 두지 않고 다음 줄로 통째로 넘어가게 한다 — 예전엔 이 자리를
             overflow-x:auto로 만들어 좁은 화면에서 옆으로 스크롤해야 "즐겨찾기"가 보였는데,
@@ -296,15 +287,17 @@ export function ArticleList({
             }}
           />
         </div>
-        <SourceFilterSelect
-          sources={sources}
-          current={sourceId}
-          onChange={(value) => {
-            setSourceId(value);
-            setPage(1);
-            updateUrl(filter, value, category);
-          }}
-        />
+        <div className="source-filter-container">
+          <SourceFilterSelect
+            sources={sources}
+            current={sourceId}
+            onChange={(value) => {
+              setSourceId(value);
+              setPage(1);
+              updateUrl(filter, value, category);
+            }}
+          />
+        </div>
       </div>
 
       <div style={{ marginBottom: 20 }}>
