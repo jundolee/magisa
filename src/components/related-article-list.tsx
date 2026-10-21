@@ -41,13 +41,18 @@ export function RelatedArticleList({ items }: { items: RelatedArticleListItem[] 
 
   return (
     <section aria-labelledby="related-articles-heading" style={{ marginTop: 24 }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 3 }}>
-        <Text as="h2" id="related-articles-heading" textStyle="t4Bold" color="fg.neutral">
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 6 }}>
+        <Text as="h2" id="related-articles-heading" textStyle="t6Bold" color="fg.neutral" style={{ letterSpacing: "-0.02em" }}>
           관련 기사
         </Text>
+        {hasSemantic && (
+          <Badge size="medium" variant="weak" tone="brand">
+            AI 의미 연결
+          </Badge>
+        )}
       </div>
-      <Text as="p" textStyle="t1Regular" color={MUTED} style={{ marginBottom: 8 }}>
-        {hasSemantic ? "AI 벡터 임베딩으로 분석한 기술적 연관 글" : "주제나 기술 맥락이 닿는 글"}
+      <Text as="p" textStyle="t2Regular" color={MUTED} style={{ marginBottom: 12 }}>
+        {hasSemantic ? "AI 벡터 임베딩으로 분석한 기술적 연관 글이에요." : "주제나 기술 맥락이 닿는 글이에요."}
       </Text>
 
       <ul style={{ listStyle: "none", display: "flex", flexDirection: "column" }}>
@@ -63,31 +68,31 @@ export function RelatedArticleList({ items }: { items: RelatedArticleListItem[] 
               key={item.id}
               style={{ borderBottom: "1px solid var(--seed-color-stroke-neutral-subtle)" }}
             >
-              <Link href={item.href} style={{ display: "block", padding: "12px 0", color: "inherit" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, marginBottom: 4 }}>
-                  <Text as="span" textStyle="t1Regular" color={MUTED}>
+              <Link href={item.href} style={{ display: "block", padding: "14px 0", color: "inherit", textDecoration: "none" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, marginBottom: 6 }}>
+                  <Text as="span" textStyle="t2Regular" color={MUTED}>
                     {item.sourceTitle ?? "알 수 없는 소스"}
                     {category && ` · ${category}`}
                   </Text>
                   {item.isSemanticMatch && scorePercent !== null && (
-                    <Badge size="medium" variant="weak" tone="brand">
+                    <Badge size="medium" variant="outline" tone="brand">
                       {`연관도 ${scorePercent}%`}
                     </Badge>
                   )}
                 </div>
                 <Text
                   as="h3"
-                  textStyle="t3Bold"
+                  textStyle="t4Bold"
                   color="fg.neutral"
                   style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, lineHeight: 1.45 }}
                 >
                   <span>{item.title}</span>
-                  <span aria-hidden="true" style={{ color: MUTED, flexShrink: 0, fontSize: 14 }}>
+                  <span aria-hidden="true" style={{ color: MUTED, flexShrink: 0, fontSize: 16 }}>
                     ↗
                   </span>
                 </Text>
                 {publishedAt && (
-                  <time dateTime={item.publishedAt ?? undefined} style={{ display: "block", marginTop: 4, color: MUTED, fontSize: 14, lineHeight: 1.4 }}>
+                  <time dateTime={item.publishedAt ?? undefined} style={{ display: "block", marginTop: 6, color: MUTED, fontSize: 13, lineHeight: 1.4 }}>
                     {publishedAt}
                   </time>
                 )}

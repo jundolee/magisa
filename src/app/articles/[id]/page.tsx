@@ -72,11 +72,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         </Text>}
       </section>
       <a href={article.url} target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "center", marginTop: 18, padding: 16, borderRadius: 14, background: "var(--seed-color-bg-brand-solid, #eb641c)", color: "white", textDecoration: "none", fontWeight: 700 }}>원문 읽기 ↗</a>
-      <section aria-labelledby="excerpt-heading" style={{ marginTop: 22 }}>
-        <Text as="h2" id="excerpt-heading" textStyle="t4Bold" color="fg.neutral">수집 발췌</Text>
-        <Text as="p" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginTop: 8, whiteSpace: "pre-wrap", lineHeight: 1.65 }}>{article.excerpt || "등록된 발췌가 없습니다. 원문에서 내용을 확인해 주세요."}</Text>
-      </section>
-      <RelatedArticleList items={related.map((item) => ({ ...item, href: `/articles/${encodeURIComponent(item.id)}` }))} />
+      <div style={{ marginTop: 28 }}>
+        <RelatedArticleList items={related.map((item) => ({ ...item, href: `/articles/${encodeURIComponent(item.id)}` }))} />
+      </div>
     </main>
   );
 }

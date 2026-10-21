@@ -335,33 +335,8 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
             </a>
           </div>
 
-          {/* 4. [보충 컨텐츠] 수집 발췌문 (있는 경우) */}
-          {article.excerpt && (
-            <section
-              aria-labelledby="collected-excerpt-heading"
-              style={{
-                borderRadius: 16,
-                padding: "18px 22px",
-                background: "var(--seed-color-bg-neutral-weak, #f8f9fa)",
-                border: "1px solid var(--seed-color-stroke-neutral-subtle)",
-              }}
-            >
-              <Text as="h2" id="collected-excerpt-heading" textStyle="t3Bold" color="var(--seed-color-fg-neutral-muted)" style={{ marginBottom: 8 }}>
-                수집 원문 발췌
-              </Text>
-              <Text
-                as="p"
-                textStyle="t3Regular"
-                color="var(--seed-color-fg-neutral-muted)"
-                style={{ whiteSpace: "pre-wrap", lineHeight: 1.65 }}
-              >
-                {article.excerpt}
-              </Text>
-            </section>
-          )}
-
-          {/* 5. [지식 확장] AI 벡터 시맨틱 연관 기사 리스트 */}
-          <div style={{ borderTop: "1px solid var(--seed-color-stroke-neutral-subtle)", paddingTop: 12 }}>
+          {/* 4. [지식 확장] AI 벡터 시맨틱 연관 기사 리스트 */}
+          <div style={{ borderTop: "1px solid var(--seed-color-stroke-neutral-subtle)", paddingTop: 16 }}>
             <RelatedArticleList items={related.map((item) => ({ ...item, href: `/articles/${encodeURIComponent(item.id)}` }))} />
           </div>
 
