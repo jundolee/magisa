@@ -109,7 +109,6 @@ export default async function Home({
         <Link href="/topics" className="home-nav-chip">주제별 글</Link>
         <Link href="/blogs" className="home-nav-chip">블로그 목록</Link>
         <Link href="/digest" className="home-nav-chip">주간 큐레이션</Link>
-        <Link href="/privacy" className="home-nav-chip">개인정보처리방침</Link>
       </nav>
 
       <Suspense fallback={<ArticleListSkeleton />}>

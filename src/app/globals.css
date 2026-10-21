@@ -165,42 +165,112 @@ h3 {
   }
 }
 
-/* 아티클 모달/바텀시트 반응형 */
+/* 푸터 영역 */
+.app-footer {
+  margin-top: 56px;
+  padding-top: 24px;
+  border-top: 1px solid var(--seed-color-stroke-neutral-subtle, #eaeaea);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  text-align: center;
+}
+
+.app-footer-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.app-footer-link {
+  font-size: 13px;
+  color: var(--seed-color-fg-neutral-muted, #767676);
+  text-decoration: none;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.15s ease;
+}
+
+.app-footer-link-privacy {
+  font-weight: 600;
+  color: var(--seed-color-fg-neutral, #333333);
+}
+
+.app-footer-link:hover {
+  color: var(--seed-color-fg-brand, #eb641c);
+}
+
+.app-footer-separator {
+  color: var(--seed-color-stroke-neutral-subtle, #d1d5db);
+  font-size: 12px;
+  user-select: none;
+}
+
+.app-footer-copy {
+  font-size: 12px;
+  color: var(--seed-color-fg-neutral-muted, #8c8c8c);
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 640px) {
+  .app-footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    gap: 10px;
+  }
+}
+
+/* 아티클 모달/바텀시트 반응형: 이중 스크롤 제거 및 단일 내부 스크롤 구조 */
 .article-preview-backdrop {
   position: fixed;
   inset: 0;
   z-index: 1000;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 32px 16px 48px;
+  overflow: hidden;
+  padding: 32px 16px;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
   background: rgba(25, 27, 30, 0.62);
-  scrollbar-width: thin;
+  touch-action: none;
 }
 
 .article-preview-dialog {
   position: relative;
   width: min(740px, 100%);
+  max-height: min(90vh, 880px);
   border-radius: 24px;
   background: var(--seed-color-bg-layer-default, #fff);
-  padding: 0 clamp(20px, 4.5vw, 44px) 40px;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.26), 0 4px 16px rgba(0, 0, 0, 0.08);
-  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  touch-action: auto;
 }
 
-.article-preview-sticky-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
+.article-preview-header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--seed-color-stroke-neutral-subtle);
-  padding: 16px 0;
+  padding: 16px clamp(20px, 4.5vw, 44px);
   background: var(--seed-color-bg-layer-default, #fff);
-  margin-bottom: 4px;
+}
+
+.article-preview-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 24px clamp(20px, 4.5vw, 44px) 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 @media (max-width: 640px) {
@@ -211,12 +281,17 @@ h3 {
 
   .article-preview-dialog {
     width: 100%;
-    border-radius: 24px 24px 0 0;
-    padding: 0 16px calc(36px + env(safe-area-inset-bottom, 0px));
-    margin: 0;
-    max-height: 94vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    max-height: 90dvh;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .article-preview-header {
+    padding: 12px 16px;
+  }
+
+  .article-preview-body {
+    padding: 20px 16px calc(36px + env(safe-area-inset-bottom, 0px));
+    gap: 20px;
   }
 }
 

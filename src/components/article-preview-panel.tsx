@@ -132,7 +132,7 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
         className="article-preview-dialog"
       >
         {/* 상단 고정 액션 바: 긴 본문을 스크롤해도 닫기 버튼이 항상 보임 */}
-        <header className="article-preview-sticky-header">
+        <header className="article-preview-header">
           <button
             type="button"
             onClick={() => router.back()}
@@ -178,8 +178,8 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
           </button>
         </header>
 
-        {/* 본문 컨텐츠 */}
-        <div style={{ paddingTop: 26, display: "flex", flexDirection: "column", gap: 24 }}>
+        {/* 본문 컨텐츠 (단일 독립 스크롤 영역) */}
+        <div className="article-preview-body">
           {/* 1. 메타 정보 (출처, 날짜, 카테고리) & 제목 */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
