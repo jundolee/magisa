@@ -1,6 +1,9 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
-import { ARTICLE_SUMMARY_PROMPT_VERSION } from "@/lib/ingestion/article-summary";
+import {
+  ARTICLE_SUMMARY_PROMPT_VERSION,
+  LEGACY_ARTICLE_SUMMARY_PROMPT_VERSION,
+} from "@/lib/ingestion/article-summary";
 
 export interface RelatedArticle {
   id: string;
@@ -20,6 +23,7 @@ export interface ArticlePreview {
   tags: string[];
   sourceTitle: string | null;
   summary: { lead: string; keyPoints: string[] } | null;
+  summaryBasis: "full_article" | "partial_article" | "excerpt" | null;
   summaryStatus: "pending" | "processing" | "ready" | "unavailable" | "failed" | null;
 }
 
@@ -51,29 +55,40 @@ export async function getArticlePreview(articleId: string): Promise<ArticlePrevi
 
   const source = Array.isArray(data.source) ? data.source[0] : data.source;
   let summary: ArticlePreview["summary"] = null;
+  let summaryBasis: ArticlePreview["summaryBasis"] = null;
   let summaryStatus: ArticlePreview["summaryStatus"] = null;
   const summaryResult = await supabase
     .from("article_summary_jobs")
-    .select("status,lead,key_points")
+    .select("status,lead,key_points,extraction_status,prompt_version")
     .eq("article_id", articleId)
-    .eq("prompt_version", ARTICLE_SUMMARY_PROMPT_VERSION)
-    .maybeSingle();
+    .in("prompt_version", [ARTICLE_SUMMARY_PROMPT_VERSION, LEGACY_ARTICLE_SUMMARY_PROMPT_VERSION]);
   if (summaryResult.error) {
     if (summaryResult.error.code === "42P01") {
-      console.warn("article_summary_jobs table is not installed yet; showing the collected excerpt.");
+      console.warn("article_summary_jobs table is not installed yet; no article summary is available.");
     } else {
       console.error("Failed to read article summary:", summaryResult.error.message);
     }
-  } else if (summaryResult.data) {
-    const allowedStatuses = ["pending", "processing", "ready", "unavailable", "failed"] as const;
-    if (allowedStatuses.includes(summaryResult.data.status as typeof allowedStatuses[number])) {
-      summaryStatus = summaryResult.data.status as ArticlePreview["summaryStatus"];
-    }
-    if (summaryStatus === "ready" && Array.isArray(summaryResult.data.key_points)) {
-      summary = {
-        lead: summaryResult.data.lead,
-        keyPoints: summaryResult.data.key_points.filter((point): point is string => typeof point === "string"),
-      };
+  } else {
+    const current = summaryResult.data?.find((row) => row.prompt_version === ARTICLE_SUMMARY_PROMPT_VERSION);
+    const legacy = summaryResult.data?.find((row) => row.prompt_version === LEGACY_ARTICLE_SUMMARY_PROMPT_VERSION);
+    const currentReady = current?.status === "ready" && Array.isArray(current.key_points);
+    const legacyReady = legacy?.status === "ready" && Array.isArray(legacy.key_points);
+    const selected = currentReady ? current : legacyReady ? legacy : current;
+
+    if (selected) {
+      const allowedStatuses = ["pending", "processing", "ready", "unavailable", "failed"] as const;
+      if (allowedStatuses.includes(selected.status as typeof allowedStatuses[number])) {
+        summaryStatus = selected.status as ArticlePreview["summaryStatus"];
+      }
+      if (summaryStatus === "ready" && Array.isArray(selected.key_points)) {
+        summary = {
+          lead: selected.lead,
+          keyPoints: selected.key_points.filter((point): point is string => typeof point === "string"),
+        };
+        summaryBasis = selected.prompt_version === LEGACY_ARTICLE_SUMMARY_PROMPT_VERSION
+          ? "excerpt"
+          : selected.extraction_status === "partial" ? "partial_article" : "full_article";
+      }
     }
   }
 
@@ -87,6 +102,7 @@ export async function getArticlePreview(articleId: string): Promise<ArticlePrevi
     tags: data.tags ?? [],
     sourceTitle: source?.title ?? null,
     summary,
+    summaryBasis,
     summaryStatus,
   };
 }

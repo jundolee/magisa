@@ -68,11 +68,12 @@ MVP 완료 이후 추가로 들어온 요청:
 - [x] 기존 DB 제목·발췌만 사용하는 `gpt-5.6-luna` 비동기 요약 worker, retry·lease, 요약 cache 구현
 - [x] TGT-3 live catalog를 로컬 0001–0014와 대조하고 `0015_article_summary_jobs.sql`을 Dashboard SQL Editor에서 적용
 - [x] TGT-3 `0016_summary_worker_batch_limit.sql`을 Dashboard SQL Editor에서 적용하고 claim 상한 80을 확인
+- [x] TGT-3 `0017_claim_article_summary_jobs_by_version.sql`을 Dashboard SQL Editor에서 적용하고 신규 prompt 전용 claim 권한 확인
 - [ ] TGT-2 원문 전문 수집/외부 전송 검토는 별도 조사로 유지; 현재 기능은 기존 저장 발췌만 사용
 - [ ] TGT-3 과거 수동 migration history를 CLI에 안전하게 반영할 방법 확정; `db push`는 계속 금지
-- [x] TGT-4 full body fetch 대신 기존 title/excerpt를 요약 입력으로 사용하도록 범위 조정
-- [ ] TGT-5 DB·OpenAI API를 이용한 실제 worker 실행과 비용/실패 처리 검증
-- [x] TGT-6 Preview에서 실데이터 drawer/direct route/관련 기사 표시 검증
-- [ ] TGT-7 release QA 및 배포 후 production 확인
+- [x] TGT-4 앞으로 등록되는 글만 원문 본문 추출을 사용하고 기존 글은 유지하는 범위로 전환
+- [ ] TGT-5 신규 글의 full-article worker와 `gpt-5.6-luna` 실제 실행 검증
+- [ ] TGT-6 dim 모달, 기존 excerpt 요약 fallback, 신규 본문 요약 표기 검증
+- [ ] TGT-7 여러 출처 표본에서 본문 추출·요약 정확도 및 처리량 검토
 
-구현 동작·환경변수·go-live 순서는 `docs/article-summary-operations.md`에 정리했다. Worker는 `OPENAI_SUMMARY_ENABLED=true`가 설정되기 전까지 비활성이다.
+Production에는 현재 excerpt 기반 worker가 배포되어 있다. full-article 변경은 Production 배포 전까지 작업 트리에서만 동작하며, 구현 경계와 롤아웃 조건은 `docs/article-summary-operations.md`에 정리했다.
