@@ -7,18 +7,23 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "tsx --test tests/*.test.ts tests/*.test.mjs",
     "backfill:categories": "npx tsx scripts/backfill-categories.ts"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "^2.45.5",
     "@karrotmarket/react-monochrome-icon": "^1.25.0",
     "@next/third-parties": "^16.2.12",
+    "@pinecone-database/pinecone": "^9.0.0",
     "@seed-design/css": "^2.2.1",
     "@seed-design/react": "^2.0.4",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.110.9",
     "cheerio": "^1.2.0",
-    "next": "16.2.12",
+    "next": "^16.4.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "rss-parser": "^3.13.0",
@@ -29,7 +34,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.12",
+    "eslint-config-next": "^16.4.2",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

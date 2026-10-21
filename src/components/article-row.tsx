@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AspectRatio, Badge, Text } from "@seed-design/react";
 import { ArticleLink } from "./article-link";
 import { UnreadToggleForm } from "./unread-toggle-form";
@@ -122,6 +123,9 @@ export function ArticleRow({
           {article.is_read && <UnreadToggleForm articleId={article.id} />}
           <ShareButton title={article.title} url={article.url} />
           <ArticlePreviewLink articleId={article.id} />
+          <Link href={`/articles/${encodeURIComponent(article.id)}/connections`} style={{ color: "var(--seed-color-fg-brand)", fontSize: 13 }}>
+            연결·메모
+          </Link>
         </div>
       </div>
 
