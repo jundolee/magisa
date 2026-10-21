@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { GoogleTagManager } from "@next/third-parties/google";
 import { AmplitudeAnalytics } from "@/components/amplitude-analytics";
+import { PageFooter } from "@/components/page-footer";
 import { DEFAULT_OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "./seo";
 import "@seed-design/css/all.css";
 import "./globals.css";
@@ -112,7 +113,10 @@ export default function RootLayout({
             />
           </noscript>
         )}
-        <div className="app-shell">{children}</div>
+        <div className="app-shell">
+          {children}
+          <PageFooter />
+        </div>
         {modal}
       </body>
     </html>
