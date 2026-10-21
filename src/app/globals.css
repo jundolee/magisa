@@ -54,6 +54,204 @@ h3 {
   padding: 40px 20px 80px;
 }
 
+@media (max-width: 640px) {
+  .app-shell {
+    padding: 20px 16px calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* 헤더 반응형 */
+.page-header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--seed-color-stroke-neutral-subtle);
+  gap: 12px;
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.page-header-nav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  touch-action: manipulation;
+}
+
+.page-header-nav-label-full {
+  display: inline;
+}
+
+.page-header-nav-label-short {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .page-header-container {
+    padding-bottom: 14px;
+    margin-bottom: 20px;
+  }
+
+  .page-header-actions {
+    gap: 10px;
+  }
+
+  .page-header-nav-label-full {
+    display: none;
+  }
+
+  .page-header-nav-label-short {
+    display: inline;
+  }
+}
+
+/* 필터 바 반응형 */
+.article-list-filter-bar {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.source-filter-container {
+  display: flex;
+}
+
+@media (max-width: 640px) {
+  .article-list-filter-bar {
+    gap: 10px;
+  }
+
+  .source-filter-container {
+    width: 100%;
+  }
+
+  .source-filter-container > * {
+    width: 100%;
+  }
+}
+
+/* 모바일 네비게이션 칩 링크 */
+.home-nav-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: var(--seed-color-bg-neutral-weak, #f8f9fa);
+  border: 1px solid var(--seed-color-stroke-neutral-subtle, #eaeaea);
+  color: var(--seed-color-fg-brand, #eb641c);
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 36px;
+  touch-action: manipulation;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-nav-chip:hover {
+    background: var(--seed-color-bg-neutral-hover, #efefef);
+  }
+}
+
+/* 아티클 모달/바텀시트 반응형 */
+.article-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 32px 16px 48px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background: rgba(25, 27, 30, 0.62);
+  scrollbar-width: thin;
+}
+
+.article-preview-dialog {
+  position: relative;
+  width: min(740px, 100%);
+  border-radius: 24px;
+  background: var(--seed-color-bg-layer-default, #fff);
+  padding: 0 clamp(20px, 4.5vw, 44px) 40px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.26), 0 4px 16px rgba(0, 0, 0, 0.08);
+  margin: auto 0;
+}
+
+.article-preview-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--seed-color-stroke-neutral-subtle);
+  padding: 16px 0;
+  background: var(--seed-color-bg-layer-default, #fff);
+  margin-bottom: 4px;
+}
+
+@media (max-width: 640px) {
+  .article-preview-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .article-preview-dialog {
+    width: 100%;
+    border-radius: 24px 24px 0 0;
+    padding: 0 16px calc(36px + env(safe-area-inset-bottom, 0px));
+    margin: 0;
+    max-height: 94vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* 아티클 행 반응형 */
+.article-row-item {
+  display: flex;
+  gap: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--seed-color-stroke-neutral-subtle);
+}
+
+.article-row-thumb {
+  flex-shrink: 0;
+  display: block;
+}
+
+.article-row-thumb-aspect {
+  width: 112px;
+}
+
+@media (max-width: 640px) {
+  .article-row-item {
+    gap: 12px;
+    padding: 16px 0;
+  }
+
+  .article-row-thumb-aspect {
+    width: 84px !important;
+  }
+
+  .article-row-thumb-empty {
+    display: none !important;
+  }
+}
+
 @keyframes skeleton-pulse {
   0%,
   100% {

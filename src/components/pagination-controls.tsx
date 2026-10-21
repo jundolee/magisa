@@ -27,7 +27,7 @@ export function PaginationControls({
   const pages = getPageWindow(page, totalPages);
 
   return (
-    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 32 }}>
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 32, flexWrap: "wrap" }}>
       <ActionButton
         type="button"
         variant="neutralOutline"
@@ -35,6 +35,7 @@ export function PaginationControls({
         disabled={page <= 1}
         onClick={() => onChange(page - 1)}
         aria-label="이전 페이지"
+        style={{ minWidth: 38, minHeight: 38, touchAction: "manipulation" }}
       >
         ‹
       </ActionButton>
@@ -45,6 +46,7 @@ export function PaginationControls({
           variant={p === page ? "neutralSolid" : "ghost"}
           size="small"
           onClick={() => onChange(p)}
+          style={{ minWidth: 38, minHeight: 38, touchAction: "manipulation" }}
         >
           {p}
         </ActionButton>
@@ -56,6 +58,7 @@ export function PaginationControls({
         disabled={page >= totalPages}
         onClick={() => onChange(page + 1)}
         aria-label="다음 페이지"
+        style={{ minWidth: 38, minHeight: 38, touchAction: "manipulation" }}
       >
         ›
       </ActionButton>

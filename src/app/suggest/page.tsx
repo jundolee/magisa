@@ -36,7 +36,7 @@ export default async function SuggestPage({
         style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 480 }}
       >
         <TextField name="url" label="블로그 주소">
-          <TextFieldInput type="url" placeholder="https://example.com" required autoFocus />
+          <TextFieldInput type="url" placeholder="https://example.com" required />
         </TextField>
         <TextField name="note" label="한마디 (선택)">
           <TextFieldTextarea placeholder="어떤 점이 좋은지 알려주시면 검토에 도움이 돼요" style={{ minHeight: 80 }} />
