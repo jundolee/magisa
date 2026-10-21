@@ -1,5 +1,5 @@
 /** 공개 메타데이터와 구조화 데이터에서 함께 쓰는 사이트 기준값. */
-export const SITE_URL = "https://techgotgan.vercel.app";
+export const SITE_URL = "https://www.techgotgan.co.kr";
 export const SITE_NAME = "테크곳간";
 export const SITE_TITLE = "테크곳간 | 테크 블로그 글 모아보기";
 export const SITE_DESCRIPTION =
