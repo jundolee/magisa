@@ -5,6 +5,10 @@ export function PageFooter() {
   return (
     <footer className="app-footer">
       <div className="app-footer-links">
+        <Link href="/terms" className="app-footer-link">
+          이용약관
+        </Link>
+        <span className="app-footer-separator" aria-hidden="true">·</span>
         <Link href="/privacy" className="app-footer-link app-footer-link-privacy">
           개인정보처리방침
         </Link>
