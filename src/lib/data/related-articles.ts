@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
+import { fetchCachedRpcFromSupabase } from "@/lib/supabase/cached-rest";
 import {
   ARTICLE_SUMMARY_PROMPT_VERSION,
   LEGACY_ARTICLE_SUMMARY_PROMPT_VERSION,
@@ -11,6 +12,8 @@ export interface RelatedArticle {
   sourceTitle: string | null;
   category: string;
   publishedAt: string | null;
+  similarityScore?: number | null;
+  isSemanticMatch?: boolean;
 }
 
 export interface ArticlePreview {
@@ -142,9 +145,25 @@ function toRelatedArticle(row: RelatedArticleRow): RelatedArticle {
   };
 }
 
+interface RelatedArticleRpcRow {
+  article_status: string;
+  related_article_id: string | null;
+  score: number | null;
+  title: string | null;
+  url: string | null;
+  excerpt: string | null;
+  published_at: string | null;
+  category: string | null;
+  tags: string[] | null;
+  source_id: string | null;
+  source_title: string | null;
+  source_site_url: string | null;
+  source_favicon_url: string | null;
+}
+
 /**
- * Finds up to three same-category articles, preferring candidates that share tags.
- * Only article metadata is selected; article bodies and excerpts are never read.
+ * Finds related articles, prioritizing Pinecone semantic similarity candidates.
+ * Falls back to same-category articles with shared tags if semantic candidates are unavailable.
  */
 export async function getRelatedArticles(
   articleId: string,
@@ -155,6 +174,59 @@ export async function getRelatedArticles(
   const safeLimit = getSafeLimit(limit);
   if (safeLimit === 0) return [];
 
+  // 1. Try reading Pinecone semantic similarity candidates from cached RPC
+  try {
+    const semanticRows = await fetchCachedRpcFromSupabase<RelatedArticleRpcRow[]>(
+      "get_article_related_candidates",
+      {
+        requested_article_id: articleId,
+        requested_limit: String(safeLimit),
+      },
+      { revalidate: 300, tags: ["article-related-candidates", "articles"] }
+    );
+
+    const validSemanticArticles: RelatedArticle[] = [];
+    for (const row of semanticRows) {
+      if (row.related_article_id && row.title && row.source_title) {
+        validSemanticArticles.push({
+          id: row.related_article_id,
+          title: row.title,
+          sourceTitle: row.source_title,
+          category: row.category ?? "general",
+          publishedAt: row.published_at,
+          similarityScore: row.score,
+          isSemanticMatch: true,
+        });
+      }
+    }
+
+    if (validSemanticArticles.length >= safeLimit) {
+      return validSemanticArticles.slice(0, safeLimit);
+    }
+    if (validSemanticArticles.length > 0) {
+      // If we have some semantic articles but fewer than safeLimit, we can use them
+      // and fill the rest from tag/category fallback
+      const seenIds = new Set(validSemanticArticles.map((a) => a.id));
+      seenIds.add(articleId);
+
+      const fallbackArticles = await getCategoryFallbackArticles(articleId, category, tags, safeLimit, seenIds);
+      return [...validSemanticArticles, ...fallbackArticles].slice(0, safeLimit);
+    }
+  } catch (cause) {
+    console.warn("Pinecone related article lookup failed; falling back to tag/category matching:", cause instanceof Error ? cause.message : "unknown");
+  }
+
+  // 2. Fallback to tag overlap + category matching
+  return getCategoryFallbackArticles(articleId, category, tags, safeLimit, new Set([articleId]));
+}
+
+async function getCategoryFallbackArticles(
+  articleId: string,
+  category: string,
+  tags: string[] | null | undefined,
+  limit: number,
+  excludeIds: Set<string>
+): Promise<RelatedArticle[]> {
   const supabase = createServiceClient();
   const currentTags = new Set((tags ?? []).filter((tag) => tag.length > 0));
   const candidates: RelatedArticleRow[] = [];
@@ -171,10 +243,12 @@ export async function getRelatedArticles(
       .limit(TAG_OVERLAP_CANDIDATE_LIMIT);
 
     if (error) throw error;
-    candidates.push(...((data ?? []) as unknown as RelatedArticleRow[]));
+    for (const row of (data ?? []) as unknown as RelatedArticleRow[]) {
+      if (!excludeIds.has(row.id)) candidates.push(row);
+    }
   }
 
-  if (candidates.length < safeLimit) {
+  if (candidates.length < limit) {
     const { data, error } = await supabase
       .from("articles")
       .select(RELATED_ARTICLE_SELECT)
@@ -182,12 +256,12 @@ export async function getRelatedArticles(
       .neq("id", articleId)
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("id", { ascending: true })
-      .limit(safeLimit);
+      .limit(limit + excludeIds.size);
 
     if (error) throw error;
     const candidateIds = new Set(candidates.map((candidate) => candidate.id));
     for (const row of (data ?? []) as unknown as RelatedArticleRow[]) {
-      if (!candidateIds.has(row.id)) candidates.push(row);
+      if (!excludeIds.has(row.id) && !candidateIds.has(row.id)) candidates.push(row);
     }
   }
 
@@ -203,5 +277,8 @@ export async function getRelatedArticles(
     return 0;
   });
 
-  return candidates.slice(0, safeLimit).map(toRelatedArticle);
+  return candidates.slice(0, limit).map((row) => ({
+    ...toRelatedArticle(row),
+    isSemanticMatch: false,
+  }));
 }

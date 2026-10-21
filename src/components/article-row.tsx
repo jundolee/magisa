@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { AspectRatio, Badge, Text } from "@seed-design/react";
 import { ArticleLink } from "./article-link";
 import { UnreadToggleForm } from "./unread-toggle-form";
@@ -37,7 +36,6 @@ export function ArticleRow({
         gap: 20,
         padding: "20px 0",
         borderBottom: "1px solid var(--seed-color-stroke-neutral-subtle)",
-        opacity: article.is_read ? 0.55 : 1,
       }}
     >
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -100,7 +98,12 @@ export function ArticleRow({
           style={{ display: "flex", flexDirection: "column", gap: 8 }}
           onRead={onRead}
         >
-          <Text as="h3" textStyle="t7Bold" color="fg.neutral" maxLines={2}>
+          <Text
+            as="h3"
+            textStyle="t7Bold"
+            color={article.is_read ? MUTED : "fg.neutral"}
+            maxLines={2}
+          >
             {article.title}
           </Text>
 
@@ -121,9 +124,6 @@ export function ArticleRow({
           <FavoriteToggleForm articleId={article.id} isFavorite={article.is_favorite} />
           {article.is_read && <UnreadToggleForm articleId={article.id} />}
           <ShareButton title={article.title} url={article.url} />
-          <Link href={`/articles/${encodeURIComponent(article.id)}/connections`} style={{ color: "var(--seed-color-fg-brand)", fontSize: 13 }}>
-            연결·메모
-          </Link>
         </div>
       </div>
 
@@ -138,7 +138,12 @@ export function ArticleRow({
         <AspectRatio
           ratio={1}
           width="112px"
-          style={{ borderRadius: 8, overflow: "hidden", background: "var(--seed-color-bg-neutral-weak)" }}
+          style={{
+            borderRadius: 8,
+            overflow: "hidden",
+            background: "var(--seed-color-bg-neutral-weak)",
+            opacity: article.is_read ? 0.85 : 1,
+          }}
         >
           {article.thumbnail_url ? (
             // eslint-disable-next-line @next/next/no-img-element -- 임의의 외부 도메인 썸네일이라 next/image 최적화 대상 밖

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Text } from "@seed-design/react";
 import { RelatedArticleList } from "@/components/related-article-list";
@@ -32,6 +31,7 @@ function summaryBasisNotice(basis: ArticlePreview["summaryBasis"]): string {
 export function ArticlePreviewPanel({ article, related }: { article: ArticlePreview; related: RelatedArticle[] }) {
   const router = useRouter();
   const dialogRef = useRef<HTMLElement>(null);
+  const backdropMouseDownTargetRef = useRef<EventTarget | null>(null);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -77,7 +77,14 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
   return (
     <div
       role="presentation"
-      onMouseDown={(event) => { if (event.target === event.currentTarget) router.back(); }}
+      onMouseDown={(event) => {
+        backdropMouseDownTargetRef.current = event.target;
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget && backdropMouseDownTargetRef.current === event.currentTarget) {
+          router.back();
+        }
+      }}
       style={{ position: "fixed", inset: 0, zIndex: 1000, display: "grid", placeItems: "center", padding: 16, background: "rgba(25, 27, 30, .58)" }}
     >
       <section
@@ -122,9 +129,6 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
           <a href={article.url} target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: 20, padding: "17px 20px", borderRadius: 14, background: "var(--seed-color-bg-brand-solid, #eb641c)", color: "white", textDecoration: "none", fontWeight: 700 }}>
             원문 읽기 ↗
           </a>
-          <Link href={`/articles/${encodeURIComponent(article.id)}/connections`} style={{ display: "block", marginTop: 14, color: "var(--seed-color-fg-brand)", fontWeight: 600 }}>
-            비슷한 기사와 내 노트 연결하기 →
-          </Link>
 
           <RelatedArticleList items={related.map((item) => ({ ...item, href: `/articles/${encodeURIComponent(item.id)}` }))} />
           <Text as="p" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginTop: 20 }}>

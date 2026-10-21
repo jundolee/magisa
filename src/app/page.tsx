@@ -102,12 +102,11 @@ export default async function Home({
         흩어진 테크 블로그 글을 한곳에서 찾아 읽어요
       </Text>
       <Text as="p" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginBottom: 20 }}>
-        테크곳간은 여러 기술 블로그의 새 글을 모아 제목·요약·태그로 검색할 수 있는 피드예요. 로그인하면 읽음 표시와 즐겨찾기를 저장하고, 읽은 글에서 내 노트를 만들어 생각을 연결할 수 있어요.
+        테크곳간은 여러 기술 블로그의 새 글을 모아 제목·요약·태그로 검색할 수 있는 피드예요. 로그인하면 읽음 표시와 즐겨찾기를 동기화하고, AI 요약과 의미 기반 연관 글을 찾아볼 수 있어요.
       </Text>
 
       <nav aria-label="콘텐츠 탐색" style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
         <Link href="/topics"><Text as="span" textStyle="t3Medium" color="var(--seed-color-fg-brand)">주제별 글</Text></Link>
-        <Link href="/notes"><Text as="span" textStyle="t3Medium" color="var(--seed-color-fg-brand)">내 지식망</Text></Link>
         <Link href="/blogs"><Text as="span" textStyle="t3Medium" color="var(--seed-color-fg-brand)">블로그 목록</Text></Link>
         <Link href="/digest"><Text as="span" textStyle="t3Medium" color="var(--seed-color-fg-brand)">주간 큐레이션</Text></Link>
       </nav>
