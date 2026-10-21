@@ -5,9 +5,11 @@ import { CATEGORIES, type CategoryId } from "@/lib/categories";
 export function CategoryFilterChips({
   selectedCategory,
   onSelectCategory,
+  sourceSlot,
 }: {
   selectedCategory: CategoryId;
   onSelectCategory: (categoryId: CategoryId) => void;
+  sourceSlot?: React.ReactNode;
 }) {
   return (
     <div
@@ -22,6 +24,19 @@ export function CategoryFilterChips({
         WebkitOverflowScrolling: "touch",
       }}
     >
+      {sourceSlot}
+      {sourceSlot && (
+        <div
+          aria-hidden="true"
+          style={{
+            width: 1,
+            height: 18,
+            background: "var(--seed-color-stroke-neutral-subtle, #e5e5e5)",
+            margin: "0 2px",
+            flexShrink: 0,
+          }}
+        />
+      )}
       {CATEGORIES.map((cat) => {
         const isSelected = selectedCategory === cat.id;
         return (

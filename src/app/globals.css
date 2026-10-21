@@ -114,31 +114,14 @@ h3 {
   }
 }
 
-/* 필터 바 반응형 */
-.article-list-filter-bar {
-  margin-bottom: 16px;
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.source-filter-container {
-  display: flex;
-}
-
-@media (max-width: 640px) {
-  .article-list-filter-bar {
-    gap: 10px;
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
   }
-
-  .source-filter-container {
-    width: 100%;
-  }
-
-  .source-filter-container > * {
-    width: 100%;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
