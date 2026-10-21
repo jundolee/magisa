@@ -11,21 +11,22 @@
 
 ## Pinecone 인덱스 설정
 
-1. Pinecone 콘솔에서 Serverless integrated-inference 인덱스를 만듭니다.
-2. 인덱스 이름은 `techgotgan-articles`를 사용합니다. 임베딩 모델은 `multilingual-e5-large`, 필드 매핑은 `text` → `embedding_text`로 설정합니다.
-3. 인덱스 준비가 끝나면 API key와 인덱스 host를 가져와 서버 환경 변수에만 저장합니다.
+1. Pinecone 콘솔에서 Serverless **document-schema** 인덱스를 만듭니다.
+2. 인덱스 이름은 `techgotgan-articles`를 사용합니다. `embedding_text`는 `multilingual-e5-large` 통합 임베딩 필드(1024차원, cosine)로, `title`은 full-text 검색 필드로 설정합니다.
+3. 인덱스가 준비되면 API key와 index host를 가져와 서버 환경 변수에만 저장합니다.
+4. 이 스키마에서는 Pinecone TypeScript SDK v9의 document 작업을 사용합니다. 적재·검색·삭제는 `index.documents.upsert/search/delete`로 처리합니다. 기존 vector/record endpoint인 `upsertRecords`, `searchRecords`, `deleteMany`는 이 인덱스에서 사용할 수 없습니다.
 
 ```dotenv
 PINECONE_API_KEY=...
 PINECONE_INDEX_HOST=example.svc....pinecone.io
 ```
 
-벡터 namespace는 `techgotgan-articles-v1`입니다. host에는 `https://`를 붙이지 않습니다. 통합 임베딩 인덱스의 텍스트 필드와 Pinecone SDK 설정을 변경할 때는 새 인덱스를 만들고 문서 매핑과 코드 상수를 함께 바꿔야 합니다.
+namespace는 `techgotgan-articles-v1`입니다. host에는 `https://`를 붙이지 않습니다. 임베딩 필드나 모델을 바꿀 때는 새 인덱스를 만들고 스키마와 코드 상수를 함께 바꿔야 합니다.
 
 ## Supabase 및 배포
 
 1. `supabase/migrations/0017_zettelkasten_article_vectors.sql`이 제텔카스텐 스키마 마이그레이션입니다. 운영 프로젝트에는 SQL Editor로 이미 적용했으며, 기존 `0013`–`0016` 이력도 Dashboard에서 수동 적용된 상태입니다. 원격 migration history가 없으므로 `supabase db push`는 실행하지 않습니다.
-2. Vercel Production에 `PINECONE_API_KEY`, `PINECONE_INDEX_HOST`를 서버 전용 환경 변수로 등록합니다. `NEXT_PUBLIC_` 접두사는 붙이지 않습니다. Pinecone TypeScript SDK v9이 요구하는 Node.js 22 이상을 사용합니다.
+2. Vercel Production과 해당 Preview 브랜치에 `PINECONE_API_KEY`, `PINECONE_INDEX_HOST`를 서버 전용 환경 변수로 등록합니다. `NEXT_PUBLIC_` 접두사는 붙이지 않습니다. Pinecone TypeScript SDK v9이 요구하는 Node.js 22 이상을 사용합니다.
 3. 배포 후 `/api/cron/embeddings`가 매일 00:00 UTC에 새 작업과 재시도 대기열을 처리합니다.
 4. 초기 백필은 보호된 endpoint를 직접 호출해 여러 번 나눠 처리할 수 있습니다. 끝까지 처리되면 `embeddingsClaimed`가 `0`입니다.
 
@@ -35,6 +36,13 @@ curl -H "Authorization: Bearer $CRON_SECRET" \
 ```
 
 응답의 `configured`가 `false`이면 Pinecone 환경 변수를 확인합니다. `embeddingsFailed`나 `deletionsFailed`가 0보다 크면 `article_embedding_jobs` 또는 `article_embedding_deletions`의 `last_error`, `attempts`, `status`를 확인합니다. DB는 실패 후 30분부터 재시도를 허용하고 최대 8회 시도합니다. 자동 크론은 하루 한 번 실행되므로 다음 크론 전 수동 실행으로 재시도하거나 Pinecone 복구 뒤 SQL에서 `status='pending'`, `attempts=0`, `next_attempt_at=now()`로 되돌릴 수 있습니다.
+
+## 운영 확인 (2026-10-21)
+
+- `0017_zettelkasten_article_vectors.sql`을 Supabase 운영 프로젝트에 적용했고, PR #9를 병합해 프로덕션 배포가 Ready 상태임을 확인했습니다.
+- 초기 백필에서 임베딩 작업 2,352건이 모두 `indexed` 상태가 됐고, 대기·처리 중·실패 작업은 0건이었습니다. Pinecone 인덱스 레코드도 2,352개였습니다.
+- Supabase `article_related_candidates`에는 후보 연결 52,618개가 저장됐습니다. 이 수치는 초기 백필 직후의 스냅샷이며, 후보는 사용자가 노트에 연결을 확정하기 전까지 제안으로만 취급합니다.
+- `https://techgotgan.vercel.app/articles/{id}/connections`에서 후보 기사 5개와 비로그인용 로그인 경로를 확인했습니다. 크론 endpoint는 인증 헤더 없이 호출하면 `401`을 반환합니다.
 
 ## 데이터 및 실패 처리
 
