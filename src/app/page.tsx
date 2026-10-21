@@ -61,7 +61,7 @@ async function ArticleListSection({
     : await attachUserState(rawArticles!, userId);
 
   const sourceOptions = sources
-    .map((s) => ({ id: s.id, label: s.title ?? s.site_url }))
+    .map((s) => ({ id: s.id, label: s.title ?? s.site_url, faviconUrl: s.favicon_url }))
     .sort((a, b) => a.label.localeCompare(b.label, "ko"));
 
   return (

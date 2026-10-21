@@ -272,38 +272,34 @@ export function ArticleList({
         </Text>
       )}
 
-      <div className="article-list-filter-bar">
-        {/* 가로 스크롤 대신 flexShrink:0 + 부모의 flexWrap으로 이 자리에 다 안 들어가면
-            소스 드롭다운과 나란히 두지 않고 다음 줄로 통째로 넘어가게 한다 — 예전엔 이 자리를
-            overflow-x:auto로 만들어 좁은 화면에서 옆으로 스크롤해야 "즐겨찾기"가 보였는데,
-            그 자체가 화면이 어색하게 잘려 보인다는 피드백을 받아 없앴다. */}
-        <div style={{ flexShrink: 0 }}>
-          <ArticleFilterTabs
-            current={filter}
-            onChange={(value) => {
-              setFilter(value);
-              setPage(1);
-              updateUrl(value, sourceId, category);
-            }}
-          />
-        </div>
-        <div className="source-filter-container">
-          <SourceFilterSelect
-            sources={sources}
-            current={sourceId}
-            onChange={(value) => {
-              setSourceId(value);
-              setPage(1);
-              updateUrl(filter, value, category);
-            }}
-          />
-        </div>
+      {/* 1. 상태 탭: 4개 옵션이 100% 폭으로 균일하게 배치되어 모바일/데스크톱 모두에서 시각적 안정감 극대화 */}
+      <div style={{ marginBottom: 14 }}>
+        <ArticleFilterTabs
+          current={filter}
+          onChange={(value) => {
+            setFilter(value);
+            setPage(1);
+            updateUrl(value, sourceId, category);
+          }}
+        />
       </div>
 
+      {/* 2. 카테고리 칩 바의 첫 번째 앵커로 블로그 필터 통합 */}
       <div style={{ marginBottom: 20 }}>
         <CategoryFilterChips
           selectedCategory={category}
           onSelectCategory={handleCategoryChange}
+          sourceSlot={
+            <SourceFilterSelect
+              sources={sources}
+              current={sourceId}
+              onChange={(value) => {
+                setSourceId(value);
+                setPage(1);
+                updateUrl(filter, value, category);
+              }}
+            />
+          }
         />
       </div>
 
