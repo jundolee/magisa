@@ -14,6 +14,7 @@ import {
   setArticleFavorite,
   type ArticleListItem,
 } from "@/lib/data/articles";
+import { getArticlePreview, getRelatedArticles, type ArticlePreview, type RelatedArticle } from "@/lib/data/related-articles";
 import { getCurrentUser } from "@/lib/supabase/current-user";
 
 async function getCurrentUserId(): Promise<string | null> {
@@ -46,7 +47,30 @@ export async function markArticleReadAction(articleId: string) {
       console.error("markArticleReadAction 부분 실패:", result.reason);
     }
   }
-  revalidatePath("/");
+  // 주의: 여기서 revalidatePath("/")를 호출하면 기사 클릭 시 열린 인터셉트 모달(@modal)이
+  // 활성 경로(/articles/[id])의 서버 재검증(refresh)에 의해 파괴되어 전체 페이지로 튕기는 버그가 발생함.
+  // 읽음 표시는 이미 ArticleList의 onRead 낙관적 업데이트(useOptimistic)로 즉시 반영되므로
+  // DB에만 안전하게 반영하고 캐시 무효화 라우팅 트리거는 생략한다.
+}
+
+export async function getArticlePreviewAction(articleId: string): Promise<{
+  article: ArticlePreview;
+  related: RelatedArticle[];
+} | null> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(articleId)) {
+    return null;
+  }
+  const articlePromise = getArticlePreview(articleId);
+  const relatedPromise = getRelatedArticles(articleId);
+
+  const [article, initialRelated] = await Promise.all([articlePromise, relatedPromise]);
+  if (!article) return null;
+
+  const related = initialRelated.length > 0
+    ? initialRelated
+    : await getRelatedArticles(article.id, article.category, article.tags);
+
+  return { article, related };
 }
 
 export async function markArticleUnreadAction(formData: FormData) {

@@ -5,16 +5,26 @@ import { getArticlePreview, getRelatedArticles } from "@/lib/data/related-articl
 export async function ArticlePreviewRoute({ articleId }: { articleId: string }) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(articleId)) notFound();
 
-  // 기사 정보와 Pinecone 연관 글 조회를 병렬로 시작하여 대기 시간을 대폭 단축
-  const articlePromise = getArticlePreview(articleId);
-  const relatedPromise = getRelatedArticles(articleId);
+  let article = null;
+  let related: Awaited<ReturnType<typeof getRelatedArticles>> = [];
 
-  const [article, initialRelated] = await Promise.all([articlePromise, relatedPromise]);
+  try {
+    // 기사 정보와 Pinecone 연관 글 조회를 병렬로 시작하여 대기 시간을 대폭 단축
+    const articlePromise = getArticlePreview(articleId);
+    const relatedPromise = getRelatedArticles(articleId);
+
+    const [fetchedArticle, initialRelated] = await Promise.all([articlePromise, relatedPromise]);
+    article = fetchedArticle;
+    if (article) {
+      related = initialRelated.length > 0
+        ? initialRelated
+        : await getRelatedArticles(article.id, article.category, article.tags);
+    }
+  } catch (error) {
+    console.error("Failed to fetch article preview in intercepted modal:", error);
+  }
+
   if (!article) notFound();
-
-  const related = initialRelated.length > 0
-    ? initialRelated
-    : await getRelatedArticles(article.id, article.category, article.tags);
 
   return <ArticlePreviewPanel article={article} related={related} />;
 }

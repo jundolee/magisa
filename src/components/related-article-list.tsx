@@ -34,7 +34,13 @@ function categoryLabel(category: string | null): string | null {
   return CATEGORY_MAP.get(category as CategoryId)?.label ?? category;
 }
 
-export function RelatedArticleList({ items }: { items: RelatedArticleListItem[] }) {
+export function RelatedArticleList({
+  items,
+  onSelectArticle,
+}: {
+  items: RelatedArticleListItem[];
+  onSelectArticle?: (articleId: string) => void;
+}) {
   if (items.length === 0) return null;
 
   const hasSemantic = items.some((item) => item.isSemanticMatch);
@@ -68,7 +74,18 @@ export function RelatedArticleList({ items }: { items: RelatedArticleListItem[] 
               key={item.id}
               style={{ borderBottom: "1px solid var(--seed-color-stroke-neutral-subtle)" }}
             >
-              <Link href={item.href} style={{ display: "block", padding: "14px 0", color: "inherit", textDecoration: "none" }}>
+              <Link
+                href={item.href}
+                onClick={
+                  onSelectArticle
+                    ? (e) => {
+                        e.preventDefault();
+                        onSelectArticle(item.id);
+                      }
+                    : undefined
+                }
+                style={{ display: "block", padding: "14px 0", color: "inherit", textDecoration: "none" }}
+              >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, marginBottom: 6 }}>
                   <Text as="span" textStyle="t2Regular" color={MUTED}>
                     {item.sourceTitle ?? "알 수 없는 소스"}

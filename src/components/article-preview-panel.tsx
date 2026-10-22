@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Text } from "@seed-design/react";
 import { RelatedArticleList } from "@/components/related-article-list";
+import { getArticlePreviewAction, markArticleReadAction } from "@/app/articles/actions";
 import { CATEGORY_MAP, type CategoryId } from "@/lib/categories";
 import type { ArticlePreview, RelatedArticle } from "@/lib/data/related-articles";
 
@@ -53,12 +54,32 @@ function summaryBasisNotice(basis: ArticlePreview["summaryBasis"]): string {
   return "원문 전문 기반 요약";
 }
 
-export function ArticlePreviewPanel({ article, related }: { article: ArticlePreview; related: RelatedArticle[] }) {
+export function ArticlePreviewPanel({
+  article: initialArticle,
+  related: initialRelated,
+}: {
+  article: ArticlePreview;
+  related: RelatedArticle[];
+}) {
   const router = useRouter();
   const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const backdropMouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  const [overrideArticle, setOverrideArticle] = useState<ArticlePreview | null>(null);
+  const [overrideRelated, setOverrideRelated] = useState<RelatedArticle[] | null>(null);
+  const [prevInitialId, setPrevInitialId] = useState(initialArticle.id);
+
+  if (initialArticle.id !== prevInitialId) {
+    setPrevInitialId(initialArticle.id);
+    setOverrideArticle(null);
+    setOverrideRelated(null);
+  }
+
+  const currentArticle = overrideArticle ?? initialArticle;
+  const currentRelated = overrideRelated ?? initialRelated;
+  const [isLoadingRelated, setIsLoadingRelated] = useState(false);
 
   const [shouldAnimateEnter] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -94,10 +115,63 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
     }, 180);
   }, [router]);
 
+  const handleSelectRelated = useCallback(
+    async (articleId: string) => {
+      if (articleId === currentArticle.id || isLoadingRelated) return;
+      setIsLoadingRelated(true);
+      window.history.pushState({ articleId }, "", `/articles/${encodeURIComponent(articleId)}`);
+      bodyRef.current?.scrollTo({ top: 0, behavior: "instant" });
+      void markArticleReadAction(articleId);
+
+      try {
+        const data = await getArticlePreviewAction(articleId);
+        if (data) {
+          setOverrideArticle(data.article);
+          setOverrideRelated(data.related);
+        }
+      } catch (err) {
+        console.error("Failed to load related article preview:", err);
+      } finally {
+        setIsLoadingRelated(false);
+      }
+    },
+    [currentArticle.id, isLoadingRelated]
+  );
+
+  useEffect(() => {
+    async function onPopState() {
+      const pathname = window.location.pathname;
+      const match = pathname.match(/^\/articles\/([0-9a-f-]+)$/i);
+      if (!match) {
+        handleClose();
+        return;
+      }
+      const targetId = match[1];
+      if (targetId && targetId !== currentArticle.id) {
+        setIsLoadingRelated(true);
+        bodyRef.current?.scrollTo({ top: 0, behavior: "instant" });
+        try {
+          const data = await getArticlePreviewAction(targetId);
+          if (data) {
+            setOverrideArticle(data.article);
+            setOverrideRelated(data.related);
+          }
+        } catch {
+          // fallback
+        } finally {
+          setIsLoadingRelated(false);
+        }
+      }
+    }
+
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [currentArticle.id, handleClose]);
+
   // 관련 기사 클릭 등으로 article.id가 변경될 때 내부 스크롤을 맨 위로 초기화
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: 0, behavior: "instant" });
-  }, [article.id]);
+  }, [currentArticle.id]);
 
   useEffect(() => {
     (window as unknown as { __modalActive?: boolean }).__modalActive = true;
@@ -205,8 +279,8 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
     };
   }, [handleClose]);
 
-  const date = formatDate(article.publishedAt);
-  const categoryMeta = article.category && article.category !== "general" ? CATEGORY_MAP.get(article.category as CategoryId) : null;
+  const date = formatDate(currentArticle.publishedAt);
+  const categoryMeta = currentArticle.category && currentArticle.category !== "general" ? CATEGORY_MAP.get(currentArticle.category as CategoryId) : null;
 
   return (
     <div
@@ -307,7 +381,7 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
               <Badge size="medium" variant="weak" tone="neutral">
-                {article.sourceTitle ?? "출처 미상"}
+                {currentArticle.sourceTitle ?? "출처 미상"}
               </Badge>
               {categoryMeta && (
                 <Badge size="medium" variant="outline" tone={categoryMeta.badgeTone}>
@@ -328,12 +402,12 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
               color="fg.neutral"
               style={{ lineHeight: 1.35, wordBreak: "keep-all", overflowWrap: "break-word" }}
             >
-              {article.title}
+              {currentArticle.title}
             </Text>
           </div>
 
           {/* 2. [최상위 계층] ✨ AI 엔지니어링 3-Box 브리핑 카드 */}
-          {article.summary ? (
+          {currentArticle.summary ? (
             <section
               aria-labelledby="ai-summary-heading"
               style={{
@@ -352,7 +426,7 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
                   </Text>
                 </div>
                 <Text as="span" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)">
-                  {summaryBasisNotice(article.summaryBasis)}
+                  {summaryBasisNotice(currentArticle.summaryBasis)}
                 </Text>
               </div>
 
@@ -365,13 +439,13 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
                 }}
               >
                 <Text as="p" textStyle="t3Bold" color="fg.neutral" style={{ lineHeight: 1.5, wordBreak: "keep-all", overflowWrap: "break-word" }}>
-                  {article.summary.lead}
+                  {currentArticle.summary.lead}
                 </Text>
               </div>
 
               {/* 엔지니어링 3-Box (문제 ➔ 기술/해결책 ➔ 교훈/주의점) */}
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {article.summary.keyPoints.map((point, index) => {
+                {currentArticle.summary.keyPoints.map((point, index) => {
                   const meta = ENGINEERING_BOX_METAS[index] ?? {
                     icon: "📌",
                     label: `핵심 ${index + 1}`,
@@ -425,7 +499,7 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
                 </Text>
               </div>
               <Text as="p" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)">
-                {summaryNotice(article.summaryStatus)}
+                {summaryNotice(currentArticle.summaryStatus)}
               </Text>
             </section>
           )}
@@ -433,7 +507,7 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
           {/* 3. [주요 액션] 원문 읽기 CTA 버튼 */}
           <div>
             <a
-              href={article.url}
+              href={currentArticle.url}
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -455,14 +529,17 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
                 minHeight: 52,
               }}
             >
-              <span>{article.sourceTitle ? `${article.sourceTitle}에서 전체 원문 읽기` : "전체 원문 읽기"}</span>
+              <span>{currentArticle.sourceTitle ? `${currentArticle.sourceTitle}에서 전체 원문 읽기` : "전체 원문 읽기"}</span>
               <span aria-hidden="true">↗</span>
             </a>
           </div>
 
           {/* 4. [지식 확장] AI 벡터 시맨틱 연관 기사 리스트 */}
           <div style={{ borderTop: "1px solid var(--seed-color-stroke-neutral-subtle)", paddingTop: 16 }}>
-            <RelatedArticleList items={related.map((item) => ({ ...item, href: `/articles/${encodeURIComponent(item.id)}` }))} />
+            <RelatedArticleList
+              items={currentRelated.map((item) => ({ ...item, href: `/articles/${encodeURIComponent(item.id)}` }))}
+              onSelectArticle={handleSelectRelated}
+            />
           </div>
 
           <Text as="p" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)" style={{ textAlign: "center", marginTop: 4 }}>
