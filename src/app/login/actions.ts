@@ -9,6 +9,12 @@ import { LEGACY_VISITOR_COOKIE_NAME, VISITOR_COOKIE_NAME } from "@/lib/visitor";
 
 type OAuthProvider = "google";
 
+function redirectToSignupError(message: string, next: string): never {
+  const params = new URLSearchParams({ intent: "signup", error: message });
+  if (next !== "/") params.set("next", next);
+  redirect(`/login?${params}`);
+}
+
 // 로그인 전 익명 방문자 쿠키로 쌓아둔 읽음/즐겨찾기 기록을 최초 로그인 시 이 계정으로 옮긴다
 // (docs/decisions.md 참고). 방문자 쿠키가 없으면(이미 옮겨졌거나 애초에 없던 경우) 아무 일도 안 한다.
 async function migrateVisitorDataIfNeeded(userId: string): Promise<void> {
@@ -57,17 +63,17 @@ export async function signUpAction(formData: FormData) {
   const next = safeNextPath(formData.get("next"));
 
   if (!nickname || !email || !password) {
-    redirect("/login?error=닉네임, 이메일, 비밀번호를 입력해주세요");
+    redirectToSignupError("닉네임, 이메일, 비밀번호를 입력해주세요", next);
   }
   if (password !== passwordConfirm) {
-    redirect("/login?error=비밀번호가 서로 일치하지 않아요");
+    redirectToSignupError("비밀번호가 서로 일치하지 않아요", next);
   }
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { nickname } } });
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    redirectToSignupError(error.message, next);
   }
   if (data.user) {
     await migrateVisitorDataIfNeeded(data.user.id);
