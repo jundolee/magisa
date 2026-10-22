@@ -4,7 +4,7 @@ import { Text } from "@seed-design/react";
 import { PageHeader } from "@/components/page-header";
 import { SITE_NAME } from "@/app/seo";
 
-const EFFECTIVE_DATE = "2026년 10월 21일";
+const EFFECTIVE_DATE = "2026년 10월 22일";
 
 export const metadata: Metadata = {
   title: "개인정보처리방침",
@@ -46,7 +46,6 @@ export default function PrivacyPolicyPage() {
           또한 서비스 이용 과정에서 아래 이용 기록과 분석 정보가 자동으로 생성·수집됩니다.
           <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
             <li>글 읽음 여부, 즐겨찾기 표시 등 이용 기록</li>
-            <li>로그인 사용자가 작성한 제텔카스텐 노트와 노트·기사 사이의 연결 정보</li>
             <li>서비스 세션 유지 및 반복 방문 분석을 위한 브라우저·세션 식별자와 브라우저 저장소 정보</li>
             <li>Google Analytics 4가 수집하는 대략적인 위치, 브라우저·기기 정보 및 브라우저별 client ID</li>
           </ul>
@@ -56,7 +55,7 @@ export default function PrivacyPolicyPage() {
           수집한 정보는 아래의 목적을 위해서만 이용합니다.
           <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
             <li>회원 식별 및 로그인 상태 유지, 본인 확인</li>
-            <li>계정별 읽음 표시, 즐겨찾기 보관, 개인 지식 노트 작성 및 연결 기능 제공</li>
+            <li>계정별 읽음 표시와 즐겨찾기 보관</li>
             <li>서비스 이용 패턴 분석, 서비스 개선 및 신규 기능 개발</li>
             <li>AI 요약 기능 제공(2026년 10월 21일 이후 새로 등록되는 글의 본문 추출 요약)</li>
             <li>이용자 문의 및 피드백 응대</li>
@@ -66,7 +65,7 @@ export default function PrivacyPolicyPage() {
         <Section title="3. 개인정보의 보유 및 이용 기간">
           서비스는 원칙적으로 회원 탈퇴 요청 시 또는 개인정보 수집·이용 목적이 달성된 경우 지체 없이 해당 정보를 파기합니다.
           <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
-            <li>회원 탈퇴 시: 계정 정보, 소셜 연동 정보, 즐겨찾기, 읽음 표시 기록, 작성한 제텔카스텐 노트 및 연결 데이터를 지체 없이 영구 파기합니다.</li>
+            <li>회원 탈퇴 시: 계정 정보, 소셜 연동 정보, 즐겨찾기와 읽음 표시 기록을 지체 없이 영구 파기합니다.</li>
             <li>Google Analytics 4 및 Amplitude의 분석 기록: 브라우저·세션 식별자를 기준으로 각 도구의 보유 기간 정책에 따라 보관됩니다. 서비스는 분석 이벤트에 개인 식별 정보(이메일, 이름, 계정 ID)를 전송하지 않습니다.</li>
           </ul>
         </Section>
@@ -76,7 +75,7 @@ export default function PrivacyPolicyPage() {
           다만 안정적인 서비스 운영을 위해 아래와 같이 전문 인프라에 처리를 위탁하고 있습니다.
           <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
             <li><strong>Supabase, Inc.</strong>: 데이터베이스 및 로그인 인증 인프라 호스팅</li>
-            <li><strong>Pinecone, Inc.</strong>: 공개 기사 제목·요약·주제·태그의 임베딩 생성 및 의미상 관련 기사 검색 (사용자가 작성한 비공개 노트와 연결 내용은 전송하지 않음)</li>
+            <li><strong>Pinecone, Inc.</strong>: 공개 기사 제목·요약·주제·태그의 임베딩 생성 및 의미상 관련 기사 검색</li>
             <li><strong>Google LLC</strong>: Google OAuth 로그인 인증 및 Google Analytics 4 통계 분석</li>
             <li><strong>Amplitude, Inc.</strong>: 서비스 이용 패턴 분석</li>
             <li><strong>OpenAI, LLC</strong>: 신규 등록 기사 요약 시 글 제목과 원문에서 추출한 본문 텍스트 API 전달</li>
