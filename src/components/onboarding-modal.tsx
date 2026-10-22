@@ -69,8 +69,13 @@ export function OnboardingModal() {
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
-    // 최초 1회 방문 고객에게만 노출
-    if (!hasSeenOnboarding()) {
+    // 최초 1회 방문 고객 또는 테스트/QA용 ?onboarding=1 파라미터가 있을 때 노출
+    const isForcePreview =
+      typeof window !== "undefined" &&
+      (new URLSearchParams(window.location.search).has("onboarding") ||
+        new URLSearchParams(window.location.search).has("preview_onboarding"));
+
+    if (isForcePreview || !hasSeenOnboarding()) {
       const timer = setTimeout(() => {
         setIsOpen(true);
       }, 300);
