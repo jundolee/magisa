@@ -49,7 +49,7 @@ export async function markArticleReadAction(articleId: string) {
   }
   // 주의: 여기서 revalidatePath("/")를 호출하면 기사 클릭 시 열린 인터셉트 모달(@modal)이
   // 활성 경로(/articles/[id])의 서버 재검증(refresh)에 의해 파괴되어 전체 페이지로 튕기는 버그가 발생함.
-  // 읽음 표시는 이미 ArticleList의 onRead 낙관적 업데이트(useOptimistic)로 즉시 반영되므로
+  // 읽음 표시는 ArticleList의 로컬 상태에 즉시 반영되므로
   // DB에만 안전하게 반영하고 캐시 무효화 라우팅 트리거는 생략한다.
 }
 
