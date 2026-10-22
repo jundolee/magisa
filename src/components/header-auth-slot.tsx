@@ -13,11 +13,14 @@ async function AuthSlotContent() {
 
   if (!user) {
     return (
-      <Link href="/login">
-        <Text as="span" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">
+      <div className="header-auth-actions">
+        <Link href="/login" className="header-login-link">
           로그인
-        </Text>
-      </Link>
+        </Link>
+        <Link href="/login?intent=signup" className="header-signup-link">
+          회원가입
+        </Link>
+      </div>
     );
   }
 

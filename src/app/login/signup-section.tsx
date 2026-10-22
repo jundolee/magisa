@@ -5,10 +5,9 @@ import { ActionButton } from "seed-design/ui/action-button";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import { signUpAction } from "./actions";
 
-// 처음엔 버튼만 보여주고, 눌렀을 때만 입력 필드를 펼친다 — 로그인 화면에 처음부터 입력창 3개가
-// 나란히 보이면 "이미 계정이 있는 사람"에게는 불필요한 정보라 화면이 번잡해 보임.
-export function SignUpSection({ next }: { next: string }) {
-  const [open, setOpen] = useState(false);
+// 로그인 화면에서는 버튼만 보여주고, 회원가입 경로로 직접 들어온 경우에는 폼을 바로 펼친다.
+export function SignUpSection({ next, initiallyOpen = false }: { next: string; initiallyOpen?: boolean }) {
+  const [open, setOpen] = useState(initiallyOpen);
 
   if (!open) {
     return (
