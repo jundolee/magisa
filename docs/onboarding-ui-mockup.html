@@ -279,34 +279,32 @@
 
       /* 하단 액션 */
       .onboarding-bottom-actions {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+        flex-shrink: 0;
         padding: 16px 24px;
         border-top: 1px solid #f2f4f6;
         background: #ffffff;
-        gap: 12px;
+      }
+      .onboarding-nav-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
       }
       .onboarding-skip-button {
         background: transparent;
         border: none;
-        font-size: 13.5px;
+        font-size: 14px;
         font-weight: 600;
         color: #8b95a1;
         cursor: pointer;
-        padding: 6px 4px;
+        padding: 8px 6px;
         transition: color 0.15s ease;
       }
       .onboarding-skip-button:hover {
         color: #4e5968;
         text-decoration: underline;
       }
-      .onboarding-step-counter {
-        font-size: 13px;
-        font-weight: 700;
-        color: #8b95a1;
-      }
-      .onboarding-buttons-cluster {
+      .onboarding-nav-right {
         display: flex;
         align-items: center;
         gap: 8px;
@@ -316,10 +314,11 @@
         border-radius: 10px;
         border: 1px solid #d1d6db;
         background: #ffffff;
-        font-size: 14.5px;
+        font-size: 14px;
         font-weight: 600;
         color: #4e5968;
         cursor: pointer;
+        white-space: nowrap;
         transition: all 0.15s ease;
       }
       .onboarding-button-secondary:hover {
@@ -332,9 +331,10 @@
         border: none;
         background: var(--brand);
         color: #ffffff;
-        font-size: 14.5px;
+        font-size: 14px;
         font-weight: 700;
         cursor: pointer;
+        white-space: nowrap;
         transition: opacity 0.15s ease, transform 0.1s ease;
       }
       .onboarding-button-primary:hover {
@@ -343,43 +343,193 @@
       .onboarding-button-primary:active {
         transform: scale(0.98);
       }
-      .onboarding-cta-cluster {
+      .onboarding-button-flex {
+        flex: 1;
+      }
+      .onboarding-final-cta-wrapper {
         display: flex;
-        align-items: center;
-        gap: 8px;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
       }
       .onboarding-google-cta {
-        display: inline-flex;
+        display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 10px 18px;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        padding: 12px 18px;
         border-radius: 10px;
         background: #191f28;
         color: #ffffff;
-        font-size: 14.5px;
+        font-size: 15px;
         font-weight: 700;
         text-decoration: none;
+        white-space: nowrap;
         cursor: pointer;
+        transition: background-color 0.15s ease, transform 0.1s ease;
       }
       .onboarding-google-cta:hover {
         background: #333d4b;
       }
+      .onboarding-final-sub-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+      }
 
+      /* 모바일 최적화 (Bottom Sheet & Sticky Action Bar) */
       @media (max-width: 640px) {
-        .onboarding-bottom-actions {
+        .mock-toolbar {
+          display: none;
+        }
+        .onboarding-backdrop {
+          padding: 0;
+          align-items: flex-end;
+          background: rgba(15, 18, 22, 0.72);
+        }
+        .onboarding-sheet-handle {
+          display: block;
+          width: 38px;
+          height: 4.5px;
+          border-radius: 999px;
+          background: #dee2e6;
+          margin: 8px auto 0;
+          flex-shrink: 0;
+        }
+        .onboarding-dialog {
+          width: 100%;
+          max-height: 86vh;
+          border-radius: 20px 20px 0 0;
+          border: none;
+          box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2);
+          display: flex;
           flex-direction: column;
-          align-items: stretch;
         }
-        .onboarding-buttons-cluster,
-        .onboarding-cta-cluster {
-          width: 100%;
+        .onboarding-top-bar {
+          padding: 8px 16px 6px;
+          gap: 12px;
         }
-        .onboarding-button-secondary,
-        .onboarding-button-primary,
+        .onboarding-step-indicator {
+          max-width: 110px;
+        }
+        .onboarding-step-bar {
+          height: 3.5px;
+        }
+        .onboarding-main-content {
+          min-height: 0;
+          padding: 2px 16px 10px;
+          gap: 8px;
+          flex: 1 1 auto;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        .onboarding-text-block {
+          gap: 4px;
+          flex-shrink: 0;
+        }
+        .onboarding-pill-badge {
+          font-size: 11px;
+          padding: 2px 6px;
+        }
+        .onboarding-hero-title {
+          font-size: 17.5px;
+          line-height: 1.3;
+          letter-spacing: -0.02em;
+        }
+        .onboarding-hero-subtitle {
+          font-size: 12px;
+          line-height: 1.4;
+        }
+        .onboarding-screenshot-wrapper {
+          border-radius: 8px;
+          border: 1px solid #e9ecef;
+          min-height: 0;
+          flex: 1 1 auto;
+        }
+        .onboarding-clean-image {
+          max-height: 160px;
+          object-fit: contain;
+          background: #ffffff;
+        }
+        .onboarding-bottom-actions {
+          flex-shrink: 0;
+          padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 10px));
+          border-top: 1px solid #f1f3f5;
+          background: #ffffff;
+        }
+        .onboarding-button-secondary {
+          padding: 9px 14px;
+          font-size: 13.5px;
+          border-radius: 8px;
+        }
+        .onboarding-button-primary {
+          padding: 9px 18px;
+          font-size: 13.5px;
+          border-radius: 8px;
+        }
         .onboarding-google-cta {
-          width: 100%;
-          justify-content: center;
+          padding: 11px 16px;
+          font-size: 14px;
+          border-radius: 8px;
         }
+        .onboarding-final-sub-row {
+          gap: 6px;
+        }
+      }
+
+      /* 모바일 프리뷰 강제 적용 클래스 (목업 시뮬레이터용) */
+      .force-mobile .onboarding-backdrop {
+        padding: 0;
+        align-items: flex-end;
+      }
+      .force-mobile .onboarding-sheet-handle {
+        display: block;
+        width: 38px;
+        height: 4.5px;
+        border-radius: 999px;
+        background: #dee2e6;
+        margin: 10px auto 2px;
+      }
+      .force-mobile .onboarding-dialog {
+        width: 100%;
+        max-width: 420px;
+        margin: 0 auto;
+        max-height: 90vh;
+        border-radius: 24px 24px 0 0;
+        border-bottom: none;
+        box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.18);
+      }
+      .force-mobile .onboarding-top-bar {
+        padding: 10px 18px 8px;
+      }
+      .force-mobile .onboarding-main-content {
+        padding: 4px 18px 16px;
+        gap: 14px;
+      }
+      .force-mobile .onboarding-hero-title {
+        font-size: 19.5px;
+        line-height: 1.35;
+      }
+      .force-mobile .onboarding-hero-subtitle {
+        font-size: 13.5px;
+        line-height: 1.5;
+      }
+      .force-mobile .onboarding-clean-image {
+        max-height: 250px;
+      }
+      .force-mobile .onboarding-bottom-actions {
+        padding: 12px 18px 24px;
+      }
+      .force-mobile .onboarding-button-secondary,
+      .force-mobile .onboarding-button-primary {
+        padding: 11px 18px;
+        font-size: 14px;
+      }
+      .force-mobile .onboarding-google-cta {
+        padding: 13px 18px;
+        font-size: 15px;
       }
     </style>
   </head>
@@ -390,6 +540,7 @@
         <span>🌾 테크곳간 온보딩 모달 시안</span>
       </div>
       <div class="mock-step-btns">
+        <button id="btnToggleMobile" class="mock-step-btn" onclick="toggleMobileView()" style="background:#eef6ff; color:#0066ff; border-color:#bae6fd;">📱 모바일 뷰 보기</button>
         <button id="btnStep0" class="mock-step-btn active" onclick="goToStep(0)">1단계: 최신 테크 글</button>
         <button id="btnStep1" class="mock-step-btn" onclick="goToStep(1)">2단계: AI 3줄 요약</button>
         <button id="btnStep2" class="mock-step-btn" onclick="goToStep(2)">3단계: 미열람 동기화</button>
@@ -421,6 +572,9 @@
     <!-- 온보딩 모달 -->
     <div id="onboardingModal" class="onboarding-backdrop open" onclick="onBackdropClick(event)">
       <div class="onboarding-dialog" role="dialog" aria-modal="true">
+        <!-- 모바일 바텀시트 핸들 -->
+        <div class="onboarding-sheet-handle"></div>
+
         <div class="onboarding-top-bar">
           <div class="onboarding-step-indicator">
             <span class="onboarding-step-bar active" id="bar0"></span>
@@ -437,11 +591,8 @@
           </div>
         </div>
 
-        <div class="onboarding-bottom-actions">
-          <div class="onboarding-left-action" id="leftAction">
-            <button type="button" class="onboarding-skip-button" onclick="closeModal()">건너뛰기</button>
-          </div>
-          <div class="onboarding-buttons-cluster" id="stepButtons"></div>
+        <div class="onboarding-bottom-actions" id="bottomActions">
+          <!-- JS 동적 렌더링 -->
         </div>
       </div>
     </div>
@@ -472,6 +623,22 @@
       ];
 
       let currentStep = 0;
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('step')) {
+        currentStep = Math.min(Math.max(parseInt(urlParams.get('step') || '0', 10), 0), STEPS.length - 1);
+      }
+      let isMobileMode = false;
+
+      function toggleMobileView() {
+        isMobileMode = !isMobileMode;
+        document.body.classList.toggle('force-mobile', isMobileMode);
+        const btn = document.getElementById('btnToggleMobile');
+        if (btn) {
+          btn.innerText = isMobileMode ? '💻 데스크톱 뷰 보기' : '📱 모바일 뷰 보기';
+          btn.style.background = isMobileMode ? '#191f28' : '#eef6ff';
+          btn.style.color = isMobileMode ? '#ffffff' : '#0066ff';
+        }
+      }
 
       function renderStep() {
         const step = STEPS[currentStep];
@@ -498,24 +665,32 @@
 
         // 하단 버튼
         const isLast = currentStep === STEPS.length - 1;
-        let btnHtml = "";
-        if (currentStep > 0) {
-          btnHtml += `<button class="onboarding-button-secondary" onclick="goToStep(${currentStep - 1})">이전</button>`;
-        }
+        let actionsHtml = "";
         if (!isLast) {
-          btnHtml += `<button class="onboarding-button-primary" onclick="goToStep(${currentStep + 1})">다음 단계 →</button>`;
+          actionsHtml = `
+            <div class="onboarding-nav-row">
+              <button type="button" class="onboarding-skip-button" onclick="closeModal()">건너뛰기</button>
+              <div class="onboarding-nav-right">
+                ${currentStep > 0 ? `<button class="onboarding-button-secondary" onclick="goToStep(${currentStep - 1})">이전</button>` : ''}
+                <button class="onboarding-button-primary" onclick="goToStep(${currentStep + 1})">다음 단계 →</button>
+              </div>
+            </div>
+          `;
         } else {
-          btnHtml += `
-            <div class="onboarding-cta-cluster">
+          actionsHtml = `
+            <div class="onboarding-final-cta-wrapper">
               <a href="#" class="onboarding-google-cta" onclick="alert('Google 로그인으로 이동'); closeModal(); return false;">
                 <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
                 <span>Google 1초 시작하기</span>
               </a>
-              <button class="onboarding-button-secondary" onclick="closeModal()">바로 둘러보기</button>
+              <div class="onboarding-final-sub-row">
+                <button class="onboarding-button-secondary" onclick="goToStep(${currentStep - 1})">이전</button>
+                <button class="onboarding-button-secondary onboarding-button-flex" onclick="closeModal()">바로 둘러보기</button>
+              </div>
             </div>
           `;
         }
-        document.getElementById("stepButtons").innerHTML = btnHtml;
+        document.getElementById("bottomActions").innerHTML = actionsHtml;
       }
 
       function goToStep(index) {

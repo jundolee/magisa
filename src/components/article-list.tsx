@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Text } from "@seed-design/react";
 import { ArticleRow } from "./article-row";
 import { ArticleFilterTabs } from "./article-filter-tabs";
@@ -21,6 +21,7 @@ const SEARCH_DEBOUNCE_MS = 400;
 const MIN_AUTO_SEARCH_LENGTH = 2;
 
 const PAGE_SIZE = 30;
+const EMPTY_READ_IDS = new Set<string>();
 
 /**
  * 탭/소스/카테고리 필터를 바꿀 때마다 서버에 새로 요청하면 Supabase 왕복 시간이 매번 그대로 드는 게 느려서,
@@ -58,6 +59,13 @@ export function ArticleList({
   // 즉, 이 경우에 한해 이후 revalidatePath로 인한 기본 목록 갱신은 반영되지 않는, 필터/소스와 동일한
   // 수준의 트레이드오프다).
   const [searchResults, setSearchResults] = useState<ArticleListItem[] | null>(null);
+  // 읽음 클릭은 모달 내비게이션과 별도로 서버에 저장되므로 현재 목록의 로컬 상태로 유지한다.
+  // 서버가 새 articles 배열을 내려주면 서버 값을 기준으로 다시 시작한다.
+  const [readOverrides, setReadOverrides] = useState<{ articles: ArticleListItem[]; ids: Set<string> }>(() => ({
+    articles,
+    ids: new Set(),
+  }));
+  const locallyReadIds = readOverrides.articles === articles ? readOverrides.ids : EMPTY_READ_IDS;
   const startedWithQuery = initialQuery.trim().length > 0;
   const defaultArticlesRef = useRef<ArticleListItem[] | null>(null);
   // 검색창이 펼쳐지면 전체 읽음 버튼을 숨겨 좁은 화면에서도 검색창이 줄 전체를 차지하게 한다.
@@ -104,33 +112,31 @@ export function ArticleList({
     };
   }, []);
 
-  // 새 탭으로 열리는 동안 서버 액션(revalidatePath) 왕복을 기다리면 클릭과 목록 반영 사이에
-  // 체감되는 시간차가 생긴다 — 클릭 즉시 이 목록에서 읽음으로 보이도록 낙관적으로 먼저 반영하고,
-  // 실제 서버 값(baseArticles)이 도착하면 자연스럽게 그 값으로 정리된다.
-  const [optimisticArticles, markReadOptimistically] = useOptimistic(baseArticles, (state, articleId: string) =>
-    state.map((a) => (a.id === articleId ? { ...a, is_read: true } : a))
-  );
-  const [, startTransition] = useTransition();
-
   function handleRead(articleId: string) {
-    startTransition(() => {
-      markReadOptimistically(articleId);
+    setReadOverrides((previous) => {
+      const ids = new Set(previous.articles === articles ? previous.ids : []);
+      ids.add(articleId);
+      return { articles, ids };
     });
   }
 
   const visibleArticles = useMemo(() => {
-    return optimisticArticles.filter((a) => {
-      if (filter === "unread" && a.is_read) return false;
-      if (filter === "read" && !a.is_read) return false;
-      if (filter === "favorite" && !a.is_favorite) return false;
-      if (sourceId !== "all" && a.source?.id !== sourceId) return false;
-      if (category !== "all") {
-        const itemCategory = a.category ?? "general";
-        if (itemCategory !== category) return false;
-      }
-      return true;
-    });
-  }, [optimisticArticles, filter, sourceId, category]);
+    return baseArticles
+      .map((article) => locallyReadIds.has(article.id) && !article.is_read
+        ? { ...article, is_read: true }
+        : article)
+      .filter((a) => {
+        if (filter === "unread" && a.is_read) return false;
+        if (filter === "read" && !a.is_read) return false;
+        if (filter === "favorite" && !a.is_favorite) return false;
+        if (sourceId !== "all" && a.source?.id !== sourceId) return false;
+        if (category !== "all") {
+          const itemCategory = a.category ?? "general";
+          if (itemCategory !== category) return false;
+        }
+        return true;
+      });
+  }, [baseArticles, locallyReadIds, filter, sourceId, category]);
 
   const totalPages = Math.max(1, Math.ceil(visibleArticles.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -317,7 +323,7 @@ export function ArticleList({
       </ul>}
       {!queryTooShort && !isSearching && visibleArticles.length === 0 && (
         <Text as="p" textStyle="t4Regular" color="var(--seed-color-fg-neutral-muted)">
-          {query.trim() && optimisticArticles.length === 0
+          {query.trim() && baseArticles.length === 0
             ? "검색 결과가 없어요. 다른 단어나 표현으로 다시 검색해보세요."
             : query.trim()
               ? "현재 필터와 일치하는 글이 없습니다. 필터를 바꿔보세요."
