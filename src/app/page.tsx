@@ -1,10 +1,13 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { connection } from "next/server";
+import { Text } from "@seed-design/react";
 import { attachUserState, getCachedArticleFeed, searchArticles, type ArticleFilter } from "@/lib/data/articles";
 import { listSources } from "@/lib/data/sources";
 import { ArticleList } from "@/components/article-list";
 import { ArticleListSkeleton } from "@/components/article-list-skeleton";
-import { FeedHeader } from "@/components/feed-header";
+import { PageHeader } from "@/components/page-header";
+import { HeaderAuthSlot } from "@/components/header-auth-slot";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { getCurrentUser } from "@/lib/supabase/current-user";
 import { CATEGORY_MAP, type CategoryId } from "@/lib/categories";
@@ -86,8 +89,28 @@ export default async function Home({
   const initialCategory = parseCategory(rawCategory);
 
   return (
-    <main className="feed-page">
-      <FeedHeader />
+    <main>
+      {/* 소스 관리(/sources)는 관리자 전용이라 눈에 띄는 링크를 두지 않는다 — 주소를 직접 아는 사람만 접근 (docs/decisions.md 참고) */}
+      <PageHeader navHref="/suggest" navLabel="블로그 추천하기" authSlot={<HeaderAuthSlot />} />
+
+      {/* 처음 들어온 방문자가 "이게 뭐 하는 사이트인지" 바로 알 수 있게 짧게 설명 (docs/growth-strategy.md 참고) */}
+      <Text
+        as="h1"
+        textStyle="t8Bold"
+        color="fg.neutral"
+        style={{ marginBottom: 8 }}
+      >
+        흩어진 테크 블로그 글을 한곳에서 찾아 읽어요
+      </Text>
+      <Text as="p" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginBottom: 20 }}>
+        테크곳간은 여러 기술 블로그의 새 글을 모아 제목·요약·태그로 검색할 수 있는 피드예요. 로그인하면 읽음 표시와 즐겨찾기를 동기화하고, AI 요약과 의미 기반 연관 글을 찾아볼 수 있어요.
+      </Text>
+
+      <nav aria-label="콘텐츠 탐색" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 28 }}>
+        <Link href="/topics" className="home-nav-chip">주제별 글</Link>
+        <Link href="/blogs" className="home-nav-chip">블로그 목록</Link>
+        <Link href="/digest" className="home-nav-chip">주간 큐레이션</Link>
+      </nav>
 
       <OnboardingModal />
 
