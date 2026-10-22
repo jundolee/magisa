@@ -109,23 +109,20 @@ h3 {
   border-color: #aeb4bf;
 }
 
-.header-signup-link,
-.home-signup-button {
+.header-signup-link {
   border: 1px solid #c94c00;
   background: #c94c00;
   color: #fff;
   font-weight: 700;
 }
 
-.header-signup-link:hover,
-.home-signup-button:hover {
+.header-signup-link:hover {
   border-color: #a83d00;
   background: #a83d00;
 }
 
 .header-login-link:focus-visible,
 .header-signup-link:focus-visible,
-.home-signup-button:focus-visible,
 .auth-signup-prompt:focus-visible,
 .auth-existing-account-link:focus-visible {
   outline: 3px solid #f4a477;
@@ -196,26 +193,6 @@ h3 {
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.home-signup-prompt {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px 14px;
-  margin: -4px 0 24px;
-}
-
-.home-signup-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 42px;
-  padding: 0 18px;
-  border-radius: 10px;
-  font-size: 15px;
-  white-space: nowrap;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
 .auth-page {
   display: flex;
   flex-direction: column;
@@ -276,11 +253,6 @@ h3 {
     min-height: 36px;
     padding: 0 9px;
     font-size: 13px;
-  }
-
-  .home-signup-prompt {
-    align-items: flex-start;
-    gap: 10px;
   }
 
   .auth-page {

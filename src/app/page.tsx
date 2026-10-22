@@ -11,22 +11,6 @@ import { HeaderAuthSlot } from "@/components/header-auth-slot";
 import { getCurrentUser } from "@/lib/supabase/current-user";
 import { CATEGORY_MAP, type CategoryId } from "@/lib/categories";
 
-async function HomeSignupPrompt() {
-  const user = await getCurrentUser();
-  if (user) return null;
-
-  return (
-    <div className="home-signup-prompt">
-      <Link href="/login?intent=signup" className="home-signup-button">
-        무료 회원가입
-      </Link>
-      <Text as="span" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">
-        읽음 표시와 즐겨찾기를 계정에 저장하고 이어서 읽어보세요.
-      </Text>
-    </div>
-  );
-}
-
 // dynamic="force-dynamic"을 쓰면 모든 fetch()가 cache: "no-store"로 강제되어 PostgREST 캐시가 무력화된다.
 // fetchCache = "default-cache"를 지정해 searchParams로 인한 동적 렌더링을 유지하면서도
 // fetchCachedFromSupabase의 force-cache(60초 Vercel Data Cache)가 정상 작동하게 한다.
@@ -120,10 +104,6 @@ export default async function Home({
       <Text as="p" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginBottom: 20 }}>
         테크곳간은 여러 기술 블로그의 새 글을 모아 제목·요약·태그로 검색할 수 있는 피드예요. 로그인하면 읽음 표시와 즐겨찾기를 동기화하고, AI 요약과 의미 기반 연관 글을 찾아볼 수 있어요.
       </Text>
-
-      <Suspense fallback={null}>
-        <HomeSignupPrompt />
-      </Suspense>
 
       <nav aria-label="콘텐츠 탐색" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 28 }}>
         <Link href="/topics" className="home-nav-chip">주제별 글</Link>
