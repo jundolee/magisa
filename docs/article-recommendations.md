@@ -17,7 +17,7 @@
 
 ## Supabase 및 크론
 
-- `0017_zettelkasten_article_vectors.sql`은 기사 임베딩 outbox와 후보 캐시를 추가했습니다. 같은 migration에 있던 빈 개인 노트 테이블과 RPC는 `0018_remove_unused_zettelkasten_notes.sql`에서 제거합니다.
+- `0017_zettelkasten_article_vectors.sql`은 기사 임베딩 outbox와 후보 캐시를 추가했습니다. 같은 migration에 있던 개인 노트 테이블과 RPC는 운영에서 0행을 확인한 뒤 `0018_remove_unused_zettelkasten_notes.sql`로 제거했습니다.
 - 이 프로젝트의 migration history는 Dashboard에 없으므로 운영 SQL은 Supabase SQL Editor에서 수동 적용합니다. `supabase db push`는 실행하지 않습니다.
 - 새 기사나 제목·요약·카테고리·태그 변경은 Postgres trigger가 `article_embedding_jobs`에 작업을 넣습니다. `/api/cron/embeddings`가 하루 한 번 최대 200건씩 처리하며, 재시도는 보호된 endpoint를 직접 호출할 수 있습니다.
 - 기사 삭제는 `article_embedding_deletions` tombstone으로 Pinecone 문서를 비동기 삭제합니다.
@@ -31,6 +31,6 @@ curl -H "Authorization: Bearer $CRON_SECRET" \
 
 ## 운영 확인 (2026-10-22)
 
-- main에서 개인 노트 기능을 제거한 뒤 Supabase 운영 DB에서 `zettel_notes`, `zettel_note_articles`, `zettel_note_links`가 모두 0행임을 확인했습니다.
-- 같은 시점에 기사 임베딩 작업은 2,362건(2,358 indexed, 4 pending), 후보 캐시는 52,742건, 삭제 큐는 0건이었습니다. 기사 변경·삭제 트리거는 계속 유지합니다.
-- cleanup migration은 개인 노트 테이블에 데이터가 생기면 중단하도록 guard를 둡니다. 0017 migration은 재생성 가능한 스키마 복구 지점으로 보존합니다.
+- 2026-10-22에 `zettel_notes`, `zettel_note_articles`, `zettel_note_links`가 모두 0행임을 확인한 뒤 0018을 적용했습니다. 개인 노트 테이블과 `create_zettel_note_from_article` RPC는 운영 DB에서 제거됐습니다.
+- 적용 후 기사 임베딩 작업은 2,362건(2,357 indexed, 5 pending), 후보 캐시는 52,674건, 삭제 큐는 0건이었습니다. 기사 변경·삭제 트리거 2개와 기사 추천 RPC는 유지됩니다.
+- cleanup migration은 적용 직전에 개인 노트 데이터가 생겼다면 중단하도록 guard를 둡니다. 0017 migration은 스키마 복구 지점으로 보존합니다.
