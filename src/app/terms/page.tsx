@@ -4,7 +4,7 @@ import { Text } from "@seed-design/react";
 import { PageHeader } from "@/components/page-header";
 import { SITE_NAME } from "@/app/seo";
 
-const EFFECTIVE_DATE = "2026년 10월 21일";
+const EFFECTIVE_DATE = "2026년 10월 22일";
 
 export const metadata: Metadata = {
   title: "이용약관",
@@ -44,11 +44,10 @@ export default function TermsPage() {
 
         <Section title="2. 용어의 정의">
           <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
-            <li><strong>서비스</strong>: {SITE_NAME}이 제공하는 기술 블로그 게시글 탐색, 검색, 추천, 즐겨찾기, 읽음 표시, 제텔카스텐 노트, AI 요약 등의 제반 기능을 의미합니다.</li>
+            <li><strong>서비스</strong>: {SITE_NAME}이 제공하는 기술 블로그 게시글 탐색, 검색, 추천, 즐겨찾기, 읽음 표시, AI 요약 등의 제반 기능을 의미합니다.</li>
             <li><strong>이용자</strong>: 본 약관에 따라 서비스를 이용하는 회원 및 비회원을 말합니다.</li>
             <li><strong>회원</strong>: 이메일 또는 소셜 로그인(Google 등)을 통해 계정을 생성하고 서비스를 이용하는 자를 말합니다.</li>
             <li><strong>게시글</strong>: 외부 기업 및 엔지니어링 블로그에서 수집된 제목, 요약, 태그, 원문 링크 등의 메타정보를 의미합니다.</li>
-            <li><strong>노트</strong>: 회원이 서비스 내에서 개인 학습 및 지식 정리를 위해 작성하는 제텔카스텐 메모와 기사 연결 정보를 말합니다.</li>
           </ul>
         </Section>
 
@@ -70,7 +69,7 @@ export default function TermsPage() {
           <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
             <li>국내외 IT 기업 및 기술 블로그 게시글 메타정보(제목, 요약, 카테고리, 발행일 등) 및 원문 링크 제공</li>
             <li>게시글 검색, 주제별 탐색, 블로그 목록, 주간 다이제스트, RSS 피드 제공</li>
-            <li>회원 전용 기능: 글 읽음 표시, 즐겨찾기 보관, 제텔카스텐 지식 노트 작성 및 연결</li>
+            <li>회원 전용 기능: 글 읽음 표시와 즐겨찾기 보관</li>
             <li>OpenAI API 기반 신규 등록 기사 본문 자동 요약 제공</li>
           </ul>
         </Section>
