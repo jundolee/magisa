@@ -156,16 +156,17 @@
         visibility: visible;
       }
       .onboarding-dialog {
-        width: min(640px, 100%);
-        max-height: min(92vh, 840px);
+        position: relative;
+        width: min(580px, calc(100vw - 32px));
+        max-height: min(90vh, 760px);
         background: #ffffff;
         border-radius: 20px;
-        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.22), 0 8px 24px -4px rgba(0, 0, 0, 0.08);
         border: 1px solid rgba(0, 0, 0, 0.08);
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        transform: scale(0.96) translateY(10px);
+        transform: scale(0.97) translateY(8px);
         transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
       }
       .onboarding-backdrop.open .onboarding-dialog {
@@ -268,41 +269,63 @@
         background: #fafbfc;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
       }
-      .onboarding-clean-image {
+      /* 캡처 이미지: 데스크톱 250px 고정 프레임으로 단계 이동 시 덜컹거림 제거 */
+      .onboarding-screenshot-wrapper {
+        position: relative;
         width: 100%;
-        height: auto;
-        max-height: 320px;
-        object-fit: cover;
-        object-position: top center;
+        height: 250px;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #eaedf0;
+        background: #fafbfc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
+      }
+      .onboarding-clean-image {
+        max-height: 100%;
+        width: auto;
+        max-width: 100%;
+        object-fit: contain;
+        object-position: center;
         display: block;
       }
 
       /* 하단 액션 */
       .onboarding-bottom-actions {
         flex-shrink: 0;
-        padding: 16px 24px;
+        padding: 14px 24px;
         border-top: 1px solid #f2f4f6;
         background: #ffffff;
       }
-      .onboarding-nav-row {
+      .onboarding-desktop-nav {
         display: flex;
         align-items: center;
         justify-content: space-between;
         width: 100%;
       }
+      .onboarding-mobile-nav {
+        display: none;
+      }
+      .onboarding-nav-left {
+        display: flex;
+        align-items: center;
+      }
       .onboarding-skip-button {
         background: transparent;
         border: none;
         font-size: 14px;
-        font-weight: 600;
+        font-weight: 500;
         color: #8b95a1;
         cursor: pointer;
-        padding: 8px 6px;
-        transition: color 0.15s ease;
+        padding: 8px 10px;
+        border-radius: 8px;
+        transition: all 0.15s ease;
       }
       .onboarding-skip-button:hover {
-        color: #4e5968;
-        text-decoration: underline;
+        color: #333d4b;
+        background: #f8f9fa;
       }
       .onboarding-nav-right {
         display: flex;
@@ -310,7 +333,7 @@
         gap: 8px;
       }
       .onboarding-button-secondary {
-        padding: 10px 16px;
+        padding: 9px 16px;
         border-radius: 10px;
         border: 1px solid #d1d6db;
         background: #ffffff;
@@ -323,10 +346,11 @@
       }
       .onboarding-button-secondary:hover {
         background: #f8f9fa;
+        border-color: #b0b8c1;
         color: #191f28;
       }
       .onboarding-button-primary {
-        padding: 10px 22px;
+        padding: 9px 20px;
         border-radius: 10px;
         border: none;
         background: var(--brand);
@@ -353,16 +377,15 @@
         width: 100%;
       }
       .onboarding-google-cta {
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 10px;
-        width: 100%;
-        padding: 12px 18px;
+        gap: 8px;
+        padding: 9px 18px;
         border-radius: 10px;
         background: #191f28;
         color: #ffffff;
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 700;
         text-decoration: none;
         white-space: nowrap;
@@ -383,6 +406,13 @@
       @media (max-width: 640px) {
         .mock-toolbar {
           display: none;
+        }
+        .onboarding-desktop-nav {
+          display: none !important;
+        }
+        .onboarding-mobile-nav {
+          display: block !important;
+          width: 100%;
         }
         .onboarding-backdrop {
           padding: 0;
@@ -663,33 +693,55 @@
         // 이미지
         document.getElementById("stepImage").src = step.imageSrc;
 
-        // 하단 버튼
+        // 하단 버튼: 데스크톱과 모바일의 최적 UX를 각각 렌더링
         const isLast = currentStep === STEPS.length - 1;
-        let actionsHtml = "";
-        if (!isLast) {
-          actionsHtml = `
-            <div class="onboarding-nav-row">
-              <button type="button" class="onboarding-skip-button" onclick="closeModal()">건너뛰기</button>
-              <div class="onboarding-nav-right">
-                ${currentStep > 0 ? `<button class="onboarding-button-secondary" onclick="goToStep(${currentStep - 1})">이전</button>` : ''}
-                <button class="onboarding-button-primary" onclick="goToStep(${currentStep + 1})">다음 단계 →</button>
-              </div>
+        const googleSvg = `<svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>`;
+
+        let actionsHtml = `
+          <!-- 데스크톱 전용 네비게이션 -->
+          <div class="onboarding-desktop-nav">
+            <div class="onboarding-nav-left">
+              <button type="button" class="onboarding-skip-button" onclick="closeModal()">
+                ${isLast ? "바로 둘러보기" : "건너뛰기"}
+              </button>
             </div>
-          `;
-        } else {
-          actionsHtml = `
-            <div class="onboarding-final-cta-wrapper">
-              <a href="#" class="onboarding-google-cta" onclick="alert('Google 로그인으로 이동'); closeModal(); return false;">
-                <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
-                <span>Google 1초 시작하기</span>
-              </a>
-              <div class="onboarding-final-sub-row">
-                <button class="onboarding-button-secondary" onclick="goToStep(${currentStep - 1})">이전</button>
-                <button class="onboarding-button-secondary onboarding-button-flex" onclick="closeModal()">바로 둘러보기</button>
-              </div>
+            <div class="onboarding-nav-right">
+              ${currentStep > 0 ? `<button type="button" class="onboarding-button-secondary" onclick="goToStep(${currentStep - 1})">이전</button>` : ""}
+              ${!isLast ? `
+                <button type="button" class="onboarding-button-primary" onclick="goToStep(${currentStep + 1})">다음 단계 →</button>
+              ` : `
+                <a href="#" class="onboarding-google-cta" onclick="alert('Google 로그인으로 이동'); closeModal(); return false;">
+                  ${googleSvg}
+                  <span>Google 1초 시작하기</span>
+                </a>
+              `}
             </div>
-          `;
-        }
+          </div>
+
+          <!-- 모바일 전용 네비게이션 -->
+          <div class="onboarding-mobile-nav">
+            ${!isLast ? `
+              <div class="onboarding-nav-row">
+                <button type="button" class="onboarding-skip-button" onclick="closeModal()">건너뛰기</button>
+                <div class="onboarding-nav-right">
+                  ${currentStep > 0 ? `<button type="button" class="onboarding-button-secondary" onclick="goToStep(${currentStep - 1})">이전</button>` : ""}
+                  <button type="button" class="onboarding-button-primary" onclick="goToStep(${currentStep + 1})">다음 단계 →</button>
+                </div>
+              </div>
+            ` : `
+              <div class="onboarding-final-cta-wrapper">
+                <a href="#" class="onboarding-google-cta" onclick="alert('Google 로그인으로 이동'); closeModal(); return false;">
+                  ${googleSvg}
+                  <span>Google 1초 시작하기</span>
+                </a>
+                <div class="onboarding-final-sub-row">
+                  <button type="button" class="onboarding-button-secondary" onclick="goToStep(${currentStep - 1})">이전</button>
+                  <button type="button" class="onboarding-button-secondary onboarding-button-flex" onclick="closeModal()">바로 둘러보기</button>
+                </div>
+              </div>
+            `}
+          </div>
+        `;
         document.getElementById("bottomActions").innerHTML = actionsHtml;
       }
 

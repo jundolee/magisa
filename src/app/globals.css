@@ -600,11 +600,11 @@ h3 {
 
 .onboarding-dialog {
   position: relative;
-  width: min(640px, 100%);
-  max-height: min(92vh, 840px);
+  width: min(580px, calc(100vw - 32px));
+  max-height: min(90vh, 760px);
   border-radius: 20px;
   background: #ffffff;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.22), 0 8px 24px -4px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -627,13 +627,13 @@ h3 {
 
 .onboarding-step-indicator {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex: 1;
-  max-width: 140px;
+  max-width: 150px;
 }
 
 .onboarding-step-bar {
-  height: 4px;
+  height: 4.5px;
   flex: 1;
   border-radius: 999px;
   background: #e9ecef;
@@ -647,11 +647,15 @@ h3 {
 .onboarding-close-button {
   background: transparent;
   border: none;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1;
   color: #8b95a1;
-  padding: 6px 8px;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -667,22 +671,22 @@ h3 {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
   flex: 1 1 auto;
 }
 
 .onboarding-text-block {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .onboarding-pill-badge {
   display: inline-flex;
   align-items: center;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
-  padding: 3px 9px;
+  padding: 3px 8px;
   border-radius: 6px;
   width: fit-content;
 }
@@ -700,7 +704,7 @@ h3 {
 }
 
 .onboarding-hero-title {
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 800;
   line-height: 1.35;
   letter-spacing: -0.025em;
@@ -709,61 +713,75 @@ h3 {
 }
 
 .onboarding-hero-subtitle {
-  font-size: 14.5px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.5;
   color: #4e5968;
 }
 
-/* 캡처 이미지 프레임 */
+/* 캡처 이미지 프레임: 데스크톱 고정 높이 250px로 단계 이동 시 모달 높이 흔들림 방지 */
 .onboarding-screenshot-wrapper {
   position: relative;
   width: 100%;
-  border-radius: 14px;
+  height: 250px;
+  border-radius: 12px;
   overflow: hidden;
-  border: 1px solid #e5e8eb;
-  background: #ffffff;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+  border: 1px solid #eaedf0;
+  background: #fafbfc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .onboarding-clean-image {
-  width: 100%;
-  height: auto;
-  max-height: 300px;
+  max-height: 100%;
+  width: auto;
+  max-width: 100%;
   object-fit: contain;
-  object-position: top center;
+  object-position: center;
   display: block;
-  background: #ffffff;
 }
 
 /* 하단 액션 바 */
 .onboarding-bottom-actions {
   flex-shrink: 0;
-  padding: 16px 24px;
+  padding: 14px 24px;
   border-top: 1px solid #f2f4f6;
   background: #ffffff;
 }
 
-.onboarding-nav-row {
+/* 데스크톱 전용 네비게이션: 좌우 일관 배치로 어떤 단계든 정돈된 느낌 유지 */
+.onboarding-desktop-nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
 }
 
+.onboarding-mobile-nav {
+  display: none;
+}
+
+.onboarding-nav-left {
+  display: flex;
+  align-items: center;
+}
+
 .onboarding-skip-button {
   background: transparent;
   border: none;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   color: #8b95a1;
   cursor: pointer;
-  padding: 8px 6px;
-  transition: color 0.15s ease;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
 }
 
 .onboarding-skip-button:hover {
-  color: #4e5968;
-  text-decoration: underline;
+  color: #333d4b;
+  background: #f8f9fa;
 }
 
 .onboarding-nav-right {
@@ -773,7 +791,7 @@ h3 {
 }
 
 .onboarding-button-secondary {
-  padding: 10px 16px;
+  padding: 9px 16px;
   border-radius: 10px;
   border: 1px solid #d1d6db;
   background: #ffffff;
@@ -787,11 +805,12 @@ h3 {
 
 .onboarding-button-secondary:hover {
   background: #f8f9fa;
+  border-color: #b0b8c1;
   color: #191f28;
 }
 
 .onboarding-button-primary {
-  padding: 10px 22px;
+  padding: 9px 20px;
   border-radius: 10px;
   border: none;
   background: var(--seed-color-fg-brand, #ff6f0f);
@@ -815,28 +834,21 @@ h3 {
   flex: 1;
 }
 
-/* 최종 3단계 CTA */
-.onboarding-final-cta-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-}
-
+/* Google CTA: 데스크톱에서는 깔끔한 인라인 버튼, 모바일에서는 풀 너비 */
 .onboarding-google-cta {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  width: 100%;
-  padding: 12px 18px;
+  gap: 8px;
+  padding: 9px 18px;
   border-radius: 10px;
   background: #191f28;
   color: #ffffff;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
+  cursor: pointer;
   transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
@@ -846,6 +858,13 @@ h3 {
 
 .onboarding-google-cta:active {
   transform: scale(0.98);
+}
+
+.onboarding-final-cta-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
 }
 
 .onboarding-final-sub-row {
@@ -980,13 +999,23 @@ h3 {
     border-radius: 8px;
   }
 
+  .onboarding-desktop-nav {
+    display: none !important;
+  }
+
+  .onboarding-mobile-nav {
+    display: block !important;
+    width: 100%;
+  }
+
   .onboarding-final-cta-wrapper {
     gap: 8px;
   }
 
   .onboarding-google-cta {
-    padding: 11px 16px;
-    font-size: 14px;
+    width: 100%;
+    padding: 12px 18px;
+    font-size: 14.5px;
     border-radius: 8px;
   }
 
