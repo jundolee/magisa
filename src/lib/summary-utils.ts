@@ -3,6 +3,6 @@
  */
 export function cleanKeyPoint(text: string): string {
   return text
-    .replace(/^([\p{Extended_Pictographic}\p{Emoji}\d.*•\-])*\s*(문제\s*(&|및)?\s*배경|기술\s*(&|및)?\s*해결책|교훈\s*(&|및)?\s*주의점|핵심\s*\d*)\s*[:：\-]\s*/iu, "")
+    .replace(/^([\p{Extended_Pictographic}\p{Emoji}\uFE0F\u200D\d.*•\-\s])*(문제\s*(&|및)?\s*배경|기술\s*(&|및)?\s*해결책|교훈\s*(&|및)?\s*주의점|핵심\s*\d*)\s*[:：\-]\s*/iu, "")
     .trim();
 }

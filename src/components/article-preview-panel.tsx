@@ -516,62 +516,98 @@ export function ArticlePreviewPanel({
                 </h1>
               </div>
 
-              {/* 2. [최상위 계층] ✨ AI 엔지니어링 3-Box 브리핑 카드 */}
+              {/* 2. [최상위 계층] ✨ AI 요약 (엔지니어링 3-Box 브리핑 or 주제/발췌 일반 텍스트 요약) */}
               {currentArticle.summary ? (
-                <section aria-labelledby="ai-summary-heading" className="ai-summary-card">
-                  <div className="ai-summary-header">
-                    <div className="ai-summary-title-wrap">
-                      <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>✨</span>
-                      <h2 id="ai-summary-heading" className="ai-summary-title">
-                        AI 엔지니어링 브리핑
-                      </h2>
+                currentArticle.summaryBasis !== "excerpt" && currentArticle.summary.keyPoints.length >= 3 ? (
+                  <section aria-labelledby="ai-summary-heading" className="ai-summary-card">
+                    <div className="ai-summary-header">
+                      <div className="ai-summary-title-wrap">
+                        <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>✨</span>
+                        <h2 id="ai-summary-heading" className="ai-summary-title">
+                          AI 엔지니어링 브리핑
+                        </h2>
+                      </div>
+                      <span className="ai-summary-basis-badge">
+                        {summaryBasisNotice(currentArticle.summaryBasis)}
+                      </span>
                     </div>
-                    <span className="ai-summary-basis-badge">
-                      {summaryBasisNotice(currentArticle.summaryBasis)}
-                    </span>
-                  </div>
 
-                  {/* 리드 결론문 */}
-                  <div className="ai-summary-lead-box">
-                    <p className="ai-summary-lead-text">
-                      {currentArticle.summary.lead}
-                    </p>
-                  </div>
+                    {/* 리드 결론문 */}
+                    <div className="ai-summary-lead-box">
+                      <p className="ai-summary-lead-text">
+                        {currentArticle.summary.lead}
+                      </p>
+                    </div>
 
-                  {/* 엔지니어링 3-Box (문제 ➔ 기술/해결책 ➔ 교훈/주의점) */}
-                  <div className="ai-summary-point-list">
-                    {currentArticle.summary.keyPoints.map((point, index) => {
-                      const meta = ENGINEERING_BOX_METAS[index] ?? {
-                        icon: "📌",
-                        label: `핵심 ${index + 1}`,
-                        bg: "#ffffff",
-                        border: "#fed7aa",
-                        tagColor: "var(--seed-color-fg-brand)",
-                      };
+                    {/* 엔지니어링 3-Box (문제 ➔ 기술/해결책 ➔ 교훈/주의점) */}
+                    <div className="ai-summary-point-list">
+                      {currentArticle.summary.keyPoints.map((point, index) => {
+                        const meta = ENGINEERING_BOX_METAS[index] ?? {
+                          icon: "📌",
+                          label: `핵심 ${index + 1}`,
+                          bg: "#ffffff",
+                          border: "#fed7aa",
+                          tagColor: "var(--seed-color-fg-brand)",
+                        };
 
-                      return (
-                        <div
-                          key={`${index}-${point}`}
-                          className="ai-summary-point-card"
-                          style={{
-                            background: meta.bg,
-                            border: `1px solid ${meta.border}`,
-                          }}
-                        >
-                          <div className="ai-summary-point-header">
-                            <span aria-hidden="true" className="ai-summary-point-icon">{meta.icon}</span>
-                            <span className="ai-summary-point-label" style={{ color: meta.tagColor }}>
-                              {meta.label}
-                            </span>
+                        return (
+                          <div
+                            key={`${index}-${point}`}
+                            className="ai-summary-point-card"
+                            style={{
+                              background: meta.bg,
+                              border: `1px solid ${meta.border}`,
+                            }}
+                          >
+                            <div className="ai-summary-point-header">
+                              <span aria-hidden="true" className="ai-summary-point-icon">{meta.icon}</span>
+                              <span className="ai-summary-point-label" style={{ color: meta.tagColor }}>
+                                {meta.label}
+                              </span>
+                            </div>
+                            <p className="ai-summary-point-text">
+                              {cleanKeyPoint(point)}
+                            </p>
                           </div>
-                          <p className="ai-summary-point-text">
-                            {cleanKeyPoint(point)}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ) : (
+                  /* 주제/발췌 기반 요약 등은 복잡한 3-Box 대신 깔끔하고 읽기 편한 텍스트로 처리 */
+                  <section aria-labelledby="ai-summary-heading" className="ai-summary-card">
+                    <div className="ai-summary-header">
+                      <div className="ai-summary-title-wrap">
+                        <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>✨</span>
+                        <h2 id="ai-summary-heading" className="ai-summary-title">
+                          AI 요약
+                        </h2>
+                      </div>
+                      <span className="ai-summary-basis-badge">
+                        {summaryBasisNotice(currentArticle.summaryBasis)}
+                      </span>
+                    </div>
+
+                    <div className="ai-summary-lead-box">
+                      <p className="ai-summary-lead-text">
+                        {currentArticle.summary.lead}
+                      </p>
+                    </div>
+
+                    {currentArticle.summary.keyPoints.length > 0 && (
+                      <ul className="ai-summary-text-list">
+                        {currentArticle.summary.keyPoints.map((point, index) => (
+                          <li key={`${index}-${point}`} className="ai-summary-text-item">
+                            <span aria-hidden="true" className="ai-summary-text-bullet">•</span>
+                            <p className="ai-summary-point-text">
+                              {cleanKeyPoint(point)}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+                )
               ) : (
                 <section aria-labelledby="ai-summary-heading" className="ai-summary-fallback-card">
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
