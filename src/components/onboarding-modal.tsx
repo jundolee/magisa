@@ -184,46 +184,20 @@ export function OnboardingModal() {
 
         {/* 하단 컨트롤 & 전환 버튼 */}
         <div className="onboarding-bottom-actions">
-          {!isLast ? (
-            <div className="onboarding-nav-row">
+          {/* 데스크톱 전용 네비게이션: 좌측 dismiss, 우측 action cluster로 일관성 유지 */}
+          <div className="onboarding-desktop-nav">
+            <div className="onboarding-nav-left">
               <button
                 type="button"
                 onClick={handleClose}
                 className="onboarding-skip-button"
               >
-                건너뛰기
+                {isLast ? "바로 둘러보기" : "건너뛰기"}
               </button>
-
-              <div className="onboarding-nav-right">
-                {currentStep > 0 && (
-                  <button
-                    type="button"
-                    onClick={handlePrev}
-                    className="onboarding-button-secondary"
-                  >
-                    이전
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="onboarding-button-primary"
-                >
-                  다음 단계 →
-                </button>
-              </div>
             </div>
-          ) : (
-            <div className="onboarding-final-cta-wrapper">
-              <Link
-                href="/login?intent=signup"
-                onClick={handleClose}
-                className="onboarding-google-cta"
-              >
-                <GoogleIcon size={18} />
-                <span>Google 1초 시작하기</span>
-              </Link>
-              <div className="onboarding-final-sub-row">
+
+            <div className="onboarding-nav-right">
+              {currentStep > 0 && (
                 <button
                   type="button"
                   onClick={handlePrev}
@@ -231,16 +205,88 @@ export function OnboardingModal() {
                 >
                   이전
                 </button>
+              )}
+              {!isLast ? (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="onboarding-button-primary"
+                >
+                  다음 단계 →
+                </button>
+              ) : (
+                <Link
+                  href="/login?intent=signup"
+                  onClick={handleClose}
+                  className="onboarding-google-cta"
+                >
+                  <GoogleIcon size={18} />
+                  <span>Google 1초 시작하기</span>
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* 모바일 전용 네비게이션: 엄지 손가락 터치 최적화 바텀시트 */}
+          <div className="onboarding-mobile-nav">
+            {!isLast ? (
+              <div className="onboarding-nav-row">
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="onboarding-button-secondary onboarding-button-flex"
+                  className="onboarding-skip-button"
                 >
-                  바로 둘러보기
+                  건너뛰기
                 </button>
+
+                <div className="onboarding-nav-right">
+                  {currentStep > 0 && (
+                    <button
+                      type="button"
+                      onClick={handlePrev}
+                      className="onboarding-button-secondary"
+                    >
+                      이전
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="onboarding-button-primary"
+                  >
+                    다음 단계 →
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="onboarding-final-cta-wrapper">
+                <Link
+                  href="/login?intent=signup"
+                  onClick={handleClose}
+                  className="onboarding-google-cta"
+                >
+                  <GoogleIcon size={18} />
+                  <span>Google 1초 시작하기</span>
+                </Link>
+                <div className="onboarding-final-sub-row">
+                  <button
+                    type="button"
+                    onClick={handlePrev}
+                    className="onboarding-button-secondary"
+                  >
+                    이전
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="onboarding-button-secondary onboarding-button-flex"
+                  >
+                    바로 둘러보기
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
