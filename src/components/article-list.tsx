@@ -5,15 +5,14 @@ import { Text } from "@seed-design/react";
 import { ArticleRow } from "./article-row";
 import { ArticleFilterTabs } from "./article-filter-tabs";
 import { SourceFilterSelect, type SourceOption } from "./source-filter-select";
-import { ExpandableSearch } from "./expandable-search";
+import Link from "next/link";
 import { ReadAllControls } from "./read-all-controls";
 import { ScrollToTopButton } from "./scroll-to-top-button";
 import { PaginationControls } from "./pagination-controls";
-import { CategoryFilterChips } from "./category-filter-chips";
 import { trackArticleSearchCompleted } from "@/lib/analytics";
 import { loadArticlesAction } from "@/app/articles/actions";
 import type { ArticleFilter, ArticleListItem } from "@/lib/data/articles";
-import type { CategoryId } from "@/lib/categories";
+import { CATEGORIES, CATEGORY_MAP, type CategoryId } from "@/lib/categories";
 
 const SEARCH_DEBOUNCE_MS = 400;
 
@@ -68,8 +67,6 @@ export function ArticleList({
   const locallyReadIds = readOverrides.articles === articles ? readOverrides.ids : EMPTY_READ_IDS;
   const startedWithQuery = initialQuery.trim().length > 0;
   const defaultArticlesRef = useRef<ArticleListItem[] | null>(null);
-  // 검색창이 펼쳐지면 전체 읽음 버튼을 숨겨 좁은 화면에서도 검색창이 줄 전체를 차지하게 한다.
-  const [searchExpanded, setSearchExpanded] = useState(startedWithQuery);
 
   const baseArticles = searchResults ?? articles;
   const queryTooShort =
@@ -235,80 +232,81 @@ export function ArticleList({
     runSearch(query);
   }
 
-  return (
+  function changeSource(value: string) {
+    setSourceId(value);
+    setPage(1);
+    updateUrl(filter, value, category);
+  }
+
+  function changeFilter(value: ArticleFilter) {
+    setFilter(value);
+    setPage(1);
+    updateUrl(value, sourceId, category);
+  }
+
+  const selectedSource = sources.find((source) => source.id === sourceId);
+  const filters = (
     <>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 12,
-          marginBottom: query.trim() ? 8 : 20,
-        }}
-      >
-        <Text as="h2" textStyle="t8Bold" color="fg.neutral">
-          최신 글
-        </Text>
-        {/* 검색창이 펼쳐지면 전체 읽음 버튼을 숨기고 검색창이 줄 전체를 차지하게 한다. */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            flexWrap: "wrap",
-            justifyContent: "flex-end",
-            gap: 12,
-            flexBasis: searchExpanded ? "100%" : "auto",
-          }}
-        >
-          <ExpandableSearch
-            value={query}
-            onValueChange={handleQueryChange}
-            onSubmit={handleSearchSubmit}
-            expanded={searchExpanded}
-            onExpandedChange={setSearchExpanded}
-          />
-          {!searchExpanded && <ReadAllControls />}
+      <div className="feed-topic-options" role="group" aria-label="주제 선택">
+        {CATEGORIES.map((item) => (
+          <button type="button" key={item.id} aria-pressed={category === item.id}
+            onClick={() => handleCategoryChange(item.id)}>{item.label}</button>
+        ))}
+      </div>
+      <div className="feed-source-control">
+        <span className="feed-sidebar-label">블로그</span>
+        <SourceFilterSelect sources={sources} current={sourceId} onChange={changeSource} />
+      </div>
+    </>
+  );
+
+  return (
+    <div className="feed-layout">
+      <aside className="feed-sidebar" aria-label="피드 탐색">
+        <p className="feed-sidebar-label">내 읽을거리</p>
+        <button type="button" className="feed-library-button" aria-pressed={filter !== "favorite"}
+          onClick={() => changeFilter("all")}>모든 글</button>
+        <button type="button" className="feed-library-button" aria-pressed={filter === "favorite"}
+          onClick={() => changeFilter("favorite")}>☆ 저장한 글</button>
+        <hr />
+        <p className="feed-sidebar-label">주제</p>
+        {filters}
+        <p className="feed-sidebar-note">여러 테크 블로그를<br />한곳에서 이어 읽어요.</p>
+      </aside>
+      <section className="feed-content" aria-labelledby="feed-title">
+        <div className="feed-intro">
+          <p className="feed-eyebrow">개발자의 읽을거리</p>
+          <h1 id="feed-title">흩어진 기술 이야기,<br className="feed-mobile-break" /> 여기서 이어 읽어요.</h1>
+          <p className="feed-description">여러 테크 블로그의 새 글을 한곳에 모았어요.</p>
         </div>
-      </div>
-
-      {query.trim() && (queryTooShort || isSearching) && (
-        <Text as="p" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginBottom: 16 }}>
-          {queryTooShort ? "한 글자 검색은 Enter를 눌러 실행할 수 있어요." : "검색 중…"}
-        </Text>
-      )}
-
-      {/* 1. 상태 탭: 4개 옵션이 100% 폭으로 균일하게 배치되어 모바일/데스크톱 모두에서 시각적 안정감 극대화 */}
-      <div style={{ marginBottom: 14 }}>
-        <ArticleFilterTabs
-          current={filter}
-          onChange={(value) => {
-            setFilter(value);
-            setPage(1);
-            updateUrl(value, sourceId, category);
-          }}
-        />
-      </div>
-
-      {/* 2. 카테고리 칩 바의 첫 번째 앵커로 블로그 필터 통합 */}
-      <div style={{ marginBottom: 20 }}>
-        <CategoryFilterChips
-          selectedCategory={category}
-          onSelectCategory={handleCategoryChange}
-          sourceSlot={
-            <SourceFilterSelect
-              sources={sources}
-              current={sourceId}
-              onChange={(value) => {
-                setSourceId(value);
-                setPage(1);
-                updateUrl(filter, value, category);
-              }}
-            />
-          }
-        />
-      </div>
-
+        <div className="feed-toolbar">
+          <ArticleFilterTabs current={filter} onChange={changeFilter} />
+          <div id="feed-search" tabIndex={-1} className={`feed-search${query ? " has-query" : ""}`}>
+            <label className="feed-sr-only" htmlFor="feed-search-input">제목·요약·태그 검색</label>
+            <input id="feed-search-input" type="search" value={query}
+              placeholder="어떤 글을 찾으세요?" onChange={(event) => handleQueryChange(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter") handleSearchSubmit(); }} />
+            {query && <button type="button" aria-label="검색어 지우기" onClick={() => handleQueryChange("")}>✕</button>}
+          </div>
+        </div>
+        {query.trim() && (queryTooShort || isSearching) && (
+          <p className="feed-search-status" role="status">
+            {queryTooShort ? "한 글자 검색은 Enter를 눌러 실행할 수 있어요." : "검색 중…"}
+          </p>
+        )}
+        <div className="feed-filter-line">
+          <span className="feed-desktop-filter-label">{CATEGORY_MAP.get(category)?.label ?? "전체"} 주제 · {selectedSource?.label ?? "모든 블로그"}</span>
+          <details className="feed-mobile-filters">
+            <summary>{category === "all" ? "모든 주제" : CATEGORY_MAP.get(category)?.label} · {selectedSource?.label ?? "모든 블로그"} ⌄</summary>
+            <div className="feed-mobile-filter-panel">{filters}</div>
+          </details>
+          <span className="feed-sort-label">최신순 ↓</span>
+          <details className="feed-bulk-menu">
+            <summary aria-label="읽음 일괄 관리">⋯</summary>
+            <div><ReadAllControls /></div>
+          </details>
+        </div>
+        <h2 className="feed-sr-only">최신 글</h2>
       {!queryTooShort && <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0 }}>
         {pagedArticles.map((article, index) => (
           // 페이지 첫 3개는 스크롤 전에 바로 보이는 썸네일이라 lazy 대신 우선 로드 (ArticleRow 참고).
@@ -331,7 +329,12 @@ export function ArticleList({
         </Text>
       )}
       {!queryTooShort && totalPages > 1 && <PaginationControls page={safePage} totalPages={totalPages} onChange={goToPage} />}
+        <nav className="feed-bottom-nav" aria-label="다른 읽을거리">
+          <Link href="/topics">주제별로 탐색 ↗</Link>
+          <Link href="/digest">주간 큐레이션 ↗</Link>
+        </nav>
+      </section>
       <ScrollToTopButton />
-    </>
+    </div>
   );
 }
