@@ -636,6 +636,35 @@ h3 {
   overflow-wrap: break-word;
 }
 
+/* 발췌/주제 기반 일반 텍스트 요약 목록 스타일 */
+.ai-summary-text-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-summary-text-item {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--seed-color-bg-layer-default, #ffffff);
+  border: 1px solid rgba(251, 216, 188, 0.7);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.ai-summary-text-bullet {
+  color: var(--seed-color-bg-brand-solid, #eb641c);
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
 .ai-summary-fallback-card {
   border-radius: 18px;
   padding: 22px 28px;
@@ -776,6 +805,16 @@ h3 {
   .ai-summary-point-text {
     font-size: 14px;
     line-height: 1.6;
+  }
+
+  .ai-summary-text-list {
+    gap: 8px;
+  }
+
+  .ai-summary-text-item {
+    padding: 11px 14px;
+    border-radius: 10px;
+    gap: 8px;
   }
 
   .ai-summary-fallback-card {
