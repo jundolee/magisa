@@ -4,6 +4,7 @@ import { fetchCachedRpcFromSupabase } from "@/lib/supabase/cached-rest";
 import {
   ARTICLE_SUMMARY_PROMPT_VERSION,
   LEGACY_ARTICLE_SUMMARY_PROMPT_VERSION,
+  EARLIEST_ARTICLE_SUMMARY_PROMPT_VERSION,
   isArticleSummaryEnabled,
 } from "@/lib/ingestion/article-summary";
 import { summarizeArticlesDirect } from "@/lib/ingestion/run-summary-jobs";
@@ -66,7 +67,11 @@ export async function getArticlePreview(articleId: string): Promise<ArticlePrevi
     .from("article_summary_jobs")
     .select("status,lead,key_points,extraction_status,prompt_version")
     .eq("article_id", articleId)
-    .in("prompt_version", [ARTICLE_SUMMARY_PROMPT_VERSION, LEGACY_ARTICLE_SUMMARY_PROMPT_VERSION]);
+    .in("prompt_version", [
+      ARTICLE_SUMMARY_PROMPT_VERSION,
+      LEGACY_ARTICLE_SUMMARY_PROMPT_VERSION,
+      EARLIEST_ARTICLE_SUMMARY_PROMPT_VERSION,
+    ]);
   if (summaryResult.error) {
     if (summaryResult.error.code === "42P01") {
       console.warn("article_summary_jobs table is not installed yet; no article summary is available.");
@@ -75,14 +80,16 @@ export async function getArticlePreview(articleId: string): Promise<ArticlePrevi
     }
   } else {
     const current = summaryResult.data?.find((row) => row.prompt_version === ARTICLE_SUMMARY_PROMPT_VERSION);
-    const legacy = summaryResult.data?.find((row) => row.prompt_version === LEGACY_ARTICLE_SUMMARY_PROMPT_VERSION);
+    const legacyV1 = summaryResult.data?.find((row) => row.prompt_version === LEGACY_ARTICLE_SUMMARY_PROMPT_VERSION);
+    const earliest = summaryResult.data?.find((row) => row.prompt_version === EARLIEST_ARTICLE_SUMMARY_PROMPT_VERSION);
     let currentReady = current?.status === "ready" && Array.isArray(current.key_points);
-    const legacyReady = legacy?.status === "ready" && Array.isArray(legacy.key_points);
-    let selected = currentReady ? current : legacyReady ? legacy : current;
+    const legacyV1Ready = legacyV1?.status === "ready" && Array.isArray(legacyV1.key_points);
+    const earliestReady = earliest?.status === "ready" && Array.isArray(earliest.key_points);
+    let selected = currentReady ? current : legacyV1Ready ? legacyV1 : earliestReady ? earliest : current;
 
     // AI 요약이 활성화되어 있으나 아직 준비되지 않은 경우(대기열 처리 지연 등),
     // 사용자가 글을 확인하는 시점에 온디맨드로 즉시 생성하여 제공
-    if (!currentReady && !legacyReady && isArticleSummaryEnabled()) {
+    if (!currentReady && !legacyV1Ready && !earliestReady && isArticleSummaryEnabled()) {
       try {
         const directResult = await summarizeArticlesDirect([articleId], supabase);
         if (directResult.ready > 0) {
@@ -112,7 +119,7 @@ export async function getArticlePreview(articleId: string): Promise<ArticlePrevi
           lead: selected.lead,
           keyPoints: selected.key_points.filter((point): point is string => typeof point === "string"),
         };
-        summaryBasis = selected.prompt_version === LEGACY_ARTICLE_SUMMARY_PROMPT_VERSION
+        summaryBasis = selected.prompt_version === EARLIEST_ARTICLE_SUMMARY_PROMPT_VERSION
           ? "excerpt"
           : selected.extraction_status === "partial" ? "partial_article" : "full_article";
       }
