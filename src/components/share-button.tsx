@@ -4,7 +4,19 @@ import { useState } from "react";
 import { ActionButton } from "seed-design/ui/action-button";
 import { SITE_NAME } from "@/app/seo";
 
-export function ShareButton({ title, url }: { title: string; url: string }) {
+export function ShareButton({
+  title,
+  url,
+  size = "xsmall",
+  variant,
+  style,
+}: {
+  title: string;
+  url: string;
+  size?: "xsmall" | "small" | "medium";
+  variant?: "ghost" | "neutralWeak" | "neutralOutline" | "neutralSolid" | "brandOutline";
+  style?: React.CSSProperties;
+}) {
   const [copied, setCopied] = useState(false);
 
   async function copyToClipboard(text: string): Promise<boolean> {
@@ -72,13 +84,14 @@ export function ShareButton({ title, url }: { title: string; url: string }) {
   return (
     <ActionButton
       type="button"
-      variant={copied ? "neutralSolid" : "ghost"}
-      size="xsmall"
+      variant={copied ? "neutralSolid" : (variant ?? "ghost")}
+      size={size}
       onClick={handleShare}
       style={{
         transition: "all 0.15s ease",
         color: copied ? "#fff" : undefined,
         touchAction: "manipulation",
+        ...style,
       }}
     >
       {copied ? "✓ 링크 복사됨" : "공유"}
