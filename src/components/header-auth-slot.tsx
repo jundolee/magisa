@@ -8,7 +8,7 @@ import { signOutAction } from "@/app/login/actions";
 // getUser()가 Supabase Auth 서버를 왕복하는 동안 헤더 전체가 지연되지 않게 하기 위함
 // (page.tsx의 ArticleListSection과 같은 패턴, docs/decisions.md 참고). getCurrentUser()는 요청
 // 범위로 캐시돼 있어 ArticleListSection이 이미 같은 요청에서 호출했다면 왕복이 중복되지 않는다.
-async function AuthSlotContent({ compact = false }: { compact?: boolean }) {
+async function AuthSlotContent() {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -17,9 +17,9 @@ async function AuthSlotContent({ compact = false }: { compact?: boolean }) {
         <Link href="/login" className="header-login-link">
           로그인
         </Link>
-        {!compact && <Link href="/login?intent=signup" className="header-signup-link">
+        <Link href="/login?intent=signup" className="header-signup-link">
           회원가입
-        </Link>}
+        </Link>
       </div>
     );
   }
@@ -44,10 +44,10 @@ async function AuthSlotContent({ compact = false }: { compact?: boolean }) {
   );
 }
 
-export function HeaderAuthSlot({ compact = false }: { compact?: boolean }) {
+export function HeaderAuthSlot() {
   return (
     <Suspense fallback={null}>
-      <AuthSlotContent compact={compact} />
+      <AuthSlotContent />
     </Suspense>
   );
 }
