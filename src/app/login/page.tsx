@@ -22,9 +22,10 @@ export default async function LoginPage({
   const { next, error, intent } = await searchParams;
   const redirectTo = safeNextPath(next);
   const isSignupIntent = intent === "signup";
-  const nextQuery = next ? { next: redirectTo } : {};
-  const signupHref = `/login?${new URLSearchParams({ intent: "signup", ...nextQuery })}`;
-  const loginHref = next ? `/login?${new URLSearchParams({ next: redirectTo })}` : "/login";
+  const signupParams = new URLSearchParams({ intent: "signup" });
+  if (next) signupParams.set("next", redirectTo);
+  const signupHref = `/login?${signupParams}`;
+  const loginHref = next ? `/login?next=${encodeURIComponent(redirectTo)}` : "/login";
 
   const user = await getCurrentUser();
   if (user) redirect(redirectTo);
