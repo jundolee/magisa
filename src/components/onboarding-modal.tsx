@@ -131,6 +131,9 @@ export function OnboardingModal() {
       }}
     >
       <div className="onboarding-dialog onboarding-dialog-enter">
+        {/* 모바일 바텀시트 드래그 핸들 */}
+        <div className="onboarding-sheet-handle" aria-hidden="true" />
+
         {/* 상단 닫기 및 진행 인디케이터 바 */}
         <div className="onboarding-top-bar">
           <div className="onboarding-step-indicator">
@@ -181,8 +184,8 @@ export function OnboardingModal() {
 
         {/* 하단 컨트롤 & 전환 버튼 */}
         <div className="onboarding-bottom-actions">
-          <div className="onboarding-left-action">
-            {!isLast ? (
+          {!isLast ? (
+            <div className="onboarding-nav-row">
               <button
                 type="button"
                 onClick={handleClose}
@@ -190,52 +193,54 @@ export function OnboardingModal() {
               >
                 건너뛰기
               </button>
-            ) : (
-              <span className="onboarding-step-counter">
-                {currentStep + 1} / {STEPS.length}
-              </span>
-            )}
-          </div>
 
-          <div className="onboarding-buttons-cluster">
-            {currentStep > 0 && (
-              <button
-                type="button"
-                onClick={handlePrev}
-                className="onboarding-button-secondary"
-              >
-                이전
-              </button>
-            )}
-
-            {!isLast ? (
-              <button
-                type="button"
-                onClick={handleNext}
-                className="onboarding-button-primary"
-              >
-                다음 단계 →
-              </button>
-            ) : (
-              <div className="onboarding-cta-cluster">
-                <Link
-                  href="/login?intent=signup"
-                  onClick={handleClose}
-                  className="onboarding-google-cta"
+              <div className="onboarding-nav-right">
+                {currentStep > 0 && (
+                  <button
+                    type="button"
+                    onClick={handlePrev}
+                    className="onboarding-button-secondary"
+                  >
+                    이전
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="onboarding-button-primary"
                 >
-                  <GoogleIcon size={18} />
-                  <span>Google 1초 시작하기</span>
-                </Link>
+                  다음 단계 →
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="onboarding-final-cta-wrapper">
+              <Link
+                href="/login?intent=signup"
+                onClick={handleClose}
+                className="onboarding-google-cta"
+              >
+                <GoogleIcon size={18} />
+                <span>Google 1초 시작하기</span>
+              </Link>
+              <div className="onboarding-final-sub-row">
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  className="onboarding-button-secondary"
+                >
+                  이전
+                </button>
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="onboarding-button-secondary"
+                  className="onboarding-button-secondary onboarding-button-flex"
                 >
                   바로 둘러보기
                 </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
