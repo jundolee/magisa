@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>테크곳간 신규 고객 온보딩 인터랙티브 목업</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #ffffff;
+        --page: #f8f9fa;
+        --fg: #191f28;
+        --muted: #4e5968;
+        --subtle: #8b95a1;
+        --line: #e5e8eb;
+        --weak: #f2f4f6;
+        --brand: #ff6f0f;
+        --brand-hover: #e55e00;
+        --brand-soft: #fff0e6;
+        --blue-soft: #eef6ff;
+        --blue: #0066ff;
+        font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Malgun Gothic", sans-serif;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        color: var(--fg);
+        background: var(--page);
+        line-height: 1.5;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* 목업 상단 툴바 */
+      .mock-toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 24px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--line);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .mock-toolbar-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .mock-step-btns {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .mock-step-btn {
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--fg);
+        transition: all 0.15s ease;
+      }
+      .mock-step-btn:hover {
+        background: var(--weak);
+      }
+      .mock-step-btn.active {
+        background: #191f28;
+        color: #fff;
+        border-color: #191f28;
+      }
+      .mock-btn-open {
+        background: var(--brand);
+        color: #fff;
+        border-color: var(--brand);
+      }
+      .mock-btn-open:hover {
+        background: var(--brand-hover);
+      }
+
+      /* 배경 홈 레이아웃 */
+      .app-shell {
+        width: min(100% - 32px, 720px);
+        margin: 0 auto;
+        padding: 40px 0 80px;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 28px;
+      }
+      .logo {
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+      }
+      .nav-links {
+        display: flex;
+        gap: 16px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .hero-title {
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: -0.8px;
+        margin-bottom: 8px;
+      }
+      .hero-desc {
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
+      .chips {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 28px;
+      }
+      .chip {
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 13px;
+        background: var(--weak);
+        color: #4e5968;
+        font-weight: 600;
+      }
+
+      /* 온보딩 모달 다이얼로그 */
+      .onboarding-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: rgba(15, 18, 22, 0.65);
+        backdrop-filter: blur(6px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.22s ease, visibility 0.22s ease;
+      }
+      .onboarding-backdrop.open {
+        opacity: 1;
+        visibility: visible;
+      }
+      .onboarding-dialog {
+        width: min(640px, 100%);
+        max-height: min(92vh, 840px);
+        background: #ffffff;
+        border-radius: 20px;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transform: scale(0.96) translateY(10px);
+        transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .onboarding-backdrop.open .onboarding-dialog {
+        transform: scale(1) translateY(0);
+      }
+
+      /* 상단 프로그레스 바 & 닫기 */
+      .onboarding-top-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 24px 12px;
+        gap: 16px;
+      }
+      .onboarding-step-indicator {
+        display: flex;
+        gap: 6px;
+        flex: 1;
+        max-width: 140px;
+      }
+      .onboarding-step-bar {
+        height: 4px;
+        flex: 1;
+        border-radius: 999px;
+        background: #e9ecef;
+        transition: background-color 0.25s ease;
+      }
+      .onboarding-step-bar.active {
+        background: var(--brand);
+      }
+      .onboarding-close-button {
+        background: transparent;
+        border: none;
+        font-size: 18px;
+        line-height: 1;
+        color: #8b95a1;
+        padding: 6px 8px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .onboarding-close-button:hover {
+        background: #f2f4f6;
+        color: #191f28;
+      }
+
+      /* 본문 영역 */
+      .onboarding-main-content {
+        padding: 8px 28px 24px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .onboarding-text-block {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .onboarding-pill-badge {
+        display: inline-flex;
+        align-items: center;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 6px;
+        width: fit-content;
+      }
+      .onboarding-pill-brand {
+        background: var(--brand-soft);
+        color: var(--brand);
+        border: 1px solid rgba(255, 111, 15, 0.2);
+      }
+      .onboarding-pill-blue {
+        background: var(--blue-soft);
+        color: var(--blue);
+        border: 1px solid rgba(0, 102, 255, 0.2);
+      }
+      .onboarding-hero-title {
+        font-size: 23px;
+        font-weight: 800;
+        line-height: 1.35;
+        letter-spacing: -0.025em;
+        color: #191f28;
+        margin-top: 2px;
+      }
+      .onboarding-hero-subtitle {
+        font-size: 14.5px;
+        line-height: 1.55;
+        color: #4e5968;
+      }
+
+      /* 캡처 이미지: 깔끔한 모던 카드 프레임 */
+      .onboarding-screenshot-wrapper {
+        position: relative;
+        width: 100%;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid #e5e8eb;
+        background: #fafbfc;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      }
+      .onboarding-clean-image {
+        width: 100%;
+        height: auto;
+        max-height: 320px;
+        object-fit: cover;
+        object-position: top center;
+        display: block;
+      }
+
+      /* 하단 액션 */
+      .onboarding-bottom-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 24px;
+        border-top: 1px solid #f2f4f6;
+        background: #ffffff;
+        gap: 12px;
+      }
+      .onboarding-skip-button {
+        background: transparent;
+        border: none;
+        font-size: 13.5px;
+        font-weight: 600;
+        color: #8b95a1;
+        cursor: pointer;
+        padding: 6px 4px;
+        transition: color 0.15s ease;
+      }
+      .onboarding-skip-button:hover {
+        color: #4e5968;
+        text-decoration: underline;
+      }
+      .onboarding-step-counter {
+        font-size: 13px;
+        font-weight: 700;
+        color: #8b95a1;
+      }
+      .onboarding-buttons-cluster {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .onboarding-button-secondary {
+        padding: 10px 16px;
+        border-radius: 10px;
+        border: 1px solid #d1d6db;
+        background: #ffffff;
+        font-size: 14.5px;
+        font-weight: 600;
+        color: #4e5968;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .onboarding-button-secondary:hover {
+        background: #f8f9fa;
+        color: #191f28;
+      }
+      .onboarding-button-primary {
+        padding: 10px 22px;
+        border-radius: 10px;
+        border: none;
+        background: var(--brand);
+        color: #ffffff;
+        font-size: 14.5px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: opacity 0.15s ease, transform 0.1s ease;
+      }
+      .onboarding-button-primary:hover {
+        opacity: 0.92;
+      }
+      .onboarding-button-primary:active {
+        transform: scale(0.98);
+      }
+      .onboarding-cta-cluster {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .onboarding-google-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-radius: 10px;
+        background: #191f28;
+        color: #ffffff;
+        font-size: 14.5px;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .onboarding-google-cta:hover {
+        background: #333d4b;
+      }
+
+      @media (max-width: 640px) {
+        .onboarding-bottom-actions {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .onboarding-buttons-cluster,
+        .onboarding-cta-cluster {
+          width: 100%;
+        }
+        .onboarding-button-secondary,
+        .onboarding-button-primary,
+        .onboarding-google-cta {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 상단 목업 툴바 -->
+    <header class="mock-toolbar">
+      <div class="mock-toolbar-title">
+        <span>🌾 테크곳간 온보딩 모달 시안</span>
+      </div>
+      <div class="mock-step-btns">
+        <button id="btnStep0" class="mock-step-btn active" onclick="goToStep(0)">1단계: 최신 테크 글</button>
+        <button id="btnStep1" class="mock-step-btn" onclick="goToStep(1)">2단계: AI 3줄 요약</button>
+        <button id="btnStep2" class="mock-step-btn" onclick="goToStep(2)">3단계: 미열람 동기화</button>
+        <button class="mock-step-btn mock-btn-open" onclick="openModal()">모달 열기</button>
+      </div>
+    </header>
+
+    <!-- 배경 홈 화면 -->
+    <main class="app-shell">
+      <div class="header">
+        <div class="logo">🌾 테크곳간</div>
+        <div class="nav-links">
+          <span>블로그 추천하기 →</span>
+          <span>RSS</span>
+          <span>로그인</span>
+        </div>
+      </div>
+      <h1 class="hero-title">흩어진 테크 블로그 글을 한곳에서 찾아 읽어요</h1>
+      <p class="hero-desc">
+        테크곳간은 여러 기술 블로그의 새 글을 모아 제목·요약·태그로 검색할 수 있는 피드예요. 로그인하면 읽음 표시와 즐겨찾기를 동기화하고, AI 요약과 의미 기반 연관 글을 찾아볼 수 있어요.
+      </p>
+      <div class="chips">
+        <span class="chip">주제별 글</span>
+        <span class="chip">블로그 목록</span>
+        <span class="chip">주간 큐레이션</span>
+      </div>
+    </main>
+
+    <!-- 온보딩 모달 -->
+    <div id="onboardingModal" class="onboarding-backdrop open" onclick="onBackdropClick(event)">
+      <div class="onboarding-dialog" role="dialog" aria-modal="true">
+        <div class="onboarding-top-bar">
+          <div class="onboarding-step-indicator">
+            <span class="onboarding-step-bar active" id="bar0"></span>
+            <span class="onboarding-step-bar" id="bar1"></span>
+            <span class="onboarding-step-bar" id="bar2"></span>
+          </div>
+          <button class="onboarding-close-button" onclick="closeModal()" aria-label="닫기">✕</button>
+        </div>
+
+        <div class="onboarding-main-content">
+          <div id="stepText"></div>
+          <div class="onboarding-screenshot-wrapper">
+            <img id="stepImage" class="onboarding-clean-image" src="../public/onboarding/step1-feed.png" alt="미리보기" />
+          </div>
+        </div>
+
+        <div class="onboarding-bottom-actions">
+          <div class="onboarding-left-action" id="leftAction">
+            <button type="button" class="onboarding-skip-button" onclick="closeModal()">건너뛰기</button>
+          </div>
+          <div class="onboarding-buttons-cluster" id="stepButtons"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const STEPS = [
+        {
+          badge: "매일 아침 자동 수집",
+          badgeClass: "onboarding-pill-brand",
+          title: "토스·당근·배민의 최신 테크 글을 한곳에서",
+          subtitle: "수십 개 기업 기술 블로그를 일일이 찾아다니지 마세요. 검증된 엔지니어링 새 글을 매일 아침 자동으로 큐레이션해 드립니다.",
+          imageSrc: "../public/onboarding/step1-feed.png"
+        },
+        {
+          badge: "AI 3줄 핵심 요약",
+          badgeClass: "onboarding-pill-blue",
+          title: "긴 기술 아티클도 1분 만에! AI 핵심 브리핑",
+          subtitle: "문제 배경, 기술 스택, 실무 교훈까지 3줄로 명쾌하게 정리했어요. 바쁜 출퇴근길에도 핵심 인사이트만 빠르게 챙겨보세요.",
+          imageSrc: "../public/onboarding/step2-ai-summary.png"
+        },
+        {
+          badge: "맞춤 서재 & 동기화",
+          badgeClass: "onboarding-pill-brand",
+          title: "로그인하고 '안읽은 새 글'만 골라 읽으세요",
+          subtitle: "이미 읽은 글은 자동으로 걸러주고, 매일 올라온 미열람 글만 쏙쏙! 즐겨찾기한 글도 모든 기기에서 그대로 보관됩니다.",
+          imageSrc: "../public/onboarding/step3-unread-sync.png"
+        }
+      ];
+
+      let currentStep = 0;
+
+      function renderStep() {
+        const step = STEPS[currentStep];
+
+        // 프로그레스 바
+        for (let i = 0; i < 3; i++) {
+          const bar = document.getElementById(`bar${i}`);
+          const btn = document.getElementById(`btnStep${i}`);
+          if (bar) bar.classList.toggle("active", i <= currentStep);
+          if (btn) btn.classList.toggle("active", i === currentStep);
+        }
+
+        // 텍스트 영역
+        document.getElementById("stepText").innerHTML = `
+          <div class="onboarding-text-block">
+            <span class="onboarding-pill-badge ${step.badgeClass}">${step.badge}</span>
+            <h2 class="onboarding-hero-title">${step.title}</h2>
+            <p class="onboarding-hero-subtitle">${step.subtitle}</p>
+          </div>
+        `;
+
+        // 이미지
+        document.getElementById("stepImage").src = step.imageSrc;
+
+        // 하단 버튼
+        const isLast = currentStep === STEPS.length - 1;
+        let btnHtml = "";
+        if (currentStep > 0) {
+          btnHtml += `<button class="onboarding-button-secondary" onclick="goToStep(${currentStep - 1})">이전</button>`;
+        }
+        if (!isLast) {
+          btnHtml += `<button class="onboarding-button-primary" onclick="goToStep(${currentStep + 1})">다음 단계 →</button>`;
+        } else {
+          btnHtml += `
+            <div class="onboarding-cta-cluster">
+              <a href="#" class="onboarding-google-cta" onclick="alert('Google 로그인으로 이동'); closeModal(); return false;">
+                <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
+                <span>Google 1초 시작하기</span>
+              </a>
+              <button class="onboarding-button-secondary" onclick="closeModal()">바로 둘러보기</button>
+            </div>
+          `;
+        }
+        document.getElementById("stepButtons").innerHTML = btnHtml;
+      }
+
+      function goToStep(index) {
+        currentStep = index;
+        renderStep();
+      }
+
+      function openModal() {
+        document.getElementById("onboardingModal").classList.add("open");
+      }
+
+      function closeModal() {
+        document.getElementById("onboardingModal").classList.remove("open");
+      }
+
+      function onBackdropClick(e) {
+        if (e.target.id === "onboardingModal") closeModal();
+      }
+
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeModal();
+        if (e.key === "ArrowRight" && currentStep < STEPS.length - 1) goToStep(currentStep + 1);
+        if (e.key === "ArrowLeft" && currentStep > 0) goToStep(currentStep - 1);
+      });
+
+      renderStep();
+    </script>
+  </body>
+</html>

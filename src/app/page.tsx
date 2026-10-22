@@ -8,6 +8,7 @@ import { ArticleList } from "@/components/article-list";
 import { ArticleListSkeleton } from "@/components/article-list-skeleton";
 import { PageHeader } from "@/components/page-header";
 import { HeaderAuthSlot } from "@/components/header-auth-slot";
+import { OnboardingModal } from "@/components/onboarding-modal";
 import { getCurrentUser } from "@/lib/supabase/current-user";
 import { CATEGORY_MAP, type CategoryId } from "@/lib/categories";
 
@@ -110,6 +111,8 @@ export default async function Home({
         <Link href="/blogs" className="home-nav-chip">블로그 목록</Link>
         <Link href="/digest" className="home-nav-chip">주간 큐레이션</Link>
       </nav>
+
+      <OnboardingModal />
 
       <Suspense fallback={<ArticleListSkeleton />}>
         <ArticleListSection
