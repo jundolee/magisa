@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Text } from "@seed-design/react";
 import { RelatedArticleList } from "@/components/related-article-list";
+import { ShareButton } from "@/components/share-button";
 import { getArticlePreviewAction, markArticleReadAction } from "@/app/articles/actions";
 import { CATEGORY_MAP, type CategoryId } from "@/lib/categories";
 import type { ArticlePreview, RelatedArticle } from "@/lib/data/related-articles";
@@ -31,6 +32,8 @@ const ENGINEERING_BOX_METAS = [
     tagColor: "#b45309",
   },
 ];
+
+import { cleanKeyPoint } from "@/lib/summary-utils";
 
 function formatDate(value: string | null): string | null {
   if (!value) return null;
@@ -230,6 +233,61 @@ export function ArticlePreviewPanel({
     currentDragYRef.current = 0;
   }
 
+  const bodyTouchStartYRef = useRef<number | null>(null);
+  const isPullingDownFromTopRef = useRef<boolean>(false);
+
+  function handleBodyTouchStart(e: React.TouchEvent) {
+    if (bodyRef.current && bodyRef.current.scrollTop <= 0) {
+      bodyTouchStartYRef.current = e.touches[0].clientY;
+      isPullingDownFromTopRef.current = false;
+    } else {
+      bodyTouchStartYRef.current = null;
+      isPullingDownFromTopRef.current = false;
+    }
+  }
+
+  function handleBodyTouchMove(e: React.TouchEvent) {
+    if (bodyTouchStartYRef.current === null || !bodyRef.current) return;
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - bodyTouchStartYRef.current;
+
+    // 본문 스크롤이 최상단인 상태에서 아래로 당길 때만 바텀시트 닫기 제스처로 전환
+    if (bodyRef.current.scrollTop <= 0 && deltaY > 10) {
+      isPullingDownFromTopRef.current = true;
+      const dragY = deltaY - 10;
+      currentDragYRef.current = dragY;
+      if (dialogRef.current) {
+        dialogRef.current.style.transition = "none";
+        dialogRef.current.style.transform = `translateY(${dragY}px)`;
+      }
+      if (backdropRef.current) {
+        const opacity = Math.max(0.2, 1 - dragY / 400);
+        backdropRef.current.style.opacity = String(opacity);
+      }
+    }
+  }
+
+  function handleBodyTouchEnd() {
+    if (isPullingDownFromTopRef.current) {
+      isPullingDownFromTopRef.current = false;
+      const deltaY = currentDragYRef.current;
+      if (deltaY > 75) {
+        handleClose();
+      } else {
+        if (dialogRef.current) {
+          dialogRef.current.style.transition = "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)";
+          dialogRef.current.style.transform = "translateY(0)";
+        }
+        if (backdropRef.current) {
+          backdropRef.current.style.transition = "opacity 0.25s ease";
+          backdropRef.current.style.opacity = "1";
+        }
+      }
+    }
+    bodyTouchStartYRef.current = null;
+    currentDragYRef.current = 0;
+  }
+
   useEffect(() => {
     // 1. 브라우저 스크롤 락 시 스크롤바 폭만큼 paddingRight를 보정하여 페이지가 좌우로 덜컹거리는 현상 방지
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
@@ -317,7 +375,7 @@ export function ArticlePreviewPanel({
           <span className="article-preview-drag-bar" />
         </div>
 
-        {/* 상단 고정 액션 바: 긴 본문을 스크롤해도 닫기 버튼이 항상 보임 */}
+        {/* 상단 고정 액션 바: 긴 본문을 스크롤해도 닫기/공유 버튼이 항상 보임 */}
         <header
           className="article-preview-header"
           onTouchStart={handleTouchStart}
@@ -349,202 +407,289 @@ export function ArticlePreviewPanel({
           >
             ← 목록으로
           </button>
-          <button
-            type="button"
-            aria-label="닫기"
-            onClick={handleClose}
+          <div
+            style={{ display: "flex", alignItems: "center", gap: 8 }}
             onTouchStart={(e) => e.stopPropagation()}
             onTouchMove={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: "50%",
-              border: 0,
-              background: "var(--seed-color-bg-neutral-weak)",
-              color: "inherit",
-              cursor: "pointer",
-              fontSize: 22,
-              display: "grid",
-              placeItems: "center",
-              lineHeight: 1,
-              touchAction: "manipulation",
-            }}
           >
-            ×
-          </button>
+            <ShareButton
+              title={currentArticle.title}
+              url={`/articles/${encodeURIComponent(currentArticle.id)}`}
+              size="small"
+              variant="neutralWeak"
+            />
+            <button
+              type="button"
+              aria-label="닫기"
+              onClick={handleClose}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                border: 0,
+                background: "var(--seed-color-bg-neutral-weak)",
+                color: "inherit",
+                cursor: "pointer",
+                fontSize: 20,
+                display: "grid",
+                placeItems: "center",
+                lineHeight: 1,
+                touchAction: "manipulation",
+              }}
+            >
+              ×
+            </button>
+          </div>
         </header>
 
         {/* 본문 컨텐츠 (단일 독립 스크롤 영역) */}
-        <div ref={bodyRef} className="article-preview-body">
-          {/* 1. 메타 정보 (출처, 날짜, 카테고리) & 제목 */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-              <Badge size="medium" variant="weak" tone="neutral">
-                {currentArticle.sourceTitle ?? "출처 미상"}
-              </Badge>
-              {categoryMeta && (
-                <Badge size="medium" variant="outline" tone={categoryMeta.badgeTone}>
-                  {categoryMeta.label}
-                </Badge>
-              )}
-              {date && (
-                <Text as="span" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)">
-                  {date}
-                </Text>
-              )}
-            </div>
-
-            <Text
-              as="h1"
-              id="article-preview-title"
-              textStyle="t8Bold"
-              color="fg.neutral"
-              style={{ lineHeight: 1.35, wordBreak: "keep-all", overflowWrap: "break-word" }}
-            >
-              {currentArticle.title}
-            </Text>
-          </div>
-
-          {/* 2. [최상위 계층] ✨ AI 엔지니어링 3-Box 브리핑 카드 */}
-          {currentArticle.summary ? (
-            <section
-              aria-labelledby="ai-summary-heading"
-              style={{
-                borderRadius: 20,
-                padding: "24px clamp(18px, 3.5vw, 28px)",
-                background: "linear-gradient(180deg, #fffaf5 0%, #ffffff 100%)",
-                border: "1px solid #fbd8bc",
-                boxShadow: "0 2px 10px rgba(235, 100, 28, 0.04)",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span aria-hidden="true" style={{ fontSize: 16 }}>✨</span>
-                  <Text as="h2" id="ai-summary-heading" textStyle="t5Bold" color="fg.neutral">
-                    AI 엔지니어링 브리핑
-                  </Text>
+        <div
+          ref={bodyRef}
+          className="article-preview-body"
+          onTouchStart={handleBodyTouchStart}
+          onTouchMove={handleBodyTouchMove}
+          onTouchEnd={handleBodyTouchEnd}
+        >
+          {isLoadingRelated ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <div>
+                <div
+                  style={{
+                    width: 140,
+                    height: 24,
+                    borderRadius: 12,
+                    background: "var(--seed-color-bg-neutral-weak)",
+                    marginBottom: 12,
+                    animation: "skeleton-pulse 1.4s ease-in-out infinite",
+                  }}
+                />
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div
+                    style={{
+                      width: "92%",
+                      height: 28,
+                      borderRadius: 8,
+                      background: "var(--seed-color-bg-neutral-weak)",
+                      animation: "skeleton-pulse 1.4s ease-in-out infinite",
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: "60%",
+                      height: 28,
+                      borderRadius: 8,
+                      background: "var(--seed-color-bg-neutral-weak)",
+                      animation: "skeleton-pulse 1.4s ease-in-out infinite",
+                    }}
+                  />
                 </div>
-                <Text as="span" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)">
-                  {summaryBasisNotice(currentArticle.summaryBasis)}
-                </Text>
               </div>
 
-              {/* 리드 결론문 */}
               <div
                 style={{
-                  borderLeft: "3px solid var(--seed-color-bg-brand-solid, #eb641c)",
-                  paddingLeft: 14,
-                  marginBottom: 18,
+                  borderRadius: 20,
+                  padding: "24px 20px",
+                  background: "linear-gradient(180deg, #fffaf5 0%, #ffffff 100%)",
+                  border: "1px solid #fbd8bc",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 16,
                 }}
               >
-                <Text as="p" textStyle="t3Bold" color="fg.neutral" style={{ lineHeight: 1.5, wordBreak: "keep-all", overflowWrap: "break-word" }}>
-                  {currentArticle.summary.lead}
+                <div
+                  style={{
+                    width: 160,
+                    height: 20,
+                    borderRadius: 6,
+                    background: "#fed7aa",
+                    animation: "skeleton-pulse 1.4s ease-in-out infinite",
+                  }}
+                />
+                <div
+                  style={{
+                    width: "100%",
+                    height: 52,
+                    borderRadius: 8,
+                    background: "#ffedd5",
+                    animation: "skeleton-pulse 1.4s ease-in-out infinite",
+                  }}
+                />
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ height: 68, borderRadius: 14, background: "#fff8f8", border: "1px solid #fed7d7", animation: "skeleton-pulse 1.4s ease-in-out infinite" }} />
+                  <div style={{ height: 68, borderRadius: 14, background: "#f0f9ff", border: "1px solid #bae6fd", animation: "skeleton-pulse 1.4s ease-in-out infinite" }} />
+                  <div style={{ height: 68, borderRadius: 14, background: "#fefce8", border: "1px solid #fef08a", animation: "skeleton-pulse 1.4s ease-in-out infinite" }} />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* 1. 메타 정보 (출처, 날짜, 카테고리) & 제목 */}
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                  <Badge size="medium" variant="weak" tone="neutral">
+                    {currentArticle.sourceTitle ?? "출처 미상"}
+                  </Badge>
+                  {categoryMeta && (
+                    <Badge size="medium" variant="outline" tone={categoryMeta.badgeTone}>
+                      {categoryMeta.label}
+                    </Badge>
+                  )}
+                  {date && (
+                    <Text as="span" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)">
+                      {date}
+                    </Text>
+                  )}
+                </div>
+
+                <Text
+                  as="h1"
+                  id="article-preview-title"
+                  textStyle="t8Bold"
+                  color="fg.neutral"
+                  style={{ lineHeight: 1.35, wordBreak: "keep-all", overflowWrap: "break-word" }}
+                >
+                  {currentArticle.title}
                 </Text>
               </div>
 
-              {/* 엔지니어링 3-Box (문제 ➔ 기술/해결책 ➔ 교훈/주의점) */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {currentArticle.summary.keyPoints.map((point, index) => {
-                  const meta = ENGINEERING_BOX_METAS[index] ?? {
-                    icon: "📌",
-                    label: `핵심 ${index + 1}`,
-                    bg: "#ffffff",
-                    border: "#fed7aa",
-                    tagColor: "var(--seed-color-fg-brand)",
-                  };
-
-                  return (
-                    <div
-                      key={`${index}-${point}`}
-                      style={{
-                        background: meta.bg,
-                        border: `1px solid ${meta.border}`,
-                        borderRadius: 14,
-                        padding: "12px 16px",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 6,
-                        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span aria-hidden="true" style={{ fontSize: 14 }}>{meta.icon}</span>
-                        <Text as="span" textStyle="t2Bold" style={{ color: meta.tagColor, letterSpacing: "-0.01em" }}>
-                          {meta.label}
-                        </Text>
-                      </div>
-                      <Text as="p" textStyle="t3Regular" color="fg.neutral" style={{ lineHeight: 1.55, margin: 0 }}>
-                        {point}
+              {/* 2. [최상위 계층] ✨ AI 엔지니어링 3-Box 브리핑 카드 */}
+              {currentArticle.summary ? (
+                <section
+                  aria-labelledby="ai-summary-heading"
+                  style={{
+                    borderRadius: 20,
+                    padding: "24px clamp(18px, 3.5vw, 28px)",
+                    background: "linear-gradient(180deg, #fffaf5 0%, #ffffff 100%)",
+                    border: "1px solid #fbd8bc",
+                    boxShadow: "0 2px 10px rgba(235, 100, 28, 0.04)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span aria-hidden="true" style={{ fontSize: 16 }}>✨</span>
+                      <Text as="h2" id="ai-summary-heading" textStyle="t5Bold" color="fg.neutral">
+                        AI 엔지니어링 브리핑
                       </Text>
                     </div>
-                  );
-                })}
+                    <Text as="span" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)">
+                      {summaryBasisNotice(currentArticle.summaryBasis)}
+                    </Text>
+                  </div>
+
+                  {/* 리드 결론문 */}
+                  <div
+                    style={{
+                      borderLeft: "3px solid var(--seed-color-bg-brand-solid, #eb641c)",
+                      paddingLeft: 14,
+                      marginBottom: 18,
+                    }}
+                  >
+                    <Text as="p" textStyle="t3Bold" color="fg.neutral" style={{ lineHeight: 1.5, wordBreak: "keep-all", overflowWrap: "break-word" }}>
+                      {currentArticle.summary.lead}
+                    </Text>
+                  </div>
+
+                  {/* 엔지니어링 3-Box (문제 ➔ 기술/해결책 ➔ 교훈/주의점) */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {currentArticle.summary.keyPoints.map((point, index) => {
+                      const meta = ENGINEERING_BOX_METAS[index] ?? {
+                        icon: "📌",
+                        label: `핵심 ${index + 1}`,
+                        bg: "#ffffff",
+                        border: "#fed7aa",
+                        tagColor: "var(--seed-color-fg-brand)",
+                      };
+
+                      return (
+                        <div
+                          key={`${index}-${point}`}
+                          style={{
+                            background: meta.bg,
+                            border: `1px solid ${meta.border}`,
+                            borderRadius: 14,
+                            padding: "12px 16px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 6,
+                            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span aria-hidden="true" style={{ fontSize: 14 }}>{meta.icon}</span>
+                            <Text as="span" textStyle="t2Bold" style={{ color: meta.tagColor, letterSpacing: "-0.01em" }}>
+                              {meta.label}
+                            </Text>
+                          </div>
+                          <Text as="p" textStyle="t3Regular" color="fg.neutral" style={{ lineHeight: 1.55, margin: 0 }}>
+                            {cleanKeyPoint(point)}
+                          </Text>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              ) : (
+                <section
+                  aria-labelledby="ai-summary-heading"
+                  style={{
+                    borderRadius: 18,
+                    padding: "20px 24px",
+                    background: "var(--seed-color-bg-neutral-weak, #fafafa)",
+                    border: "1px solid var(--seed-color-stroke-neutral-subtle)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                    <span aria-hidden="true" style={{ fontSize: 16 }}>🤖</span>
+                    <Text as="h2" id="ai-summary-heading" textStyle="t5Bold" color="fg.neutral">
+                      AI 요약
+                    </Text>
+                  </div>
+                  <Text as="p" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)">
+                    {summaryNotice(currentArticle.summaryStatus)}
+                  </Text>
+                </section>
+              )}
+
+              {/* 3. [데스크톱 인라인 액션] 원문 읽기 CTA 버튼 */}
+              <div className="article-preview-inline-cta">
+                <a
+                  href={currentArticle.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="article-preview-cta-btn"
+                >
+                  <span>{currentArticle.sourceTitle ? `${currentArticle.sourceTitle}에서 전체 원문 읽기` : "전체 원문 읽기"}</span>
+                  <span aria-hidden="true">↗</span>
+                </a>
               </div>
-            </section>
-          ) : (
-            <section
-              aria-labelledby="ai-summary-heading"
-              style={{
-                borderRadius: 18,
-                padding: "20px 24px",
-                background: "var(--seed-color-bg-neutral-weak, #fafafa)",
-                border: "1px solid var(--seed-color-stroke-neutral-subtle)",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                <span aria-hidden="true" style={{ fontSize: 16 }}>🤖</span>
-                <Text as="h2" id="ai-summary-heading" textStyle="t5Bold" color="fg.neutral">
-                  AI 요약
-                </Text>
+
+              {/* 4. [지식 확장] AI 벡터 시맨틱 연관 기사 리스트 */}
+              <div style={{ borderTop: "1px solid var(--seed-color-stroke-neutral-subtle)", paddingTop: 16 }}>
+                <RelatedArticleList
+                  items={currentRelated.map((item) => ({ ...item, href: `/articles/${encodeURIComponent(item.id)}` }))}
+                  onSelectArticle={handleSelectRelated}
+                />
               </div>
-              <Text as="p" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)">
-                {summaryNotice(currentArticle.summaryStatus)}
+
+              <Text as="p" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)" style={{ textAlign: "center", marginTop: 4 }}>
+                원문과 발행처를 확인한 뒤 읽어 주세요.
               </Text>
-            </section>
+            </>
           )}
+        </div>
 
-          {/* 3. [주요 액션] 원문 읽기 CTA 버튼 */}
-          <div>
-            <a
-              href={currentArticle.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                textAlign: "center",
-                gap: 8,
-                padding: "16px 20px",
-                borderRadius: 16,
-                background: "var(--seed-color-bg-brand-solid, #eb641c)",
-                color: "white",
-                textDecoration: "none",
-                fontWeight: 700,
-                fontSize: 16,
-                boxShadow: "0 4px 16px rgba(235, 100, 28, 0.28)",
-                transition: "opacity 0.15s ease",
-                touchAction: "manipulation",
-                minHeight: 52,
-              }}
-            >
-              <span>{currentArticle.sourceTitle ? `${currentArticle.sourceTitle}에서 전체 원문 읽기` : "전체 원문 읽기"}</span>
-              <span aria-hidden="true">↗</span>
-            </a>
-          </div>
-
-          {/* 4. [지식 확장] AI 벡터 시맨틱 연관 기사 리스트 */}
-          <div style={{ borderTop: "1px solid var(--seed-color-stroke-neutral-subtle)", paddingTop: 16 }}>
-            <RelatedArticleList
-              items={currentRelated.map((item) => ({ ...item, href: `/articles/${encodeURIComponent(item.id)}` }))}
-              onSelectArticle={handleSelectRelated}
-            />
-          </div>
-
-          <Text as="p" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)" style={{ textAlign: "center", marginTop: 4 }}>
-            원문과 발행처를 확인한 뒤 읽어 주세요.
-          </Text>
+        {/* 모바일 하단 고정 CTA 바: 언제든 손쉽게 전체 원문으로 이동 */}
+        <div className="article-preview-bottom-bar">
+          <a
+            href={currentArticle.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="article-preview-cta-btn"
+          >
+            <span>{currentArticle.sourceTitle ? `${currentArticle.sourceTitle}에서 전체 원문 읽기` : "전체 원문 읽기"}</span>
+            <span aria-hidden="true">↗</span>
+          </a>
         </div>
       </section>
     </div>
