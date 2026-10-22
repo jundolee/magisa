@@ -32,19 +32,21 @@ export default async function LoginPage({
 
   return (
     <main className="auth-page">
-      <Text as="h1" textStyle="t7Bold" color="fg.neutral">
-        {isSignupIntent ? "회원가입" : "로그인"}
-      </Text>
-
-      {isSignupIntent ? (
-        <Text as="p" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">
-          계정을 만들면 읽음 표시와 즐겨찾기를 저장하고, 다른 기기에서도 이어서 볼 수 있어요.
+      <div className="auth-heading">
+        <Text as="h1" textStyle="t9Bold" color="fg.neutral">
+          {isSignupIntent ? "회원가입" : "로그인"}
         </Text>
-      ) : (
-        <Link href={signupHref} className="auth-signup-prompt">
-          처음 오셨나요? <strong>무료 회원가입</strong>
-        </Link>
-      )}
+
+        {isSignupIntent ? (
+          <Text as="p" textStyle="t4Regular" color="var(--seed-color-fg-neutral-muted)">
+            계정을 만들면 읽음 표시와 즐겨찾기를 저장하고, 다른 기기에서도 이어서 볼 수 있어요.
+          </Text>
+        ) : (
+          <Link href={signupHref} className="auth-signup-prompt">
+            처음 오셨나요? <strong>무료 회원가입</strong>
+          </Link>
+        )}
+      </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <form action={signInWithProviderAction.bind(null, "google", redirectTo)}>
@@ -72,7 +74,7 @@ export default async function LoginPage({
           <div style={{ borderTop: "1px solid var(--seed-color-stroke-neutral-subtle)" }} />
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <Text as="h2" textStyle="t4Bold" color="fg.neutral">
+            <Text as="h2" textStyle="t6Bold" color="fg.neutral">
               이메일로 로그인
             </Text>
             <form action={signInWithPasswordAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>

@@ -201,6 +201,12 @@ h3 {
   margin: 24px auto 48px;
 }
 
+.auth-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .auth-signup-prompt {
   display: block;
   padding: 13px 16px;
