@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Text } from "@seed-design/react";
 import { RelatedArticleList } from "@/components/related-article-list";
@@ -55,8 +55,106 @@ function summaryBasisNotice(basis: ArticlePreview["summaryBasis"]): string {
 
 export function ArticlePreviewPanel({ article, related }: { article: ArticlePreview; related: RelatedArticle[] }) {
   const router = useRouter();
+  const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const backdropMouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  const [shouldAnimateEnter] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const wasActive = !!(window as unknown as { __modalActive?: boolean }).__modalActive;
+    (window as unknown as { __modalActive?: boolean }).__modalActive = true;
+    return !wasActive;
+  });
+
+  const isClosingRef = useRef(false);
+
+  const dragStartYRef = useRef<number | null>(null);
+  const currentDragYRef = useRef<number>(0);
+  const isDraggingRef = useRef<boolean>(false);
+
+  const handleClose = useCallback(() => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    const isMobile = typeof window !== "undefined" && window.innerWidth <= 640;
+    if (dialogRef.current) {
+      dialogRef.current.style.transition = "transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease";
+      dialogRef.current.style.transform = isMobile ? "translateY(100%)" : "scale(0.96) translateY(12px)";
+      if (!isMobile) {
+        dialogRef.current.style.opacity = "0";
+      }
+    }
+    if (backdropRef.current) {
+      backdropRef.current.style.transition = "opacity 0.2s ease";
+      backdropRef.current.style.opacity = "0";
+    }
+    setTimeout(() => {
+      (window as unknown as { __modalActive?: boolean }).__modalActive = false;
+      router.back();
+    }, 180);
+  }, [router]);
+
+  // 관련 기사 클릭 등으로 article.id가 변경될 때 내부 스크롤을 맨 위로 초기화
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: 0, behavior: "instant" });
+  }, [article.id]);
+
+  useEffect(() => {
+    (window as unknown as { __modalActive?: boolean }).__modalActive = true;
+    return () => {
+      (window as unknown as { __modalActive?: boolean }).__modalActive = false;
+    };
+  }, []);
+
+  function handleTouchStart(e: React.TouchEvent) {
+    dragStartYRef.current = e.touches[0].clientY;
+    currentDragYRef.current = 0;
+    isDraggingRef.current = true;
+    if (dialogRef.current) {
+      dialogRef.current.style.transition = "none";
+    }
+  }
+
+  function handleTouchMove(e: React.TouchEvent) {
+    if (!isDraggingRef.current || dragStartYRef.current === null) return;
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - dragStartYRef.current;
+    if (deltaY > 0) {
+      currentDragYRef.current = deltaY;
+      if (dialogRef.current) {
+        dialogRef.current.style.transform = `translateY(${deltaY}px)`;
+      }
+      if (backdropRef.current) {
+        const opacity = Math.max(0.2, 1 - deltaY / 400);
+        backdropRef.current.style.opacity = String(opacity);
+      }
+    } else {
+      currentDragYRef.current = 0;
+      if (dialogRef.current) {
+        dialogRef.current.style.transform = "translateY(0)";
+      }
+    }
+  }
+
+  function handleTouchEnd() {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    const deltaY = currentDragYRef.current;
+    if (deltaY > 70) {
+      handleClose();
+    } else {
+      if (dialogRef.current) {
+        dialogRef.current.style.transition = "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)";
+        dialogRef.current.style.transform = "translateY(0)";
+      }
+      if (backdropRef.current) {
+        backdropRef.current.style.transition = "opacity 0.25s ease";
+        backdropRef.current.style.opacity = "1";
+      }
+    }
+    dragStartYRef.current = null;
+    currentDragYRef.current = 0;
+  }
 
   useEffect(() => {
     // 1. 브라우저 스크롤 락 시 스크롤바 폭만큼 paddingRight를 보정하여 페이지가 좌우로 덜컹거리는 현상 방지
@@ -74,7 +172,7 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        router.back();
+        handleClose();
         return;
       }
       if (event.key !== "Tab") return;
@@ -105,21 +203,25 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
       document.body.style.paddingRight = previousPaddingRight;
       if (previousFocus?.isConnected) previousFocus.focus();
     };
-  }, [router]);
+  }, [handleClose]);
 
   const date = formatDate(article.publishedAt);
   const categoryMeta = article.category && article.category !== "general" ? CATEGORY_MAP.get(article.category as CategoryId) : null;
 
   return (
     <div
+      ref={backdropRef}
       role="presentation"
-      className="article-preview-backdrop"
+      className={`article-preview-backdrop ${shouldAnimateEnter ? "article-preview-backdrop-enter" : ""}`}
       onMouseDown={(event) => {
+        backdropMouseDownTargetRef.current = event.target;
+      }}
+      onTouchStart={(event) => {
         backdropMouseDownTargetRef.current = event.target;
       }}
       onClick={(event) => {
         if (event.target === event.currentTarget && backdropMouseDownTargetRef.current === event.currentTarget) {
-          router.back();
+          handleClose();
         }
       }}
     >
@@ -129,13 +231,31 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
         aria-modal="true"
         aria-labelledby="article-preview-title"
         tabIndex={-1}
-        className="article-preview-dialog"
+        className={`article-preview-dialog ${shouldAnimateEnter ? "article-preview-dialog-enter" : ""}`}
       >
+        {/* 모바일 바텀시트 상단 드래그 핸들 */}
+        <div
+          className="article-preview-drag-handle"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <span className="article-preview-drag-bar" />
+        </div>
+
         {/* 상단 고정 액션 바: 긴 본문을 스크롤해도 닫기 버튼이 항상 보임 */}
-        <header className="article-preview-header">
+        <header
+          className="article-preview-header"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={handleClose}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
             style={{
               border: 0,
               background: "none",
@@ -158,7 +278,10 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
           <button
             type="button"
             aria-label="닫기"
-            onClick={() => router.back()}
+            onClick={handleClose}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
             style={{
               width: 40,
               height: 40,
@@ -179,7 +302,7 @@ export function ArticlePreviewPanel({ article, related }: { article: ArticlePrev
         </header>
 
         {/* 본문 컨텐츠 (단일 독립 스크롤 영역) */}
-        <div className="article-preview-body">
+        <div ref={bodyRef} className="article-preview-body">
           {/* 1. 메타 정보 (출처, 날짜, 카테고리) & 제목 */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>

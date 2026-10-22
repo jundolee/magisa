@@ -88,6 +88,7 @@ export function ArticleRow({
           articleId={article.id}
           articleTitle={article.title}
           href={`/articles/${encodeURIComponent(article.id)}`}
+          className="article-row-link"
           style={{ display: "flex", flexDirection: "column", gap: 8 }}
           onRead={onRead}
         >

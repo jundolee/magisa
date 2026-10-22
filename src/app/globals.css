@@ -208,6 +208,35 @@ h3 {
 }
 
 /* 아티클 모달/바텀시트 반응형: 이중 스크롤 제거 및 단일 내부 스크롤 구조 */
+@keyframes modal-backdrop-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-dialog-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes sheet-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 .article-preview-backdrop {
   position: fixed;
   inset: 0;
@@ -221,6 +250,10 @@ h3 {
   touch-action: none;
 }
 
+.article-preview-backdrop.article-preview-backdrop-enter {
+  animation: modal-backdrop-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .article-preview-dialog {
   position: relative;
   width: min(740px, 100%);
@@ -232,6 +265,14 @@ h3 {
   flex-direction: column;
   overflow: hidden;
   touch-action: auto;
+}
+
+.article-preview-dialog.article-preview-dialog-enter {
+  animation: modal-dialog-pop-in 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.article-preview-drag-handle {
+  display: none;
 }
 
 .article-preview-header {
@@ -268,8 +309,31 @@ h3 {
     border-radius: 20px 20px 0 0;
   }
 
+  .article-preview-dialog.article-preview-dialog-enter {
+    animation: sheet-slide-up 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .article-preview-drag-handle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding: 10px 0 2px;
+    background: var(--seed-color-bg-layer-default, #fff);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .article-preview-drag-bar {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--seed-color-stroke-neutral-subtle, #d1d5db);
+  }
+
   .article-preview-header {
-    padding: 12px 16px;
+    padding: 8px 16px 12px;
   }
 
   .article-preview-body {
@@ -286,9 +350,29 @@ h3 {
   border-bottom: 1px solid var(--seed-color-stroke-neutral-subtle);
 }
 
+.article-row-link {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.12s ease;
+}
+
+.article-row-link:active {
+  opacity: 0.65;
+}
+
 .article-row-thumb {
   flex-shrink: 0;
   display: block;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.12s ease;
+}
+
+.article-row-thumb:active {
+  opacity: 0.75;
 }
 
 .article-row-thumb-aspect {
