@@ -76,6 +76,7 @@ export function RelatedArticleList({
             >
               <Link
                 href={item.href}
+                className="related-article-item-link"
                 onClick={
                   onSelectArticle
                     ? (e) => {
@@ -84,7 +85,6 @@ export function RelatedArticleList({
                       }
                     : undefined
                 }
-                style={{ display: "block", padding: "14px 0", color: "inherit", textDecoration: "none" }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, marginBottom: 6 }}>
                   <Text as="span" textStyle="t2Regular" color={MUTED}>
@@ -97,17 +97,24 @@ export function RelatedArticleList({
                     </Badge>
                   )}
                 </div>
-                <Text
-                  as="h3"
-                  textStyle="t4Bold"
-                  color="fg.neutral"
-                  style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, lineHeight: 1.45 }}
+                <h3
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    fontSize: 15,
+                    fontWeight: 600,
+                    lineHeight: 1.48,
+                    color: "var(--seed-color-fg-neutral)",
+                    margin: 0,
+                  }}
                 >
                   <span>{item.title}</span>
                   <span aria-hidden="true" style={{ color: MUTED, flexShrink: 0, fontSize: 16 }}>
                     ↗
                   </span>
-                </Text>
+                </h3>
                 {publishedAt && (
                   <time dateTime={item.publishedAt ?? undefined} style={{ display: "block", marginTop: 6, color: MUTED, fontSize: 13, lineHeight: 1.4 }}>
                     {publishedAt}

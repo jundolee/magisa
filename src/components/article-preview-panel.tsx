@@ -384,26 +384,11 @@ export function ArticlePreviewPanel({
         >
           <button
             type="button"
+            className="article-preview-back-btn"
             onClick={handleClose}
             onTouchStart={(e) => e.stopPropagation()}
             onTouchMove={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
-            style={{
-              border: 0,
-              background: "none",
-              color: "var(--seed-color-fg-neutral-muted)",
-              cursor: "pointer",
-              font: "inherit",
-              fontSize: 14,
-              fontWeight: 600,
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              padding: "8px 10px",
-              borderRadius: 8,
-              minHeight: 40,
-              touchAction: "manipulation",
-            }}
           >
             ← 목록으로
           </button>
@@ -422,21 +407,8 @@ export function ArticlePreviewPanel({
             <button
               type="button"
               aria-label="닫기"
+              className="article-preview-close-btn"
               onClick={handleClose}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                border: 0,
-                background: "var(--seed-color-bg-neutral-weak)",
-                color: "inherit",
-                cursor: "pointer",
-                fontSize: 20,
-                display: "grid",
-                placeItems: "center",
-                lineHeight: 1,
-                touchAction: "manipulation",
-              }}
             >
               ×
             </button>
@@ -487,11 +459,8 @@ export function ArticlePreviewPanel({
               </div>
 
               <div
+                className="ai-summary-card"
                 style={{
-                  borderRadius: 20,
-                  padding: "24px 20px",
-                  background: "linear-gradient(180deg, #fffaf5 0%, #ffffff 100%)",
-                  border: "1px solid #fbd8bc",
                   display: "flex",
                   flexDirection: "column",
                   gap: 16,
@@ -500,7 +469,7 @@ export function ArticlePreviewPanel({
                 <div
                   style={{
                     width: 160,
-                    height: 20,
+                    height: 22,
                     borderRadius: 6,
                     background: "#fed7aa",
                     animation: "skeleton-pulse 1.4s ease-in-out infinite",
@@ -509,16 +478,16 @@ export function ArticlePreviewPanel({
                 <div
                   style={{
                     width: "100%",
-                    height: 52,
-                    borderRadius: 8,
+                    height: 60,
+                    borderRadius: 12,
                     background: "#ffedd5",
                     animation: "skeleton-pulse 1.4s ease-in-out infinite",
                   }}
                 />
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <div style={{ height: 68, borderRadius: 14, background: "#fff8f8", border: "1px solid #fed7d7", animation: "skeleton-pulse 1.4s ease-in-out infinite" }} />
-                  <div style={{ height: 68, borderRadius: 14, background: "#f0f9ff", border: "1px solid #bae6fd", animation: "skeleton-pulse 1.4s ease-in-out infinite" }} />
-                  <div style={{ height: 68, borderRadius: 14, background: "#fefce8", border: "1px solid #fef08a", animation: "skeleton-pulse 1.4s ease-in-out infinite" }} />
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ height: 76, borderRadius: 14, background: "#fff8f8", border: "1px solid #fed7d7", animation: "skeleton-pulse 1.4s ease-in-out infinite" }} />
+                  <div style={{ height: 76, borderRadius: 14, background: "#f0f9ff", border: "1px solid #bae6fd", animation: "skeleton-pulse 1.4s ease-in-out infinite" }} />
+                  <div style={{ height: 76, borderRadius: 14, background: "#fefce8", border: "1px solid #fef08a", animation: "skeleton-pulse 1.4s ease-in-out infinite" }} />
                 </div>
               </div>
             </div>
@@ -526,7 +495,7 @@ export function ArticlePreviewPanel({
             <>
               {/* 1. 메타 정보 (출처, 날짜, 카테고리) & 제목 */}
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
                   <Badge size="medium" variant="weak" tone="neutral">
                     {currentArticle.sourceTitle ?? "출처 미상"}
                   </Badge>
@@ -542,56 +511,35 @@ export function ArticlePreviewPanel({
                   )}
                 </div>
 
-                <Text
-                  as="h1"
-                  id="article-preview-title"
-                  textStyle="t8Bold"
-                  color="fg.neutral"
-                  style={{ lineHeight: 1.35, wordBreak: "keep-all", overflowWrap: "break-word" }}
-                >
+                <h1 id="article-preview-title" className="article-preview-title">
                   {currentArticle.title}
-                </Text>
+                </h1>
               </div>
 
               {/* 2. [최상위 계층] ✨ AI 엔지니어링 3-Box 브리핑 카드 */}
               {currentArticle.summary ? (
-                <section
-                  aria-labelledby="ai-summary-heading"
-                  style={{
-                    borderRadius: 20,
-                    padding: "24px clamp(18px, 3.5vw, 28px)",
-                    background: "linear-gradient(180deg, #fffaf5 0%, #ffffff 100%)",
-                    border: "1px solid #fbd8bc",
-                    boxShadow: "0 2px 10px rgba(235, 100, 28, 0.04)",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span aria-hidden="true" style={{ fontSize: 16 }}>✨</span>
-                      <Text as="h2" id="ai-summary-heading" textStyle="t5Bold" color="fg.neutral">
+                <section aria-labelledby="ai-summary-heading" className="ai-summary-card">
+                  <div className="ai-summary-header">
+                    <div className="ai-summary-title-wrap">
+                      <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>✨</span>
+                      <h2 id="ai-summary-heading" className="ai-summary-title">
                         AI 엔지니어링 브리핑
-                      </Text>
+                      </h2>
                     </div>
-                    <Text as="span" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)">
+                    <span className="ai-summary-basis-badge">
                       {summaryBasisNotice(currentArticle.summaryBasis)}
-                    </Text>
+                    </span>
                   </div>
 
                   {/* 리드 결론문 */}
-                  <div
-                    style={{
-                      borderLeft: "3px solid var(--seed-color-bg-brand-solid, #eb641c)",
-                      paddingLeft: 14,
-                      marginBottom: 18,
-                    }}
-                  >
-                    <Text as="p" textStyle="t3Bold" color="fg.neutral" style={{ lineHeight: 1.5, wordBreak: "keep-all", overflowWrap: "break-word" }}>
+                  <div className="ai-summary-lead-box">
+                    <p className="ai-summary-lead-text">
                       {currentArticle.summary.lead}
-                    </Text>
+                    </p>
                   </div>
 
                   {/* 엔지니어링 3-Box (문제 ➔ 기술/해결책 ➔ 교훈/주의점) */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div className="ai-summary-point-list">
                     {currentArticle.summary.keyPoints.map((point, index) => {
                       const meta = ENGINEERING_BOX_METAS[index] ?? {
                         icon: "📌",
@@ -604,50 +552,37 @@ export function ArticlePreviewPanel({
                       return (
                         <div
                           key={`${index}-${point}`}
+                          className="ai-summary-point-card"
                           style={{
                             background: meta.bg,
                             border: `1px solid ${meta.border}`,
-                            borderRadius: 14,
-                            padding: "12px 16px",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 6,
-                            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
                           }}
                         >
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <span aria-hidden="true" style={{ fontSize: 14 }}>{meta.icon}</span>
-                            <Text as="span" textStyle="t2Bold" style={{ color: meta.tagColor, letterSpacing: "-0.01em" }}>
+                          <div className="ai-summary-point-header">
+                            <span aria-hidden="true" className="ai-summary-point-icon">{meta.icon}</span>
+                            <span className="ai-summary-point-label" style={{ color: meta.tagColor }}>
                               {meta.label}
-                            </Text>
+                            </span>
                           </div>
-                          <Text as="p" textStyle="t3Regular" color="fg.neutral" style={{ lineHeight: 1.55, margin: 0 }}>
+                          <p className="ai-summary-point-text">
                             {cleanKeyPoint(point)}
-                          </Text>
+                          </p>
                         </div>
                       );
                     })}
                   </div>
                 </section>
               ) : (
-                <section
-                  aria-labelledby="ai-summary-heading"
-                  style={{
-                    borderRadius: 18,
-                    padding: "20px 24px",
-                    background: "var(--seed-color-bg-neutral-weak, #fafafa)",
-                    border: "1px solid var(--seed-color-stroke-neutral-subtle)",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                <section aria-labelledby="ai-summary-heading" className="ai-summary-fallback-card">
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span aria-hidden="true" style={{ fontSize: 16 }}>🤖</span>
-                    <Text as="h2" id="ai-summary-heading" textStyle="t5Bold" color="fg.neutral">
+                    <h2 id="ai-summary-heading" className="ai-summary-title" style={{ fontSize: 16 }}>
                       AI 요약
-                    </Text>
+                    </h2>
                   </div>
-                  <Text as="p" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)">
+                  <p className="ai-summary-fallback-text">
                     {summaryNotice(currentArticle.summaryStatus)}
-                  </Text>
+                  </p>
                 </section>
               )}
 

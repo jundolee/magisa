@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { Text } from "@seed-design/react";
 import { RelatedArticleList } from "@/components/related-article-list";
 import { getArticlePreview, getRelatedArticles } from "@/lib/data/related-articles";
+import { cleanKeyPoint } from "@/lib/summary-utils";
 import { SITE_NAME } from "@/app/seo";
 
 export const runtime = "nodejs";
@@ -60,44 +61,95 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       <Text as="p" textStyle="t2Medium" color="var(--seed-color-fg-neutral-muted)" style={{ marginTop: 28 }}>
         {article.sourceTitle ?? "출처 미상"}{article.publishedAt ? ` · ${new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(article.publishedAt))}` : ""}
       </Text>
-      <Text as="h1" textStyle="t8Bold" color="fg.neutral" style={{ marginTop: 12, lineHeight: 1.25 }}>{article.title}</Text>
-      <section aria-labelledby="ai-summary-heading" style={{ marginTop: 28, border: `1px solid ${article.summary ? "#fbd8bc" : "var(--seed-color-stroke-neutral-subtle)"}`, borderRadius: 20, padding: "24px 28px", background: article.summary ? "linear-gradient(180deg, #fffaf5 0%, #ffffff 100%)" : undefined }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span aria-hidden="true" style={{ fontSize: 16 }}>✨</span>
-            <Text as="h2" id="ai-summary-heading" textStyle="t5Bold" color="fg.neutral">AI 엔지니어링 브리핑</Text>
+      <h1 className="article-preview-title" style={{ marginTop: 12 }}>
+        {article.title}
+      </h1>
+
+      {article.summary ? (
+        <section aria-labelledby="ai-summary-heading" className="ai-summary-card" style={{ marginTop: 28 }}>
+          <div className="ai-summary-header">
+            <div className="ai-summary-title-wrap">
+              <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>✨</span>
+              <h2 id="ai-summary-heading" className="ai-summary-title">
+                AI 엔지니어링 브리핑
+              </h2>
+            </div>
+            <span className="ai-summary-basis-badge">
+              {summaryBasisNotice(article.summaryBasis)}
+            </span>
           </div>
-          {article.summary && (
-            <Text as="span" textStyle="t1Regular" color="var(--seed-color-fg-neutral-muted)">{summaryBasisNotice(article.summaryBasis)}</Text>
-          )}
-        </div>
-        {article.summary ? <>
-          <div style={{ borderLeft: "3px solid var(--seed-color-bg-brand-solid, #eb641c)", paddingLeft: 14, marginBottom: 18 }}>
-            <Text as="p" textStyle="t3Bold" color="fg.neutral" style={{ lineHeight: 1.5, wordBreak: "keep-all" }}>{article.summary.lead}</Text>
+
+          <div className="ai-summary-lead-box">
+            <p className="ai-summary-lead-text">
+              {article.summary.lead}
+            </p>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+          <div className="ai-summary-point-list">
             {article.summary.keyPoints.map((point, index) => {
-              const meta = ENGINEERING_BOX_METAS[index] ?? { icon: "📌", label: `핵심 ${index + 1}`, bg: "#ffffff", border: "#fed7aa", tagColor: "var(--seed-color-fg-brand)" };
+              const meta = ENGINEERING_BOX_METAS[index] ?? {
+                icon: "📌",
+                label: `핵심 ${index + 1}`,
+                bg: "#ffffff",
+                border: "#fed7aa",
+                tagColor: "var(--seed-color-fg-brand)",
+              };
               return (
-                <div key={`${index}-${point}`} style={{ background: meta.bg, border: `1px solid ${meta.border}`, borderRadius: 14, padding: "12px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span aria-hidden="true" style={{ fontSize: 14 }}>{meta.icon}</span>
-                    <Text as="span" textStyle="t2Bold" style={{ color: meta.tagColor }}>{meta.label}</Text>
+                <div
+                  key={`${index}-${point}`}
+                  className="ai-summary-point-card"
+                  style={{
+                    background: meta.bg,
+                    border: `1px solid ${meta.border}`,
+                  }}
+                >
+                  <div className="ai-summary-point-header">
+                    <span aria-hidden="true" className="ai-summary-point-icon">{meta.icon}</span>
+                    <span className="ai-summary-point-label" style={{ color: meta.tagColor }}>
+                      {meta.label}
+                    </span>
                   </div>
-                  <Text as="p" textStyle="t3Regular" color="fg.neutral" style={{ lineHeight: 1.55, margin: 0 }}>{point}</Text>
+                  <p className="ai-summary-point-text">
+                    {cleanKeyPoint(point)}
+                  </p>
                 </div>
               );
             })}
           </div>
-        </> : <Text as="p" textStyle="t2Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginTop: 6 }}>
-          {article.summaryStatus === "pending" ? "원문 본문을 가져와 요약할 예정입니다. 다음 요약 작업을 기다리고 있습니다." :
-            article.summaryStatus === "processing" ? "원문을 확인하고 요약을 만들고 있습니다." :
-              article.summaryStatus === "failed" ? "원문을 가져오거나 요약을 만드는 데 실패했습니다. 잠시 후 다시 시도합니다." :
-              article.summaryStatus === "unavailable" ? "원문 본문을 추출할 수 없어 요약을 제공하지 않습니다. 원문에서 확인해 주세요." :
-                  "등록된 AI 요약이 없습니다. 원문에서 확인해 주세요."}
-        </Text>}
-      </section>
-      <a href={article.url} target="_blank" rel="noopener noreferrer" style={{ display: "flex", justifyContent: "center", marginTop: 18, padding: 16, borderRadius: 14, background: "var(--seed-color-bg-brand-solid, #eb641c)", color: "white", textDecoration: "none", fontWeight: 700 }}>원문 읽기 ↗</a>
+        </section>
+      ) : (
+        <section aria-labelledby="ai-summary-heading" className="ai-summary-fallback-card" style={{ marginTop: 28 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span aria-hidden="true" style={{ fontSize: 16 }}>🤖</span>
+            <h2 id="ai-summary-heading" className="ai-summary-title" style={{ fontSize: 16 }}>
+              AI 요약
+            </h2>
+          </div>
+          <p className="ai-summary-fallback-text">
+            {article.summaryStatus === "pending"
+              ? "원문 본문을 가져와 요약할 예정입니다. 다음 요약 작업을 기다리고 있습니다."
+              : article.summaryStatus === "processing"
+              ? "원문을 확인하고 요약을 만들고 있습니다."
+              : article.summaryStatus === "failed"
+              ? "원문을 가져오거나 요약을 만드는 데 실패했습니다. 잠시 후 다시 시도합니다."
+              : article.summaryStatus === "unavailable"
+              ? "원문 본문을 추출할 수 없어 요약을 제공하지 않습니다. 원문에서 확인해 주세요."
+              : "등록된 AI 요약이 없습니다. 원문에서 확인해 주세요."}
+          </p>
+        </section>
+      )}
+
+      <div style={{ marginTop: 20 }}>
+        <a
+          href={article.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="article-preview-cta-btn"
+        >
+          <span>{article.sourceTitle ? `${article.sourceTitle}에서 전체 원문 읽기` : "전체 원문 읽기"}</span>
+          <span aria-hidden="true">↗</span>
+        </a>
+      </div>
       <div style={{ marginTop: 28 }}>
         <RelatedArticleList items={related.map((item) => ({ ...item, href: `/articles/${encodeURIComponent(item.id)}` }))} />
       </div>
