@@ -5,6 +5,12 @@
 
 const BLOCKED_DOMAINS = [
   "techblog.woowahan.com",
+  "medium.com",
+  "techblog.uplus.co.kr",
+  "techblog.gccompany.co.kr",
+  "techblog.lotteon.com",
+  "techblog.musinsa.com",
+  "blog.kmong.com",
 ];
 
 export function isBlockedDomain(url: string): boolean {

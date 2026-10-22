@@ -66,6 +66,36 @@ function extractThumbnail(item: Record<string, unknown>, articleUrl: string): st
   return null;
 }
 
+export function extractFeedExcerpt(item: Record<string, unknown>): string | null {
+  const directSnippet = typeof item.contentSnippet === "string" ? item.contentSnippet.trim() : "";
+  if (directSnippet && directSnippet.length >= 80) {
+    return directSnippet.replace(/\s+/g, " ").slice(0, 2000);
+  }
+
+  const encodedSnippet = typeof item["content:encodedSnippet"] === "string" ? (item["content:encodedSnippet"] as string).trim() : "";
+  if (encodedSnippet && encodedSnippet.length >= 80) {
+    return encodedSnippet.replace(/\s+/g, " ").slice(0, 2000);
+  }
+
+  const html = (typeof item["content:encoded"] === "string" ? item["content:encoded"] : null) ??
+    (typeof item.content === "string" ? item.content : null) ??
+    (typeof item.description === "string" ? item.description : null);
+
+  if (html) {
+    try {
+      const $ = cheerio.load(html);
+      $("script,style,noscript,svg,iframe,nav,footer,header,form,button").remove();
+      const text = $("body").text().replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+      if (text.length >= 40) {
+        return text.slice(0, 2000);
+      }
+    } catch {}
+  }
+
+  const fallback = directSnippet || encodedSnippet || null;
+  return fallback ? fallback.slice(0, 2000) : null;
+}
+
 export interface ParsedFeed {
   /** 채널(피드) 제목 — 소스 등록 시 블로그 이름으로 사용 */
   title: string | null;
@@ -132,13 +162,13 @@ export async function parseFeed(feedUrl: string): Promise<ParsedFeed> {
       const url = item.link as string;
       const title = item.title as string;
       const publishedAt = item.isoDate ?? (item.pubDate ? new Date(item.pubDate).toISOString() : null);
-      const excerpt = item.contentSnippet ?? null;
+      const excerpt = extractFeedExcerpt(item as Record<string, unknown>);
       const guid = (item.guid as string | undefined) ?? (item as Record<string, unknown>).id;
 
       return {
         title,
         url,
-        excerpt: excerpt ? excerpt.slice(0, 500) : null,
+        excerpt,
         thumbnailUrl: extractThumbnail(item as Record<string, unknown>, url),
         publishedAt: publishedAt ?? null,
         dedupKey: computeDedupKey({ guid: (guid as string) ?? null, url, title }),

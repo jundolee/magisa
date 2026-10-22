@@ -6,7 +6,7 @@
 - 배포 이후 새로 수집된 글만 요약 job에 넣는다. excerpt 길이는 enqueue 조건으로 사용하지 않는다.
 - Worker가 새 글의 원문 URL을 서버에서 가져와 본문을 추출한다. `article`/`itemprop=articleBody`를 우선하고, `main` 등은 `partial` 상태로 분류한다. 로그인·구독 벽, 403, 비HTML, DNS/네트워크 오류는 우회하지 않는다.
 - Fetch 보호: HTTP/HTTPS와 표준 포트만 허용, DNS 주소를 연결에 고정, 비공개·예약 IP 차단, redirect마다 재검증, HTTPS downgrade 차단, 최대 redirect 3회, 응답 1.5MB·시간 10초 제한.
-- 추출 본문은 최대 40,000자까지 메모리에서 처리하며 DB에 저장하지 않는다. 800자 미만은 `unavailable`; 40,000자를 넘겨 잘린 본문이나 휴리스틱 선택자는 `partial`로 기록한다.
+- 추출 본문은 최대 40,000자까지 메모리에서 처리하며 DB에 저장하지 않는다. 250자 미만은 `unavailable` (원문 및 피드 발췌 모두 불가능할 경우); 40,000자를 넘겨 잘린 본문이나 휴리스틱 선택자·피드 발췌 폴백은 `partial`로 기록한다.
 - Responses API에는 제목 최대 300자와 추출 본문만 보내며, 모델은 `gpt-5.6-luna`, `store: false`, 출력은 최대 240토큰이다. API 요청에는 원문 URL·사용자 계정·검색어를 넣지 않는다.
 - 저장값은 요약, 추출 상태, 모델/prompt 버전, 입력 hash, usage token, 처리 상태와 시각이다. 원문 본문 자체는 저장하지 않는다.
 

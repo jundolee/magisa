@@ -1,4 +1,5 @@
 import { NextRequest, after } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
 import { ingestSource, type SourceRow } from "@/lib/ingestion/ingest-source";
 
@@ -122,6 +123,16 @@ export async function GET(request: NextRequest) {
 
     const summaries = await Promise.all(batch.map((source) => ingestOne(supabase, source)));
     allSummaries.push(...summaries);
+  }
+
+  const totalInserted = allSummaries.reduce((acc, s) => acc + (s.inserted ?? 0), 0);
+  if (totalInserted > 0) {
+    try {
+      revalidateTag("articles", "max");
+      revalidatePath("/");
+    } catch (revalidateErr) {
+      console.warn("Revalidation error after cron ingest:", revalidateErr);
+    }
   }
 
   const processedSoFar = processedBeforeThisHop + allSummaries.length;

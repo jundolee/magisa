@@ -7,8 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test tests/*.test.ts tests/*.test.mjs",
-    "backfill:categories": "npx tsx scripts/backfill-categories.ts"
+    "test": "tsx --conditions react-server --test tests/*.test.ts tests/*.test.mjs",
+    "backfill:categories": "npx tsx scripts/backfill-categories.ts",
+    "retry:summaries": "npx tsx --conditions react-server scripts/retry-summaries.ts"
   },
   "engines": {
     "node": ">=22.0.0"

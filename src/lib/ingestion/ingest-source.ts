@@ -10,7 +10,7 @@ import {
   ARTICLE_SUMMARY_PROMPT_VERSION,
   isArticleSummaryEnabled,
 } from "./article-summary";
-import { runSummaryJobs } from "./run-summary-jobs";
+import { summarizeArticlesDirect } from "./run-summary-jobs";
 
 const POSTGRES_UNIQUE_VIOLATION = "23505";
 
@@ -135,19 +135,17 @@ export async function ingestSource(
     })(),
     (async () => {
       if (!isArticleSummaryEnabled() || newlyInserted.length === 0) return;
-      const { error } = await supabase.from("article_summary_jobs").upsert(
-        newlyInserted.map(({ articleId }) => ({ article_id: articleId, prompt_version: ARTICLE_SUMMARY_PROMPT_VERSION })),
-        { onConflict: "article_id,prompt_version", ignoreDuplicates: true }
-      );
-      if (error) {
-        console.error(`AI summary queue failed for source ${source.id}:`, error.message);
-        return;
-      }
-      // 수집 시 새로 등록된 글에 대해 곧바로 본문 추출 및 AI 요약을 함께 실행
+      const targetIds = newlyInserted.map((r) => r.articleId);
+      // 곳간 목록에 노출되기 전 새로 등록된 글의 본문 추출 및 AI 요약을 즉시 생성
       try {
-        await runSummaryJobs(newlyInserted.length);
+        await summarizeArticlesDirect(targetIds, supabase);
       } catch (summaryError) {
-        console.error(`Immediate summary run failed after ingest for source ${source.id}:`, summaryError);
+        console.error(`Immediate direct summary failed for source ${source.id}:`, summaryError);
+        // 직접 실행 중 예외 발생 시 백그라운드 큐로 폴백 등록
+        await supabase.from("article_summary_jobs").upsert(
+          targetIds.map((articleId) => ({ article_id: articleId, prompt_version: ARTICLE_SUMMARY_PROMPT_VERSION })),
+          { onConflict: "article_id,prompt_version", ignoreDuplicates: true }
+        );
       }
     })(),
   ]);

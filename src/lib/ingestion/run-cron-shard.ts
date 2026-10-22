@@ -1,3 +1,4 @@
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
 import { ingestSource, type SourceRow } from "@/lib/ingestion/ingest-source";
 import { kstDayStart, sourceShard } from "@/lib/ingestion/cron-sharding";
@@ -87,6 +88,16 @@ export async function runCronShard(shard: number, sweep: "first" | "retry"): Pro
     const batch = candidates.slice(next, next + CONCURRENCY);
     summaries.push(...await Promise.all(batch.map((source) => ingestOne(client, source))));
     next += batch.length;
+  }
+
+  const totalInserted = summaries.reduce((acc, s) => acc + (s.inserted ?? 0), 0);
+  if (totalInserted > 0) {
+    try {
+      revalidateTag("articles", "max");
+      revalidatePath("/");
+    } catch (revalidateErr) {
+      console.warn("Revalidation error after cron ingest:", revalidateErr);
+    }
   }
 
   const remaining = candidates.slice(next).map((source) => source.id);

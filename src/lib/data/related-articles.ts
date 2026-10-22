@@ -4,7 +4,9 @@ import { fetchCachedRpcFromSupabase } from "@/lib/supabase/cached-rest";
 import {
   ARTICLE_SUMMARY_PROMPT_VERSION,
   LEGACY_ARTICLE_SUMMARY_PROMPT_VERSION,
+  isArticleSummaryEnabled,
 } from "@/lib/ingestion/article-summary";
+import { summarizeArticlesDirect } from "@/lib/ingestion/run-summary-jobs";
 
 export interface RelatedArticle {
   id: string;
@@ -74,9 +76,31 @@ export async function getArticlePreview(articleId: string): Promise<ArticlePrevi
   } else {
     const current = summaryResult.data?.find((row) => row.prompt_version === ARTICLE_SUMMARY_PROMPT_VERSION);
     const legacy = summaryResult.data?.find((row) => row.prompt_version === LEGACY_ARTICLE_SUMMARY_PROMPT_VERSION);
-    const currentReady = current?.status === "ready" && Array.isArray(current.key_points);
+    let currentReady = current?.status === "ready" && Array.isArray(current.key_points);
     const legacyReady = legacy?.status === "ready" && Array.isArray(legacy.key_points);
-    const selected = currentReady ? current : legacyReady ? legacy : current;
+    let selected = currentReady ? current : legacyReady ? legacy : current;
+
+    // AI 요약이 활성화되어 있으나 아직 준비되지 않은 경우(대기열 처리 지연 등),
+    // 사용자가 글을 확인하는 시점에 온디맨드로 즉시 생성하여 제공
+    if (!currentReady && !legacyReady && isArticleSummaryEnabled()) {
+      try {
+        const directResult = await summarizeArticlesDirect([articleId], supabase);
+        if (directResult.ready > 0) {
+          const { data: refreshed } = await supabase
+            .from("article_summary_jobs")
+            .select("status,lead,key_points,extraction_status,prompt_version")
+            .eq("article_id", articleId)
+            .eq("prompt_version", ARTICLE_SUMMARY_PROMPT_VERSION)
+            .maybeSingle();
+          if (refreshed?.status === "ready" && Array.isArray(refreshed.key_points)) {
+            selected = refreshed;
+            currentReady = true;
+          }
+        }
+      } catch (onDemandErr) {
+        console.warn(`On-demand summary generation failed for article ${articleId}:`, onDemandErr);
+      }
+    }
 
     if (selected) {
       const allowedStatuses = ["pending", "processing", "ready", "unavailable", "failed"] as const;

@@ -4,7 +4,7 @@ export const ARTICLE_SUMMARY_MODEL = "gpt-5.6-luna";
 export const ARTICLE_SUMMARY_PROMPT_VERSION = "2026-10-21-full-article-v1";
 export const LEGACY_ARTICLE_SUMMARY_PROMPT_VERSION = "2026-10-20-excerpt-v2";
 export const ARTICLE_SUMMARY_MAX_INPUT_CHARS = 40_000;
-export const ARTICLE_SUMMARY_MIN_INPUT_CHARS = 800;
+export const ARTICLE_SUMMARY_MIN_INPUT_CHARS = 200;
 
 export interface ArticleSummaryContent {
   lead: string;
