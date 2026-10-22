@@ -1,16 +1,38 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 export default function ArticleModalLoading() {
+  const router = useRouter();
+  const backdropMouseDownTargetRef = useRef<EventTarget | null>(null);
+
   useEffect(() => {
     (window as unknown as { __modalActive?: boolean }).__modalActive = true;
-  }, []);
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        router.back();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [router]);
 
   return (
     <div
       role="presentation"
       className="article-preview-backdrop article-preview-backdrop-enter"
+      onMouseDown={(e) => {
+        backdropMouseDownTargetRef.current = e.target;
+      }}
+      onTouchStart={(e) => {
+        backdropMouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && backdropMouseDownTargetRef.current === e.currentTarget) {
+          router.back();
+        }
+      }}
     >
       <section
         role="dialog"
@@ -26,8 +48,12 @@ export default function ArticleModalLoading() {
 
         {/* 상단 네비게이션 헤더 */}
         <header className="article-preview-header">
-          <div
+          <button
+            type="button"
+            onClick={() => router.back()}
             style={{
+              border: 0,
+              background: "none",
               color: "var(--seed-color-fg-neutral-muted)",
               fontSize: 14,
               fontWeight: 600,
@@ -36,25 +62,31 @@ export default function ArticleModalLoading() {
               gap: 4,
               padding: "8px 10px",
               minHeight: 40,
+              cursor: "pointer",
             }}
           >
             ← 목록으로
-          </div>
-          <div
+          </button>
+          <button
+            type="button"
+            aria-label="닫기"
+            onClick={() => router.back()}
             style={{
-              width: 40,
-              height: 40,
+              width: 36,
+              height: 36,
               borderRadius: "50%",
+              border: 0,
               background: "var(--seed-color-bg-neutral-weak)",
-              color: "var(--seed-color-fg-neutral-muted)",
-              fontSize: 22,
+              color: "inherit",
+              fontSize: 20,
               display: "grid",
               placeItems: "center",
               lineHeight: 1,
+              cursor: "pointer",
             }}
           >
             ×
-          </div>
+          </button>
         </header>
 
         {/* 컨텐츠 스켈레톤 (단일 독립 스크롤 영역) */}
