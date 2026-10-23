@@ -18,7 +18,7 @@ export function SignUpSection({ next, initiallyOpen = false }: { next: string; i
   }
 
   return (
-    <form action={signUpAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <form action={signUpAction} className="auth-signup-form">
       <input type="hidden" name="next" value={next} />
       <TextField name="nickname" label="닉네임">
         <TextFieldInput type="text" autoComplete="nickname" required />

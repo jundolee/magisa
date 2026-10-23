@@ -390,6 +390,14 @@ h3 {
   width: min(100%, 360px);
   margin: 24px auto 48px;
 }
+.auth-page--signup { gap: 12px; margin: 16px auto 24px; }
+.auth-page--signup .auth-heading { gap: 4px; }
+.auth-page--signup .auth-email-section { gap: 6px; }
+.auth-page--signup .auth-heading h1 { font-size: 22px; line-height: 28px; }
+.auth-page--signup .auth-heading p { font-size: 13px; line-height: 18px; }
+.auth-page--signup .auth-email-section h2 { font-size: 16px; line-height: 22px; }
+.auth-signup-form { display: flex; flex-direction: column; gap: 10px; }
+.auth-signup-form .seed-field__header { font-size: 14px; line-height: 20px; }
 
 .auth-heading {
   display: flex;
@@ -452,6 +460,7 @@ h3 {
   .auth-page {
     margin-top: 16px;
   }
+  .auth-page--signup { margin-top: 8px; margin-bottom: 16px; }
 }
 
 /* 푸터 영역 */

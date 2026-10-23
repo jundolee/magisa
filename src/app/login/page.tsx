@@ -31,7 +31,7 @@ export default async function LoginPage({
   if (user) redirect(redirectTo);
 
   return (
-    <main className="auth-page">
+    <main className={`auth-page${isSignupIntent ? " auth-page--signup" : ""}`}>
       <div className="auth-heading">
         <Text as="h1" textStyle="t9Bold" color="fg.neutral">
           {isSignupIntent ? "회원가입" : "로그인"}
