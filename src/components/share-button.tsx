@@ -10,12 +10,14 @@ export function ShareButton({
   size = "xsmall",
   variant,
   style,
+  compact = false,
 }: {
   title: string;
   url: string;
   size?: "xsmall" | "small" | "medium";
   variant?: "ghost" | "neutralWeak" | "neutralOutline" | "neutralSolid" | "brandOutline";
   style?: React.CSSProperties;
+  compact?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -87,14 +89,16 @@ export function ShareButton({
       variant={copied ? "neutralSolid" : (variant ?? "ghost")}
       size={size}
       onClick={handleShare}
+      aria-label={compact ? (copied ? "링크가 복사됨" : "공유") : undefined}
       style={{
         transition: "all 0.15s ease",
         color: copied ? "#fff" : undefined,
         touchAction: "manipulation",
+        ...(compact ? { minHeight: 36, paddingInline: 8, fontSize: 13, boxShadow: "none" } : {}),
         ...style,
       }}
     >
-      {copied ? "✓ 링크 복사됨" : "공유"}
+      {compact ? (copied ? "✓ 복사됨" : "↗ 공유") : (copied ? "✓ 링크 복사됨" : "공유")}
     </ActionButton>
   );
 }

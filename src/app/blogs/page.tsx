@@ -60,6 +60,11 @@ export default async function BlogsPage() {
         </Text>
       </header>
 
+      <p className="blog-suggestion-note">
+        찾는 블로그가 없나요?{" "}
+        <Link href="/suggest">블로그 추가 제안</Link>
+      </p>
+
       <section aria-labelledby="blog-list">
         <Text as="h2" id="blog-list" textStyle="t6Bold" color="fg.neutral" style={{ marginBottom: 16 }}>
           활성 블로그 ({blogs.length})

@@ -1,47 +1,33 @@
 "use client";
 
-import { SegmentedControl, SegmentedControlItem } from "seed-design/ui/segmented-control";
 import type { ArticleFilter } from "@/lib/data/articles";
+import { TabsIndicator, TabsList, TabsRoot, TabsTrigger } from "@seed-design/react";
 
 const OPTIONS: { value: ArticleFilter; label: string }[] = [
-  { value: "all", label: "전체" },
-  { value: "unread", label: "안읽음" },
-  { value: "read", label: "읽음" },
-  { value: "favorite", label: "즐겨찾기" },
+  { value: "all", label: "모든 글" },
+  { value: "unread", label: "읽지 않은 글" },
+  { value: "read", label: "읽은 글" },
+  { value: "favorite", label: "저장한 글" },
 ];
 
-export function ArticleFilterTabs({
-  current,
-  onChange,
-}: {
+export function ArticleFilterTabs({ current, onChange }: {
   current: ArticleFilter;
   onChange: (value: ArticleFilter) => void;
 }) {
   return (
-    // SEED 기본 패딩(가로 24px×2)+min-width(86px)로 4개를 나열하면 396px가 필요해 320~390px
-    // 화면에서 항상 가로 스크롤이 생겼다 — 패딩/최소폭을 좁혀 4개가 좁은 화면에도 한 줄에 다 들어가게 한다.
-    <SegmentedControl
-      aria-label="글 필터"
+    <TabsRoot
+      className="article-status-tabs"
       value={current}
       onValueChange={(value) => onChange(value as ArticleFilter)}
-      style={{ width: "100%" }}
+      triggerLayout="fill"
+      size="medium"
     >
-      {OPTIONS.map((opt) => (
-        <SegmentedControlItem
-          key={opt.value}
-          value={opt.value}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            paddingInline: 6,
-            fontSize: 13,
-            whiteSpace: "nowrap",
-            textAlign: "center",
-          }}
-        >
-          {opt.label}
-        </SegmentedControlItem>
-      ))}
-    </SegmentedControl>
+      <TabsList className="article-status-tabs-list" aria-label="글 필터">
+        {OPTIONS.map((option) => (
+          <TabsTrigger key={option.value} value={option.value}>{option.label}</TabsTrigger>
+        ))}
+        <TabsIndicator />
+      </TabsList>
+    </TabsRoot>
   );
 }

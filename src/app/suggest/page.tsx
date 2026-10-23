@@ -7,8 +7,8 @@ import { SITE_NAME } from "@/app/seo";
 import { suggestSourceAction } from "./actions";
 
 export const metadata: Metadata = {
-  title: "블로그 추천하기",
-  description: `${SITE_NAME}이 모았으면 하는 테크 블로그를 추천해주세요.`,
+  title: "블로그 추가 제안",
+  description: `${SITE_NAME}에 추가할 테크 블로그를 제안해주세요.`,
   robots: { index: false, follow: true },
   alternates: { canonical: "/suggest" },
 };
@@ -25,7 +25,7 @@ export default async function SuggestPage({
       <PageHeader navHref="/" navLabel="글 목록" />
 
       <Text as="h1" textStyle="t8Bold" color="fg.neutral">
-        블로그 추천하기
+        블로그 추가 제안
       </Text>
       <Text as="p" textStyle="t4Regular" color="var(--seed-color-fg-neutral-muted)">
         {SITE_NAME}이 모았으면 하는 테크 블로그가 있나요? 주소를 남겨주시면 검토 후 추가할게요.
@@ -48,7 +48,7 @@ export default async function SuggestPage({
 
       {done && (
         <Text as="p" textStyle="t3Regular" color="fg.positive">
-          감사합니다! 검토 후 추가할게요.
+          제안해주셔서 감사합니다. 검토 후 추가할게요.
         </Text>
       )}
       {error && (
