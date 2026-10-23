@@ -206,29 +206,7 @@ export async function setArticleFavorite(userId: string, articleId: string, isFa
 
 export async function markAllArticlesRead(userId: string): Promise<void> {
   const supabase = createServiceClient();
-
-  // .select("id")는 PostgREST 기본 1000행 제한에 걸려 전체 글이 1000개를 넘으면 일부만 읽음
-  // 처리되던 버그가 있었음 — range()로 페이지를 넘겨가며 전체 id를 다 모은다.
-  const PAGE_SIZE = 1000;
-  const articleIds: string[] = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await supabase
-      .from("articles")
-      .select("id")
-      .range(from, from + PAGE_SIZE - 1);
-    if (error) throw error;
-    if (!data || data.length === 0) break;
-    articleIds.push(...data.map((a) => a.id));
-    if (data.length < PAGE_SIZE) break;
-  }
-  if (articleIds.length === 0) return;
-
-  const { error } = await supabase
-    .from("read_status")
-    .upsert(
-      articleIds.map((id) => ({ user_id: userId, article_id: id })),
-      { onConflict: "user_id,article_id" }
-    );
+  const { error } = await supabase.rpc("mark_all_articles_read", { target_user_id: userId });
   if (error) throw error;
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { ActionButton } from "seed-design/ui/action-button";
 import { toggleArticleFavoriteAction } from "@/app/articles/actions";
 
@@ -16,6 +17,7 @@ export function FavoriteToggleForm({
   onChange?: (articleId: string, nextFavorite: boolean) => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -33,7 +35,7 @@ export function FavoriteToggleForm({
         if (result === "unauthenticated") {
           onChange?.(articleId, isFavorite);
           const next = `${window.location.pathname}${window.location.search}`;
-          window.location.assign(`/login?next=${encodeURIComponent(next)}`);
+          router.push(`/login?next=${encodeURIComponent(next)}`);
         }
       } catch (error) {
         onChange?.(articleId, isFavorite);
