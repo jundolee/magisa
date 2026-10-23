@@ -1,6 +1,6 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
+import { useEffect, useRef, type KeyboardEvent } from "react";
 import { Icon } from "@seed-design/react";
 import { IconMagnifyingglassLine, IconXmarkCircleFill } from "@karrotmarket/react-monochrome-icon";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
@@ -19,6 +19,14 @@ export function SearchInput({
   autoFocus?: boolean;
   onBlur?: () => void;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!autoFocus) return;
+    const frame = requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
+    return () => cancelAnimationFrame(frame);
+  }, [autoFocus]);
+
   return (
     <TextField
       prefixIcon={<IconMagnifyingglassLine />}
@@ -47,9 +55,10 @@ export function SearchInput({
       style={{ width: "100%" }}
     >
       <TextFieldInput
+        ref={inputRef}
         aria-label="글 검색"
         placeholder="제목·요약·태그 검색"
-        autoFocus={autoFocus}
+        autoFocus={false}
         onBlur={onBlur}
         onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
           if (e.key === "Enter") onSubmit?.();

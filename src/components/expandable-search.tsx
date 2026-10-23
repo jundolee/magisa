@@ -5,10 +5,9 @@ import { Icon } from "@seed-design/react";
 import { IconMagnifyingglassLine } from "@karrotmarket/react-monochrome-icon";
 import { SearchInput } from "./search-input";
 
-// seed-design TextField(input)의 min-height가 52px로 고정돼 있어 (.seed-text-input__root) 접힌 상태의
-// 원형 버튼도 같은 52px로 맞춘다 — 다르면 펼치고 접을 때마다 이 줄의 높이가 바뀌어 전체 읽음 버튼이
+// SEED 탭의 44px 높이에 맞춘다 — 다르면 펼치고 접을 때마다 이 줄의 높이가 바뀌어 전체 읽음 버튼이
 // 살짝씩 흔들리는 것처럼 보였다.
-const COLLAPSED_SIZE = 52;
+const COLLAPSED_SIZE = 44;
 
 /**
  * 평소엔 돋보기 아이콘만 보이다가 클릭하면 그 자리에서 입력창으로 확장되는 검색 UI.
