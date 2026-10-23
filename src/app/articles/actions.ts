@@ -73,23 +73,23 @@ export async function getArticlePreviewAction(articleId: string): Promise<{
   return { article, related };
 }
 
-export async function markArticleUnreadAction(formData: FormData) {
+export async function markArticleUnreadAction(formData: FormData): Promise<"ok" | "unauthenticated"> {
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
+  if (!id) return "ok";
   const userId = await getCurrentUserId();
-  if (!userId) return redirectToLogin();
+  if (!userId) return "unauthenticated";
   await markArticleUnread(userId, id);
-  revalidatePath("/");
+  return "ok";
 }
 
-export async function toggleArticleFavoriteAction(formData: FormData) {
+export async function toggleArticleFavoriteAction(formData: FormData): Promise<"ok" | "unauthenticated"> {
   const id = String(formData.get("id") ?? "");
   const nextFavorite = formData.get("nextFavorite") === "true";
-  if (!id) return;
+  if (!id) return "ok";
   const userId = await getCurrentUserId();
-  if (!userId) return redirectToLogin();
+  if (!userId) return "unauthenticated";
   await setArticleFavorite(userId, id, nextFavorite);
-  revalidatePath("/");
+  return "ok";
 }
 
 export async function markAllArticlesReadAction() {

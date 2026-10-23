@@ -10,9 +10,11 @@ function formatDate(iso: string | null): string {
   return new Date(iso).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" });
 }
 
-export function ArticleRow({ article, onRead, onSelectCategory, priority = false }: {
+export function ArticleRow({ article, onRead, onReadChange, onFavoriteChange, onSelectCategory, priority = false }: {
   article: ArticleListItem;
   onRead?: (articleId: string) => void;
+  onReadChange?: (articleId: string, isRead: boolean) => void;
+  onFavoriteChange?: (articleId: string, isFavorite: boolean) => void;
   onSelectCategory?: (categoryId: CategoryId) => void;
   priority?: boolean;
 }) {
@@ -38,8 +40,8 @@ export function ArticleRow({ article, onRead, onSelectCategory, priority = false
             </button>
           )}
           <div className="article-row-actions">
-            {article.is_read && <UnreadToggleForm articleId={article.id} compact />}
-            <FavoriteToggleForm articleId={article.id} isFavorite={article.is_favorite} compact />
+            {article.is_read && <UnreadToggleForm articleId={article.id} compact onReadChange={onReadChange} />}
+            <FavoriteToggleForm articleId={article.id} isFavorite={article.is_favorite} compact onChange={onFavoriteChange} />
           </div>
         </div>
 
