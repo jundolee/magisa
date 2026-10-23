@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 테크곳간
 
-## Getting Started
+**여러 회사 기술 블로그를 한국어로 검색하고, 주제와 블로그별로 다시 찾아 읽는 공개 아카이브입니다.**
 
-First, run the development server:
+[테크곳간 바로 사용하기](https://www.techgotgan.co.kr/?utm_source=github&utm_medium=readme&utm_campaign=developer_discovery_2026q4) · [주간 큐레이션](https://www.techgotgan.co.kr/digest) · [RSS 피드](https://www.techgotgan.co.kr/feed.xml)
+
+회사마다 흩어진 기술 블로그를 하나씩 확인하는 대신, 한곳에서 새 글을 검색하고 관심 있는 주제와 발행처를 살펴볼 수 있습니다. 검색과 글 열람은 가입 없이 바로 이용할 수 있습니다.
+
+## 이렇게 이용할 수 있어요
+
+1. 홈에서 찾고 싶은 기술이나 도구를 검색합니다. 제목·요약·태그를 대상으로 여러 발행처의 글을 찾습니다.
+2. 주제나 블로그를 선택해 관심 있는 글을 좁힙니다.
+3. 글 상세를 확인하고 원문 발행처로 이동해 읽습니다.
+
+예를 들어 `Next.js`를 검색하면 서로 다른 기술 블로그의 관련 글을 한 결과 목록에서 볼 수 있습니다. 글 상세와 원문은 로그인 없이 열 수 있습니다. 로그인하면 읽음 표시와 즐겨찾기를 기기 간 동기화하고 개인 노트를 저장할 수 있습니다.
+
+## 더 보고 싶은 블로그가 있나요?
+
+[블로그 추천하기](https://www.techgotgan.co.kr/suggest)에서 공개적으로 추천할 수 있습니다. 추천된 블로그는 검토 후 수집 목록에 반영합니다.
+
+## 개발 환경
+
+- Node.js 22 이상
+- `.env.example`을 참고해 필요한 로컬 환경 변수를 설정합니다.
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+개발 서버는 기본적으로 `http://localhost:3000`에서 실행됩니다.
