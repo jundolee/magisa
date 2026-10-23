@@ -321,6 +321,34 @@ h3 {
 .article-page-size-select select:focus-visible { outline: 2px solid var(--seed-color-stroke-focus-ring); outline-offset: 2px; }
 .source-filter-trigger { max-width: min(220px, 32vw); min-width: 0; flex-shrink: 1 !important; }
 .source-filter-trigger-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.source-suggest-cta {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px max(14px, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--seed-color-stroke-neutral-subtle, #f0f0f0);
+  background: var(--seed-color-bg-layer-default, #fff);
+}
+.source-suggest-cta-copy { min-width: 0; }
+.source-suggest-cta-copy p { margin: 0 0 3px; color: var(--seed-color-fg-neutral, #222); font-size: 13px; font-weight: 600; }
+.source-suggest-cta-copy span { color: var(--seed-color-fg-neutral-muted, #68707e); font-size: 12px; line-height: 1.4; }
+.source-suggest-cta-link {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--seed-color-bg-brand-weak, #fff5ee);
+  color: var(--seed-color-fg-brand, #eb641c);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.source-suggest-cta-link:focus-visible { outline: 2px solid var(--seed-color-stroke-focus-ring); outline-offset: 2px; }
 
 .article-topic-controls {
   min-width: 0;
@@ -565,10 +593,6 @@ h3 {
   touch-action: none;
 }
 
-.article-preview-backdrop.article-preview-backdrop-enter {
-  animation: modal-backdrop-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
 .article-preview-dialog {
   position: relative;
   width: min(740px, 100%);
@@ -801,14 +825,16 @@ h3 {
 .article-row-actions .seed-action-button { min-height: 34px; box-shadow: none; }
 
 @media (max-width: 640px) {
-  .article-row-item { padding: 12px 0; }
-  .article-row-main { gap: 10px; }
+  .article-row-item { padding: 8px 0; }
+  .article-row-content { gap: 4px; }
+  .article-row-main { gap: 8px; }
   .article-row-main.has-thumbnail { grid-template-columns: minmax(0, 1fr) 88px; }
   .article-row-actions { gap: 8px; }
   .article-row-thumb-aspect { width: 88px !important; }
   .article-row-link p, .article-row-excerpt p { -webkit-line-clamp: 2; }
   .article-row-link h3 { font-size: 18px; line-height: 1.35; }
   .article-row-link p { font-size: 13px; line-height: 1.45; }
+  .article-row-date { margin-top: 6px; }
   .article-row-meta { flex-wrap: wrap; }
 }
 

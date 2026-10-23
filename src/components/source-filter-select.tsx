@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { Text } from "@seed-design/react";
 
 export interface SourceOption {
@@ -171,7 +172,6 @@ export function SourceFilterSelect({
               display: "flex",
               flexDirection: "column",
               overflow: "hidden",
-              paddingBottom: "max(20px, env(safe-area-inset-bottom, 0px))",
               animation: "fadeInUp 0.2s ease-out",
             }}
           >
@@ -265,6 +265,7 @@ export function SourceFilterSelect({
             <div
               style={{
                 flex: 1,
+                minHeight: 0,
                 overflowY: "auto",
                 overscrollBehavior: "contain",
                 WebkitOverflowScrolling: "touch",
@@ -360,6 +361,16 @@ export function SourceFilterSelect({
                   검색 결과와 일치하는 블로그가 없습니다.
                 </div>
               )}
+            </div>
+
+            <div className="source-suggest-cta">
+              <div className="source-suggest-cta-copy">
+                <p>찾는 블로그가 없나요?</p>
+                <span>목록에 없으면 추가를 제안할 수 있어요.</span>
+              </div>
+              <Link href="/suggest" onClick={handleClose} className="source-suggest-cta-link">
+                블로그 추천하기 <span aria-hidden="true">→</span>
+              </Link>
             </div>
           </div>
         </div>
