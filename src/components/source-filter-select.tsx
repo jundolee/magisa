@@ -76,6 +76,7 @@ export function SourceFilterSelect({
       {/* 카테고리 칩 바의 맨 앞에 들어가는 앵커 칩 버튼 */}
       <button
         type="button"
+        className="source-filter-trigger"
         onClick={handleOpen}
         aria-label={isFiltered ? `선택된 블로그: ${selectedSource?.label}, 필터 변경` : "블로그 선택"}
         aria-haspopup="dialog"
@@ -98,7 +99,7 @@ export function SourceFilterSelect({
           touchAction: "manipulation",
         }}
       >
-        <span>{isFiltered ? selectedSource?.label : ALL_LABEL}</span>
+        <span className="source-filter-trigger-label">{isFiltered ? selectedSource?.label : ALL_LABEL}</span>
 
         {isFiltered ? (
           <span
