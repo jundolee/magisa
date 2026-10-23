@@ -6,10 +6,12 @@ export function PageHeader({
   navHref,
   navLabel,
   authSlot,
+  exploreMenu = false,
 }: {
   navHref?: string;
   navLabel?: string;
   authSlot?: React.ReactNode;
+  exploreMenu?: boolean;
 }) {
   const shortLabel = navLabel ? navLabel.replace(/하기$/, "") : "";
 
@@ -17,6 +19,16 @@ export function PageHeader({
     <header className="page-header-container">
       <BrandLink />
       <div className="page-header-actions">
+        {exploreMenu && (
+          <details className="page-header-explore">
+            <summary><span>둘러보기</span><span aria-hidden="true">⌄</span></summary>
+            <nav aria-label="콘텐츠 탐색">
+              <Link href="/topics">주제별 글</Link>
+              <Link href="/blogs">블로그 목록</Link>
+              <Link href="/digest">주간 큐레이션</Link>
+            </nav>
+          </details>
+        )}
         {navHref && navLabel && (
           <Link href={navHref} className="page-header-nav-link">
             <Text as="span" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">
@@ -25,11 +37,6 @@ export function PageHeader({
             </Text>
           </Link>
         )}
-        <a href="/feed.xml" title="RSS 피드 구독" className="page-header-nav-link">
-          <Text as="span" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)">
-            RSS
-          </Text>
-        </a>
         {authSlot}
       </div>
     </header>
