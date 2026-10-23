@@ -319,6 +319,8 @@ h3 {
   pointer-events: none;
 }
 .article-page-size-select select:focus-visible { outline: 2px solid var(--seed-color-stroke-focus-ring); outline-offset: 2px; }
+.source-filter-trigger { max-width: min(220px, 32vw); min-width: 0; flex-shrink: 1 !important; }
+.source-filter-trigger-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 .article-topic-controls {
   min-width: 0;
@@ -374,6 +376,10 @@ h3 {
   .article-search-shell:not(.search-expanded) > div > button { width: 40px !important; height: 40px !important; }
   .article-topic-controls { position: relative; grid-column: 1; grid-row: 2; min-width: 0; overflow: hidden; }
   .category-filter-scroll-content { gap: 5px; }
+  .article-bulk-actions { min-width: 0; gap: 8px; }
+  .article-list-preferences { flex: 1 1 auto; min-width: 0; gap: 6px; }
+  .source-filter-trigger { max-width: min(40vw, 136px) !important; }
+  .article-bulk-actions > .seed-action-button { flex: 0 0 auto; }
   .bulk-read-menu-content { right: 0; }
 }
 
