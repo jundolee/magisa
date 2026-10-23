@@ -22,6 +22,7 @@ const MIN_AUTO_SEARCH_LENGTH = 2;
 
 const PAGE_SIZE = 30;
 const EMPTY_READ_IDS = new Set<string>();
+const EMPTY_FAVORITE_OVERRIDES = new Map<string, boolean>();
 
 /**
  * 탭/소스/카테고리 필터를 바꿀 때마다 서버에 새로 요청하면 Supabase 왕복 시간이 매번 그대로 드는 게 느려서,
@@ -61,11 +62,20 @@ export function ArticleList({
   const [searchResults, setSearchResults] = useState<ArticleListItem[] | null>(null);
   // 읽음 클릭은 모달 내비게이션과 별도로 서버에 저장되므로 현재 목록의 로컬 상태로 유지한다.
   // 서버가 새 articles 배열을 내려주면 서버 값을 기준으로 다시 시작한다.
-  const [readOverrides, setReadOverrides] = useState<{ articles: ArticleListItem[]; ids: Set<string> }>(() => ({
+  const [readOverrides, setReadOverrides] = useState<{ articles: ArticleListItem[]; readIds: Set<string>; unreadIds: Set<string> }>(() => ({
     articles,
-    ids: new Set(),
+    readIds: new Set(),
+    unreadIds: new Set(),
   }));
-  const locallyReadIds = readOverrides.articles === articles ? readOverrides.ids : EMPTY_READ_IDS;
+  const locallyReadIds = readOverrides.articles === articles ? readOverrides.readIds : EMPTY_READ_IDS;
+  const locallyUnreadIds = readOverrides.articles === articles ? readOverrides.unreadIds : EMPTY_READ_IDS;
+  const [favoriteOverrides, setFavoriteOverrides] = useState<{ articles: ArticleListItem[]; values: Map<string, boolean> }>(() => ({
+    articles,
+    values: new Map(),
+  }));
+  const locallyFavoriteOverrides = favoriteOverrides.articles === articles
+    ? favoriteOverrides.values
+    : EMPTY_FAVORITE_OVERRIDES;
   const startedWithQuery = initialQuery.trim().length > 0;
   const defaultArticlesRef = useRef<ArticleListItem[] | null>(null);
   // 검색창이 펼쳐지면 전체 읽음 버튼을 숨겨 좁은 화면에서도 검색창이 줄 전체를 차지하게 한다.
@@ -114,17 +124,50 @@ export function ArticleList({
 
   function handleRead(articleId: string) {
     setReadOverrides((previous) => {
-      const ids = new Set(previous.articles === articles ? previous.ids : []);
-      ids.add(articleId);
-      return { articles, ids };
+      const readIds = new Set(previous.articles === articles ? previous.readIds : []);
+      const unreadIds = new Set(previous.articles === articles ? previous.unreadIds : []);
+      readIds.add(articleId);
+      unreadIds.delete(articleId);
+      return { articles, readIds, unreadIds };
+    });
+  }
+
+  function handleReadChange(articleId: string, isRead: boolean) {
+    setReadOverrides((previous) => {
+      const readIds = new Set(previous.articles === articles ? previous.readIds : []);
+      const unreadIds = new Set(previous.articles === articles ? previous.unreadIds : []);
+      if (isRead) {
+        readIds.add(articleId);
+        unreadIds.delete(articleId);
+      } else {
+        readIds.delete(articleId);
+        unreadIds.add(articleId);
+      }
+      return { articles, readIds, unreadIds };
+    });
+  }
+
+  function handleFavoriteChange(articleId: string, isFavorite: boolean) {
+    setFavoriteOverrides((previous) => {
+      const values = new Map(previous.articles === articles ? previous.values : []);
+      values.set(articleId, isFavorite);
+      return { articles, values };
     });
   }
 
   const visibleArticles = useMemo(() => {
     return baseArticles
-      .map((article) => locallyReadIds.has(article.id) && !article.is_read
-        ? { ...article, is_read: true }
-        : article)
+      .map((article) => {
+        const isRead = locallyUnreadIds.has(article.id)
+          ? false
+          : locallyReadIds.has(article.id)
+            ? true
+            : article.is_read;
+        const isFavorite = locallyFavoriteOverrides.get(article.id) ?? article.is_favorite;
+        return isRead === article.is_read && isFavorite === article.is_favorite
+          ? article
+          : { ...article, is_read: isRead, is_favorite: isFavorite };
+      })
       .filter((a) => {
         if (filter === "unread" && a.is_read) return false;
         if (filter === "read" && !a.is_read) return false;
@@ -136,7 +179,7 @@ export function ArticleList({
         }
         return true;
       });
-  }, [baseArticles, locallyReadIds, filter, sourceId, category]);
+  }, [baseArticles, locallyReadIds, locallyUnreadIds, locallyFavoriteOverrides, filter, sourceId, category]);
 
   const totalPages = Math.max(1, Math.ceil(visibleArticles.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -277,6 +320,8 @@ export function ArticleList({
             key={article.id}
             article={article}
             onRead={handleRead}
+            onReadChange={handleReadChange}
+            onFavoriteChange={handleFavoriteChange}
             onSelectCategory={handleCategoryChange}
             priority={index < 3}
           />
