@@ -237,38 +237,29 @@ export function ArticleList({
 
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 12,
-          marginBottom: query.trim() ? 8 : 20,
-        }}
-      >
-        <Text as="h2" textStyle="t8Bold" color="fg.neutral">
-          최신 글
-        </Text>
-        {/* 검색창이 펼쳐지면 전체 읽음 버튼을 숨기고 검색창이 줄 전체를 차지하게 한다. */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            flexWrap: "wrap",
-            justifyContent: "flex-end",
-            gap: 12,
-            flexBasis: searchExpanded ? "100%" : "auto",
-          }}
-        >
-          <ExpandableSearch
-            value={query}
-            onValueChange={handleQueryChange}
-            onSubmit={handleSearchSubmit}
-            expanded={searchExpanded}
-            onExpandedChange={setSearchExpanded}
+      <div className={`article-feed-controls${searchExpanded ? " search-expanded" : ""}`}>
+        <ArticleFilterTabs current={filter} onChange={(value) => {
+          setFilter(value);
+          setPage(1);
+          updateUrl(value, sourceId, category);
+        }} />
+        <div className={`article-list-tools${searchExpanded ? " search-expanded" : ""}`}>
+          <ExpandableSearch value={query} onValueChange={handleQueryChange} onSubmit={handleSearchSubmit}
+            expanded={searchExpanded} onExpandedChange={setSearchExpanded} />
+          {!searchExpanded && (
+            <ReadAllControls />
+          )}
+        </div>
+        <div className="article-topic-controls">
+          <CategoryFilterChips
+            selectedCategory={category}
+            onSelectCategory={handleCategoryChange}
+            sourceSlot={<SourceFilterSelect sources={sources} current={sourceId} onChange={(value) => {
+              setSourceId(value);
+              setPage(1);
+              updateUrl(filter, value, category);
+            }} />}
           />
-          {!searchExpanded && <ReadAllControls />}
         </div>
       </div>
 
@@ -277,37 +268,6 @@ export function ArticleList({
           {queryTooShort ? "한 글자 검색은 Enter를 눌러 실행할 수 있어요." : "검색 중…"}
         </Text>
       )}
-
-      {/* 1. 상태 탭: 4개 옵션이 100% 폭으로 균일하게 배치되어 모바일/데스크톱 모두에서 시각적 안정감 극대화 */}
-      <div style={{ marginBottom: 14 }}>
-        <ArticleFilterTabs
-          current={filter}
-          onChange={(value) => {
-            setFilter(value);
-            setPage(1);
-            updateUrl(value, sourceId, category);
-          }}
-        />
-      </div>
-
-      {/* 2. 카테고리 칩 바의 첫 번째 앵커로 블로그 필터 통합 */}
-      <div style={{ marginBottom: 20 }}>
-        <CategoryFilterChips
-          selectedCategory={category}
-          onSelectCategory={handleCategoryChange}
-          sourceSlot={
-            <SourceFilterSelect
-              sources={sources}
-              current={sourceId}
-              onChange={(value) => {
-                setSourceId(value);
-                setPage(1);
-                updateUrl(filter, value, category);
-              }}
-            />
-          }
-        />
-      </div>
 
       {!queryTooShort && <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0 }}>
         {pagedArticles.map((article, index) => (

@@ -84,19 +84,13 @@ export function SourceFilterSelect({
           display: "inline-flex",
           alignItems: "center",
           gap: 5,
-          padding: isFiltered ? "5px 8px 5px 11px" : "5px 11px",
-          borderRadius: "16px",
-          border: isFiltered
-            ? "1.5px solid var(--seed-color-fg-brand, #eb641c)"
-            : "1px solid var(--seed-color-stroke-neutral-subtle, #e5e5e5)",
-          backgroundColor: isFiltered
-            ? "var(--seed-color-bg-brand-weak, #fff5ee)"
-            : "var(--seed-color-bg-layer-default, #fff)",
-          color: isFiltered
-            ? "var(--seed-color-fg-brand, #eb641c)"
-            : "var(--seed-color-fg-neutral, #333)",
+          padding: "7px 10px",
+          borderRadius: "8px",
+          border: "1px solid var(--seed-color-stroke-neutral-subtle, #e5e5e5)",
+          backgroundColor: "var(--seed-color-bg-layer-default, #fff)",
+          color: "var(--seed-color-fg-neutral, #333)",
           fontSize: "13px",
-          fontWeight: isFiltered ? 700 : 500,
+          fontWeight: 500,
           cursor: "pointer",
           whiteSpace: "nowrap",
           flexShrink: 0,
@@ -104,7 +98,6 @@ export function SourceFilterSelect({
           touchAction: "manipulation",
         }}
       >
-        <span aria-hidden="true" style={{ fontSize: 13 }}>🏢</span>
         <span>{isFiltered ? selectedSource?.label : ALL_LABEL}</span>
 
         {isFiltered ? (
