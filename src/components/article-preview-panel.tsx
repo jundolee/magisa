@@ -7,6 +7,7 @@ import { RelatedArticleList } from "@/components/related-article-list";
 import { ShareButton } from "@/components/share-button";
 import { getArticlePreviewAction, markArticleReadAction } from "@/app/articles/actions";
 import { CATEGORY_MAP, type CategoryId } from "@/lib/categories";
+import { cleanKeyPoint } from "@/lib/summary-utils";
 import type { ArticlePreview, RelatedArticle } from "@/lib/data/related-articles";
 
 const ENGINEERING_BOX_METAS = [
@@ -33,7 +34,7 @@ const ENGINEERING_BOX_METAS = [
   },
 ];
 
-import { cleanKeyPoint } from "@/lib/summary-utils";
+const CLOSE_ANIMATION_DURATION_MS = 220;
 
 function formatDate(value: string | null): string | null {
   if (!value) return null;
@@ -97,12 +98,13 @@ export function ArticlePreviewPanel({
   const currentDragYRef = useRef<number>(0);
   const isDraggingRef = useRef<boolean>(false);
 
-  const handleClose = useCallback(() => {
-    if (isClosingRef.current) return;
+  const beginCloseAnimation = useCallback(() => {
+    if (isClosingRef.current) return false;
     isClosingRef.current = true;
     const isMobile = typeof window !== "undefined" && window.innerWidth <= 640;
     if (dialogRef.current) {
-      dialogRef.current.style.transition = "transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease";
+      dialogRef.current.style.animation = "none";
+      dialogRef.current.style.transition = `transform ${CLOSE_ANIMATION_DURATION_MS}ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease`;
       dialogRef.current.style.transform = isMobile ? "translateY(100%)" : "scale(0.96) translateY(12px)";
       if (!isMobile) {
         dialogRef.current.style.opacity = "0";
@@ -112,11 +114,20 @@ export function ArticlePreviewPanel({
       backdropRef.current.style.transition = "opacity 0.2s ease";
       backdropRef.current.style.opacity = "0";
     }
-    setTimeout(() => {
+    return true;
+  }, []);
+
+  const handleClose = useCallback(() => {
+    if (!beginCloseAnimation()) return;
+    window.setTimeout(() => {
       (window as unknown as { __modalActive?: boolean }).__modalActive = false;
-      router.back();
-    }, 180);
-  }, [router]);
+      // A browser Back action may have already left the article route while the
+      // close animation was running. Do not consume another history entry.
+      if (/^\/articles\/[0-9a-f-]+$/i.test(window.location.pathname)) {
+        router.back();
+      }
+    }, CLOSE_ANIMATION_DURATION_MS);
+  }, [beginCloseAnimation, router]);
 
   const handleSelectRelated = useCallback(
     async (articleId: string) => {
@@ -146,7 +157,7 @@ export function ArticlePreviewPanel({
       const pathname = window.location.pathname;
       const match = pathname.match(/^\/articles\/([0-9a-f-]+)$/i);
       if (!match) {
-        handleClose();
+        beginCloseAnimation();
         return;
       }
       const targetId = match[1];
@@ -169,7 +180,7 @@ export function ArticlePreviewPanel({
 
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [currentArticle.id, handleClose]);
+  }, [beginCloseAnimation, currentArticle.id]);
 
   // 관련 기사 클릭 등으로 article.id가 변경될 때 내부 스크롤을 맨 위로 초기화
   useEffect(() => {
@@ -233,6 +244,20 @@ export function ArticlePreviewPanel({
     currentDragYRef.current = 0;
   }
 
+  function handleTouchCancel() {
+    isDraggingRef.current = false;
+    dragStartYRef.current = null;
+    currentDragYRef.current = 0;
+    if (dialogRef.current) {
+      dialogRef.current.style.transition = "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)";
+      dialogRef.current.style.transform = "translateY(0)";
+    }
+    if (backdropRef.current) {
+      backdropRef.current.style.transition = "opacity 0.25s ease";
+      backdropRef.current.style.opacity = "1";
+    }
+  }
+
   const bodyTouchStartYRef = useRef<number | null>(null);
   const isPullingDownFromTopRef = useRef<boolean>(false);
 
@@ -286,6 +311,20 @@ export function ArticlePreviewPanel({
     }
     bodyTouchStartYRef.current = null;
     currentDragYRef.current = 0;
+  }
+
+  function handleBodyTouchCancel() {
+    bodyTouchStartYRef.current = null;
+    isPullingDownFromTopRef.current = false;
+    currentDragYRef.current = 0;
+    if (dialogRef.current) {
+      dialogRef.current.style.transition = "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)";
+      dialogRef.current.style.transform = "translateY(0)";
+    }
+    if (backdropRef.current) {
+      backdropRef.current.style.transition = "opacity 0.25s ease";
+      backdropRef.current.style.opacity = "1";
+    }
   }
 
   useEffect(() => {
@@ -371,6 +410,7 @@ export function ArticlePreviewPanel({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
         >
           <span className="article-preview-drag-bar" />
         </div>
@@ -381,6 +421,7 @@ export function ArticlePreviewPanel({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
         >
           <button
             type="button"
@@ -422,6 +463,7 @@ export function ArticlePreviewPanel({
           onTouchStart={handleBodyTouchStart}
           onTouchMove={handleBodyTouchMove}
           onTouchEnd={handleBodyTouchEnd}
+          onTouchCancel={handleBodyTouchCancel}
         >
           {isLoadingRelated ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
