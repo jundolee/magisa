@@ -102,8 +102,7 @@ export default async function Home({
         흩어진 테크 블로그 글을 한곳에서 찾아 읽어요
       </Text>
       <Text as="p" textStyle="t3Regular" color="var(--seed-color-fg-neutral-muted)" style={{ marginBottom: 20 }}>
-        테크곳간은 여러 기술 블로그의 새 글을 모아 제목·요약·태그로 검색할 수 있는 피드예요.<br />
-        로그인하면 읽음 표시와 즐겨찾기를 동기화하고, AI 요약과 의미 기반 연관 글을 찾아볼 수 있어요.
+        여러 기술 블로그의 새 글을 제목·요약·태그로 검색하고 주제별·블로그별로 살펴볼 수 있어요. 글 상세와 원문은 로그인 없이 볼 수 있고, 로그인하면 읽음 표시와 즐겨찾기를 동기화하고 개인 노트를 저장할 수 있어요.
       </Text>
 
 
