@@ -243,23 +243,15 @@ export function ArticleList({
           setPage(1);
           updateUrl(value, sourceId, category);
         }} />
-        <div className={`article-list-tools${searchExpanded ? " search-expanded" : ""}`}>
-          <ExpandableSearch value={query} onValueChange={handleQueryChange} onSubmit={handleSearchSubmit}
-            expanded={searchExpanded} onExpandedChange={setSearchExpanded} />
-          {!searchExpanded && (
-            <ReadAllControls />
-          )}
-        </div>
         <div className="article-topic-controls">
           <CategoryFilterChips
             selectedCategory={category}
             onSelectCategory={handleCategoryChange}
-            sourceSlot={<SourceFilterSelect sources={sources} current={sourceId} onChange={(value) => {
-              setSourceId(value);
-              setPage(1);
-              updateUrl(filter, value, category);
-            }} />}
           />
+        </div>
+        <div className={`article-search-shell${searchExpanded ? " search-expanded" : ""}`}>
+          <ExpandableSearch value={query} onValueChange={handleQueryChange} onSubmit={handleSearchSubmit}
+            expanded={searchExpanded} onExpandedChange={setSearchExpanded} />
         </div>
       </div>
 
@@ -268,6 +260,15 @@ export function ArticleList({
           {queryTooShort ? "한 글자 검색은 Enter를 눌러 실행할 수 있어요." : "검색 중…"}
         </Text>
       )}
+
+      <div className={`article-bulk-actions${searchExpanded ? " search-expanded" : ""}`}>
+        <SourceFilterSelect sources={sources} current={sourceId} onChange={(value) => {
+          setSourceId(value);
+          setPage(1);
+          updateUrl(filter, value, category);
+        }} />
+        <ReadAllControls />
+      </div>
 
       {!queryTooShort && <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0 }}>
         {pagedArticles.map((article, index) => (
