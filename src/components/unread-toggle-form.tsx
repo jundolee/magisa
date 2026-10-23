@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { ActionButton } from "seed-design/ui/action-button";
 import { markArticleUnreadAction } from "@/app/articles/actions";
 
@@ -10,6 +11,7 @@ export function UnreadToggleForm({ articleId, compact = false, onReadChange }: {
   onReadChange?: (articleId: string, isRead: boolean) => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,7 +27,7 @@ export function UnreadToggleForm({ articleId, compact = false, onReadChange }: {
         if (result === "unauthenticated") {
           onReadChange?.(articleId, true);
           const next = `${window.location.pathname}${window.location.search}`;
-          window.location.assign(`/login?next=${encodeURIComponent(next)}`);
+          router.push(`/login?next=${encodeURIComponent(next)}`);
         }
       } catch (error) {
         onReadChange?.(articleId, true);
