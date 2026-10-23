@@ -20,14 +20,15 @@ const SEARCH_DEBOUNCE_MS = 400;
 // 두 글자 검색은 AI, DB, ML처럼 테크 글에서 자주 쓰는 약어에 필요하다.
 const MIN_AUTO_SEARCH_LENGTH = 2;
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE_OPTIONS = [10, 30, 50] as const;
+type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 const EMPTY_READ_IDS = new Set<string>();
 const EMPTY_FAVORITE_OVERRIDES = new Map<string, boolean>();
 
 /**
  * 탭/소스/카테고리 필터를 바꿀 때마다 서버에 새로 요청하면 Supabase 왕복 시간이 매번 그대로 드는 게 느려서,
  * 글 목록은 한 번만 받아오고 필터링은 브라우저 안에서 즉시 처리한다 (docs/decisions.md 참고).
- * 읽음 처리 등 실제 데이터 변경은 여전히 서버 액션 + revalidatePath로 이 컴포넌트의 articles prop을 갱신한다.
+ * 읽음/즐겨찾기 변경은 서버 액션으로 저장하고 목록은 로컬 오버라이드로 즉시 반영한다.
  */
 export function ArticleList({
   articles,
@@ -50,11 +51,11 @@ export function ArticleList({
   const [query, setQuery] = useState(initialQuery);
   const [shortQuerySubmitted, setShortQuerySubmitted] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(30);
 
   // 검색 결과로 목록을 갈아끼우는 상태 — null이면 "검색 중이 아님"을 뜻하고, 이때는 아래에서 매 렌더마다
-  // articles(서버가 내려준, revalidatePath로 계속 최신 유지되는 기본 목록) prop을 그대로 읽는다. 그래서
-  // 검색어를 지울 때도 대개는 setSearchResults(null)만으로 충분하고, 이후 마크 읽음 등으로 articles가
-  // 갱신돼도 별도 동기화 없이 항상 최신이 반영된다.
+  // articles는 서버가 내려준 기준 목록이다. 검색어를 지울 때도 대개는 setSearchResults(null)만으로 충분하고,
+  // 사용자 상태 변경은 로컬 오버라이드로 즉시 보여준다.
   // 예외는 페이지가 처음부터 ?q=로 열린 경우 — 그때는 articles prop 자체가 검색 결과라 "기본 목록"이
   // 따로 없으므로, 검색어를 처음 지울 때만 실제로 받아와 이 ref에 캐시해둔다(그 뒤로는 이 스냅샷을 씀 —
   // 즉, 이 경우에 한해 이후 revalidatePath로 인한 기본 목록 갱신은 반영되지 않는, 필터/소스와 동일한
@@ -155,6 +156,40 @@ export function ArticleList({
     });
   }
 
+  function handleMarkAllRead(): () => void {
+    const previousReadIds = new Set(readOverrides.articles === articles ? readOverrides.readIds : []);
+    const previousUnreadIds = new Set(readOverrides.articles === articles ? readOverrides.unreadIds : []);
+    const affectedIds = baseArticles.map((article) => article.id);
+
+    setReadOverrides((previous) => {
+      const readIds = new Set(previous.articles === articles ? previous.readIds : []);
+      const unreadIds = new Set(previous.articles === articles ? previous.unreadIds : []);
+      for (const id of affectedIds) {
+        readIds.add(id);
+        unreadIds.delete(id);
+      }
+      return { articles, readIds, unreadIds };
+    });
+
+    return () => setReadOverrides((current) => {
+      const readIds = new Set(current.articles === articles ? current.readIds : []);
+      const unreadIds = new Set(current.articles === articles ? current.unreadIds : []);
+      for (const id of affectedIds) {
+        if (previousReadIds.has(id)) {
+          readIds.add(id);
+          unreadIds.delete(id);
+        } else if (previousUnreadIds.has(id)) {
+          unreadIds.add(id);
+          readIds.delete(id);
+        } else {
+          readIds.delete(id);
+          unreadIds.delete(id);
+        }
+      }
+      return { articles, readIds, unreadIds };
+    });
+  }
+
   const visibleArticles = useMemo(() => {
     return baseArticles
       .map((article) => {
@@ -181,9 +216,9 @@ export function ArticleList({
       });
   }, [baseArticles, locallyReadIds, locallyUnreadIds, locallyFavoriteOverrides, filter, sourceId, category]);
 
-  const totalPages = Math.max(1, Math.ceil(visibleArticles.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(visibleArticles.length / pageSize));
   const safePage = Math.min(page, totalPages);
-  const pagedArticles = visibleArticles.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const pagedArticles = visibleArticles.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   function goToPage(nextPage: number) {
     setPage(nextPage);
@@ -305,12 +340,26 @@ export function ArticleList({
       )}
 
       <div className={`article-bulk-actions${searchExpanded ? " search-expanded" : ""}`}>
-        <SourceFilterSelect sources={sources} current={sourceId} onChange={(value) => {
-          setSourceId(value);
-          setPage(1);
-          updateUrl(filter, value, category);
-        }} />
-        <ReadAllControls />
+        <div className="article-list-preferences">
+          <SourceFilterSelect sources={sources} current={sourceId} onChange={(value) => {
+            setSourceId(value);
+            setPage(1);
+            updateUrl(filter, value, category);
+          }} />
+          <label className="article-page-size-select">
+            <select
+              aria-label="한 페이지에 표시할 글 수"
+              value={pageSize}
+              onChange={(event) => {
+                setPageSize(Number(event.target.value) as PageSize);
+                setPage(1);
+              }}
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}개</option>)}
+            </select>
+          </label>
+        </div>
+        <ReadAllControls onMarkAllRead={handleMarkAllRead} />
       </div>
 
       {!queryTooShort && <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0 }}>

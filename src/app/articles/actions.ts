@@ -92,11 +92,11 @@ export async function toggleArticleFavoriteAction(formData: FormData): Promise<"
   return "ok";
 }
 
-export async function markAllArticlesReadAction() {
+export async function markAllArticlesReadAction(): Promise<"ok" | "unauthenticated"> {
   const userId = await getCurrentUserId();
-  if (!userId) return redirectToLogin();
+  if (!userId) return "unauthenticated";
   await markAllArticlesRead(userId);
-  revalidatePath("/");
+  return "ok";
 }
 
 export async function markAllArticlesUnreadAction() {
