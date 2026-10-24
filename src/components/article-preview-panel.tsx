@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Text } from "@seed-design/react";
 import { RelatedArticleList } from "@/components/related-article-list";
+import { ArticleSummaryCopy } from "@/components/article-summary-copy";
 import { ShareButton } from "@/components/share-button";
 import { getArticlePreviewAction, markArticleReadAction } from "@/app/articles/actions";
 import { CATEGORY_MAP, type CategoryId } from "@/lib/categories";
@@ -594,13 +595,13 @@ export function ArticlePreviewPanel({
                   aria-labelledby="ai-summary-heading"
                   style={{
                     borderRadius: 20,
-                    padding: "24px clamp(18px, 3.5vw, 28px)",
+                    padding: "18px clamp(16px, 3vw, 22px)",
                     background: "linear-gradient(180deg, #fffaf5 0%, #ffffff 100%)",
                     border: "1px solid #fbd8bc",
                     boxShadow: "0 2px 10px rgba(235, 100, 28, 0.04)",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <span aria-hidden="true" style={{ fontSize: 16 }}>✨</span>
                       <Text as="h2" id="ai-summary-heading" textStyle="t5Bold" color="fg.neutral">
@@ -617,16 +618,14 @@ export function ArticlePreviewPanel({
                     style={{
                       borderLeft: "3px solid var(--seed-color-bg-brand-solid, #eb641c)",
                       paddingLeft: 14,
-                      marginBottom: 18,
+                      marginBottom: 12,
                     }}
                   >
-                    <Text as="p" textStyle="t3Bold" color="fg.neutral" style={{ lineHeight: 1.5, wordBreak: "keep-all", overflowWrap: "break-word" }}>
-                      {currentArticle.summary.lead}
-                    </Text>
+                    <ArticleSummaryCopy text={currentArticle.summary.lead} className="article-summary-lead" />
                   </div>
 
                   {/* 엔지니어링 3-Box (문제 ➔ 기술/해결책 ➔ 교훈/주의점) */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {currentArticle.summary.keyPoints.map((point, index) => {
                       const meta = ENGINEERING_BOX_METAS[index] ?? {
                         icon: "📌",
@@ -643,10 +642,10 @@ export function ArticlePreviewPanel({
                             background: meta.bg,
                             border: `1px solid ${meta.border}`,
                             borderRadius: 14,
-                            padding: "12px 16px",
+                            padding: "10px 14px",
                             display: "flex",
                             flexDirection: "column",
-                            gap: 6,
+                            gap: 4,
                             boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
                           }}
                         >
@@ -656,9 +655,7 @@ export function ArticlePreviewPanel({
                               {meta.label}
                             </Text>
                           </div>
-                          <Text as="p" textStyle="t3Regular" color="fg.neutral" style={{ lineHeight: 1.55, margin: 0 }}>
-                            {cleanKeyPoint(point)}
-                          </Text>
+                          <ArticleSummaryCopy text={cleanKeyPoint(point)} className="article-summary-point" />
                         </div>
                       );
                     })}

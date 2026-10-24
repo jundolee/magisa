@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { Text } from "@seed-design/react";
 import { RelatedArticleList } from "@/components/related-article-list";
 import { markArticleRead } from "@/lib/data/articles";
+import { ArticleSummaryCopy } from "@/components/article-summary-copy";
 import { getArticlePreview, getRelatedArticles } from "@/lib/data/related-articles";
 import { getCurrentUser } from "@/lib/supabase/current-user";
 import { SITE_NAME } from "@/app/seo";
@@ -84,7 +85,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         </div>
         {article.summary ? <>
           <div style={{ borderLeft: "3px solid var(--seed-color-bg-brand-solid, #eb641c)", paddingLeft: 14, marginBottom: 18 }}>
-            <Text as="p" textStyle="t3Bold" color="fg.neutral" style={{ lineHeight: 1.5, wordBreak: "keep-all" }}>{article.summary.lead}</Text>
+            <ArticleSummaryCopy text={article.summary.lead} className="article-summary-lead" />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {article.summary.keyPoints.map((point, index) => {
@@ -95,7 +96,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                     <span aria-hidden="true" style={{ fontSize: 14 }}>{meta.icon}</span>
                     <Text as="span" textStyle="t2Bold" style={{ color: meta.tagColor }}>{meta.label}</Text>
                   </div>
-                  <Text as="p" textStyle="t3Regular" color="fg.neutral" style={{ lineHeight: 1.55, margin: 0 }}>{point}</Text>
+              <ArticleSummaryCopy text={point} className="article-summary-point" />
                 </div>
               );
             })}
