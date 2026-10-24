@@ -606,10 +606,6 @@ h3 {
   touch-action: auto;
 }
 
-.article-preview-dialog.article-preview-dialog-enter {
-  animation: modal-dialog-pop-in 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
 .article-preview-drag-handle {
   display: none;
 }
@@ -676,10 +672,6 @@ h3 {
     width: 100%;
     max-height: 90dvh;
     border-radius: 20px 20px 0 0;
-  }
-
-  .article-preview-dialog.article-preview-dialog-enter {
-    animation: sheet-slide-up 0.26s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .article-preview-drag-handle {

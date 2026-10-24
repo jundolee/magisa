@@ -8,7 +8,6 @@ export default function ArticleModalLoading() {
   const backdropMouseDownTargetRef = useRef<EventTarget | null>(null);
 
   useEffect(() => {
-    (window as unknown as { __modalActive?: boolean }).__modalActive = true;
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         router.back();
@@ -21,7 +20,7 @@ export default function ArticleModalLoading() {
   return (
     <div
       role="presentation"
-      className="article-preview-backdrop article-preview-backdrop-enter"
+      className="article-preview-backdrop"
       onMouseDown={(e) => {
         backdropMouseDownTargetRef.current = e.target;
       }}
@@ -39,7 +38,7 @@ export default function ArticleModalLoading() {
         aria-modal="true"
         aria-label="기사 불러오는 중"
         tabIndex={-1}
-        className="article-preview-dialog article-preview-dialog-enter"
+        className="article-preview-dialog"
       >
         {/* 모바일 바텀시트 상단 드래그 핸들 스켈레톤 */}
         <div className="article-preview-drag-handle">
