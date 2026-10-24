@@ -1,6 +1,7 @@
 function renderInline(text: string) {
-  return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, index) => {
-    if (part.startsWith("**") && part.endsWith("**")) return <strong key={index}>{part.slice(2, -2)}</strong>;
+  return text.split(/(\*\*[^*]+\*\*|\*[^*\n]+\*|`[^`]+`)/g).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) return <span className="article-summary-emphasis" key={index}>{part.slice(2, -2)}</span>;
+    if (part.startsWith("*") && part.endsWith("*")) return <span className="article-summary-emphasis" key={index}>{part.slice(1, -1)}</span>;
     if (part.startsWith("`") && part.endsWith("`")) return <code key={index}>{part.slice(1, -1)}</code>;
     return part.replace(/^#{1,6}\s+/, "");
   });
@@ -22,7 +23,7 @@ export function ArticleSummaryCopy({ text, className = "" }: { text: string; cla
         <ul key={index}>{block.lines.map((line, itemIndex) => (
           <li key={itemIndex}>{renderInline(line.replace(/^\s*(?:[-*+]\s+|\d+[.)]\s+)/, ""))}</li>
         ))}</ul>
-      ) : <p key={index}>{renderInline(block.lines.join(" "))}</p>)}
+      ) : <p key={index}>{renderInline(block.lines.join(" ").replace(/\s*\*\s*/g, " "))}</p>)}
     </div>
   );
 }
