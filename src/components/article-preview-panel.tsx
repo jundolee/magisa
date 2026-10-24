@@ -34,7 +34,7 @@ const ENGINEERING_BOX_METAS = [
   },
 ];
 
-const CLOSE_ANIMATION_DURATION_MS = 220;
+const CLOSE_ANIMATION_DURATION_MS = 160;
 
 function formatDate(value: string | null): string | null {
   if (!value) return null;
@@ -111,7 +111,7 @@ export function ArticlePreviewPanel({
       }
     }
     if (backdropRef.current) {
-      backdropRef.current.style.transition = "opacity 0.2s ease";
+      backdropRef.current.style.transition = `opacity ${CLOSE_ANIMATION_DURATION_MS}ms ease`;
       backdropRef.current.style.opacity = "0";
     }
     return true;
