@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { ArticlePreviewPanel } from "@/components/article-preview-panel";
 import { getArticlePreview, getRelatedArticles } from "@/lib/data/related-articles";
+import { markArticleRead } from "@/lib/data/articles";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 
 export async function ArticlePreviewRoute({ articleId }: { articleId: string }) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(articleId)) notFound();
@@ -13,9 +15,18 @@ export async function ArticlePreviewRoute({ articleId }: { articleId: string }) 
     const articlePromise = getArticlePreview(articleId);
     const relatedPromise = getRelatedArticles(articleId);
 
-    const [fetchedArticle, initialRelated] = await Promise.all([articlePromise, relatedPromise]);
+    const [fetchedArticle, initialRelated, user] = await Promise.all([articlePromise, relatedPromise, getCurrentUser()]);
     article = fetchedArticle;
     if (article) {
+      if (user) {
+        try {
+          // The link's fire-and-forget action can be interrupted by an immediate reload.
+          // Persist again while rendering the opened article; the upsert is idempotent.
+          await markArticleRead(user.id, article.id);
+        } catch (error) {
+          console.error("Failed to persist article read state during preview render:", error);
+        }
+      }
       related = initialRelated.length > 0
         ? initialRelated
         : await getRelatedArticles(article.id, article.category, article.tags);
