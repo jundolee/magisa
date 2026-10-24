@@ -201,6 +201,11 @@ export function ArticlePreviewPanel({
     if (dialogRef.current) {
       dialogRef.current.style.transition = "none";
     }
+    if (backdropRef.current) {
+      // A previous drag may have left an easing transition behind. Follow the
+      // sheet directly while dragging so the dim does not lag behind it.
+      backdropRef.current.style.transition = "none";
+    }
   }
 
   function handleTouchMove(e: React.TouchEvent) {
@@ -245,6 +250,7 @@ export function ArticlePreviewPanel({
   }
 
   function handleTouchCancel() {
+    if (isClosingRef.current) return;
     isDraggingRef.current = false;
     dragStartYRef.current = null;
     currentDragYRef.current = 0;
@@ -286,6 +292,7 @@ export function ArticlePreviewPanel({
         dialogRef.current.style.transform = `translateY(${dragY}px)`;
       }
       if (backdropRef.current) {
+        backdropRef.current.style.transition = "none";
         const opacity = Math.max(0.2, 1 - dragY / 400);
         backdropRef.current.style.opacity = String(opacity);
       }
@@ -314,6 +321,7 @@ export function ArticlePreviewPanel({
   }
 
   function handleBodyTouchCancel() {
+    if (isClosingRef.current) return;
     bodyTouchStartYRef.current = null;
     isPullingDownFromTopRef.current = false;
     currentDragYRef.current = 0;
