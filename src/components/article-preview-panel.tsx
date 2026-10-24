@@ -625,7 +625,7 @@ export function ArticlePreviewPanel({
                   </div>
 
                   {/* 엔지니어링 3-Box (문제 ➔ 기술/해결책 ➔ 교훈/주의점) */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {currentArticle.summary.keyPoints.map((point, index) => {
                       const meta = ENGINEERING_BOX_METAS[index] ?? {
                         icon: "📌",
