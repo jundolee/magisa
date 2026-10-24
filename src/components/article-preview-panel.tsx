@@ -85,13 +85,6 @@ export function ArticlePreviewPanel({
   const currentRelated = overrideRelated ?? initialRelated;
   const [isLoadingRelated, setIsLoadingRelated] = useState(false);
 
-  const [shouldAnimateEnter] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const wasActive = !!(window as unknown as { __modalActive?: boolean }).__modalActive;
-    (window as unknown as { __modalActive?: boolean }).__modalActive = true;
-    return !wasActive;
-  });
-
   const isClosingRef = useRef(false);
 
   const dragStartYRef = useRef<number | null>(null);
@@ -120,7 +113,6 @@ export function ArticlePreviewPanel({
   const handleClose = useCallback(() => {
     if (!beginCloseAnimation()) return;
     window.setTimeout(() => {
-      (window as unknown as { __modalActive?: boolean }).__modalActive = false;
       // A browser Back action may have already left the article route while the
       // close animation was running. Do not consume another history entry.
       if (/^\/articles\/[0-9a-f-]+$/i.test(window.location.pathname)) {
@@ -186,13 +178,6 @@ export function ArticlePreviewPanel({
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: 0, behavior: "instant" });
   }, [currentArticle.id]);
-
-  useEffect(() => {
-    (window as unknown as { __modalActive?: boolean }).__modalActive = true;
-    return () => {
-      (window as unknown as { __modalActive?: boolean }).__modalActive = false;
-    };
-  }, []);
 
   function handleTouchStart(e: React.TouchEvent) {
     dragStartYRef.current = e.touches[0].clientY;
@@ -391,7 +376,7 @@ export function ArticlePreviewPanel({
     <div
       ref={backdropRef}
       role="presentation"
-      className={`article-preview-backdrop ${shouldAnimateEnter ? "article-preview-backdrop-enter" : ""}`}
+      className="article-preview-backdrop"
       onMouseDown={(event) => {
         backdropMouseDownTargetRef.current = event.target;
       }}
@@ -410,7 +395,7 @@ export function ArticlePreviewPanel({
         aria-modal="true"
         aria-labelledby="article-preview-title"
         tabIndex={-1}
-        className={`article-preview-dialog ${shouldAnimateEnter ? "article-preview-dialog-enter" : ""}`}
+        className="article-preview-dialog"
       >
         {/* 모바일 바텀시트 상단 드래그 핸들 */}
         <div
