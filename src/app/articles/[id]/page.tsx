@@ -4,8 +4,10 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Text } from "@seed-design/react";
 import { RelatedArticleList } from "@/components/related-article-list";
+import { markArticleRead } from "@/lib/data/articles";
 import { getArticlePreview, getRelatedArticles } from "@/lib/data/related-articles";
 import { cleanKeyPoint } from "@/lib/summary-utils";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { SITE_NAME } from "@/app/seo";
 
 export const runtime = "nodejs";
@@ -48,8 +50,17 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
   const articlePromise = getArticle(id);
   const relatedPromise = getRelatedArticles(id);
-  const [article, initialRelated] = await Promise.all([articlePromise, relatedPromise]);
+  const [article, initialRelated, user] = await Promise.all([articlePromise, relatedPromise, getCurrentUser()]);
   if (!article) notFound();
+
+  if (user) {
+    try {
+      // A hard reload can cancel the client-side click action; mark the opened page read here too.
+      await markArticleRead(user.id, article.id);
+    } catch (error) {
+      console.error("Failed to persist article read state during page render:", error);
+    }
+  }
 
   const related = initialRelated.length > 0
     ? initialRelated
